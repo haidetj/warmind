@@ -1,0 +1,25 @@
+# Render blueprint. Push this repo to GitHub, then in Render:
+#   New → Blueprint → pick the repo. It reads this file.
+# Set ANTHROPIC_API_KEY in the dashboard (it is marked sync:false so it is NOT
+# stored in git). The disk gives SQLite a home so lobbies survive restarts —
+# remove the `disk:` block to run free/ephemeral (lobbies reset when the
+# instance sleeps, which is fine for one-off drops).
+services:
+  - type: web
+    name: warmind
+    runtime: docker
+    plan: starter            # 'free' also works but has no disk + cold starts
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: WARMIND_DB
+        value: /data/warmind.db
+      - key: WARMIND_MODEL
+        value: claude-sonnet-5
+    disk:
+      name: warmind-data
+      mountPath: /data
+      sizeGB: 1

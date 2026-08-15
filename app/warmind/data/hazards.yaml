@@ -1,0 +1,143 @@
+# Closed set. 14 values, exhaustive as of build 24036910.
+# `modifiers` are ADDITIVE tag weights applied on top of the base kit score.
+# Negative = discourage. Range roughly -1.0 .. +1.0. Never a hard replace.
+
+extreme_cold:
+  display_name: Extreme Cold
+  description: Icy temperatures reduce rate of fire and delay heat buildup in weapons.
+  severity: 2
+  modifiers:
+    energy: +0.60          # delayed heat buildup is a straight buff to laser/plasma
+    high_rof_ballistic: -0.30
+    sustain_fire: +0.20
+
+nocturnal_extreme_cold:
+  display_name: Nocturnal Extreme Cold
+  description: At night icy temperatures reduce rate of fire and delay heat buildup.
+  severity: 1
+  is_diurnal: true
+  modifiers:
+    energy: +0.30
+
+intense_heat:
+  display_name: Intense Heat
+  description: High temperatures increase stamina drain and speed up heat buildup.
+  severity: 2
+  modifiers:
+    energy: -0.50          # faster overheat
+    light_armor: +0.30
+    stamina_booster: +0.40
+    ammo_independent: -0.20
+
+durial_intense_heat:
+  display_name: Durial Intense Heat
+  description: Daytime high temperatures increase stamina drain and weapon heat buildup.
+  severity: 1
+  is_diurnal: true
+  modifiers:
+    energy: -0.25
+    stamina_booster: +0.20
+
+ion_storms:
+  display_name: Ion Storms
+  description: Ion storms intermittently disable Stratagems.
+  severity: 3
+  modifiers:
+    orbital: -0.80         # single biggest kit-shaper in the game
+    eagle: -0.80
+    support_weapon: +0.70  # what you carry is what you have
+    strong_primary: +0.50
+    sentry: -0.30          # can't call one down mid-storm
+    backpack_sustain: +0.40
+
+fire_tornadoes:
+  display_name: Fire Tornadoes
+  description: Planet is ravaged by deadly fire tornadoes.
+  severity: 3
+  modifiers:
+    fire_kit: -0.60        # your own fire reads as noise; enemies already burning
+    fire_resist_armor: +0.60
+    mobility: +0.40
+    sentry: -0.40          # tornadoes delete emplacements
+    static_position: -0.50
+
+meteor_storms:
+  display_name: Meteor Storms
+  description: Meteors impact the surface causing massive damage.
+  severity: 3
+  modifiers:
+    sentry: -0.50
+    static_position: -0.60
+    mobility: +0.40
+    shield_pack: +0.30
+
+volcanic_activity:
+  display_name: Volcanic Activity
+  description: Volcanoes throw burning rocks around this planet.
+  severity: 2
+  modifiers:
+    mobility: +0.30
+    fire_resist_armor: +0.30
+    static_position: -0.30
+
+tremors:
+  display_name: Tremors
+  description: Frequent earthquakes stun players and enemies alike.
+  severity: 2
+  modifiers:
+    ranged: +0.40
+    close_quarters: -0.40
+    melee: -0.60
+    stagger_primary: +0.20  # stun windows favour weapons that don't need follow-up
+
+sandstorms:
+  display_name: Sandstorms
+  description: Dense sandstorms reduce mobility and greatly reduce visibility.
+  severity: 3
+  modifiers:
+    close_range: +0.60
+    marksman: -0.60
+    guard_dog: +0.50
+    radar_booster: +0.40
+    light_armor: +0.30
+
+blizzards:
+  display_name: Blizzards
+  description: Intense blizzards reduce mobility and moderately reduce visibility.
+  severity: 2
+  modifiers:
+    close_range: +0.35
+    marksman: -0.35
+    light_armor: +0.40
+    jump_pack: +0.30
+
+thick_fog:
+  display_name: Thick Fog
+  description: Dense fog lightly reduces visibility for both enemy and friendly units.
+  severity: 1
+  modifiers:
+    close_range: +0.20
+    marksman: -0.20
+    guard_dog: +0.20
+
+rainstorms:
+  display_name: Rainstorms
+  description: Torrential rainstorms reduce visibility.
+  severity: 1
+  modifiers:
+    close_range: +0.15
+    marksman: -0.15
+
+acid_storms:
+  display_name: Acid Storms
+  description: Violent acid storms reduce visibility.
+  severity: 2
+  modifiers:
+    close_range: +0.20
+    marksman: -0.20
+    light_pen: +0.30       # acid lowers armour values for everyone
+    heavy_pen: -0.10
+  note: >
+    Acid Storms historically reduce armour for all units, which makes light-pen
+    weapons temporarily viable against targets they'd otherwise bounce off.
+    Confirm the current magnitude against the wiki before weighting higher.

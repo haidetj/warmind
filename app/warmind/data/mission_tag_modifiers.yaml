@@ -1,0 +1,193 @@
+# Situation tags -> kit tag weights.
+#
+# WHY THIS FILE EXISTS
+#
+# The seed carries two different kinds of tag and the previous scaffold mixed them
+# in one namespace:
+#
+#   KIT tags       properties of equipment you bring     energy, orbital, sentry, shield_pack
+#   SITUATION tags properties of what the mission wants  chaff_volume, hellbomb, escort
+#
+# Four tokens collided outright — `static_position`, `mobility`, `light_armor`,
+# `close_range` appeared in both hazards.yaml and missions.yaml meaning opposite things.
+# In hazards.yaml `static_position: -0.50` means "a kit built to hold ground is bad here."
+# In the old missions.yaml the same token meant "this mission happens in one place,"
+# which should push the score the other way. Summing them naively inverts the advice.
+#
+# So: missions and tactical objectives now carry SITUATION tags only. This file is the
+# bridge that converts them into the same kit-tag space hazards already use, in the same
+# additive shape. The resolver then becomes one sum over kit tags:
+#
+#   score(item) = base(item) + SUM(hazard modifiers) + SUM(mission situation modifiers)
+#
+# Ranges match hazards.yaml: roughly -1.0 .. +1.0, never a hard replace.
+# Kit tag vocabulary is closed and defined by hazards.yaml + items.tags.
+
+# ---------------- spatial and tempo ----------------
+
+fixed_location:
+  description: The entire mission occurs at one site. No meaningful traversal.
+  modifiers:
+    sentry: +0.70
+    static_position: +0.60
+    mobility: -0.40
+    jump_pack: -0.50
+    stamina_booster: -0.30
+    backpack_sustain: +0.30
+
+high_traversal:
+  description: Significant ground to cover between objectives.
+  modifiers:
+    mobility: +0.60
+    jump_pack: +0.50
+    stamina_booster: +0.50
+    light_armor: +0.40
+    sentry: -0.30
+    static_position: -0.40
+
+timer_pressure:
+  description: A hard sub-timer beyond the mission clock.
+  modifiers:
+    mobility: +0.40
+    eagle: +0.40        # short rearm beats long cooldown under a clock
+    orbital: -0.20
+    light_armor: +0.30
+
+urban:
+  description: City terrain. Short sightlines, vertical routes, dense cover.
+  modifiers:
+    close_quarters: +0.50
+    stagger_primary: +0.40
+    marksman: -0.30
+    ranged: -0.30
+    jump_pack: +0.40
+    sentry: -0.20       # arcs get blocked by buildings
+
+# ---------------- combat demand ----------------
+
+chaff_volume:
+  description: Large numbers of light enemies, continuously.
+  modifiers:
+    high_rof_ballistic: +0.50
+    light_pen: +0.40
+    sentry: +0.40
+    guard_dog: +0.40
+    eagle: +0.30
+    heavy_pen: -0.20
+
+anti_heavy:
+  description: Armoured targets are the objective, not an obstacle.
+  modifiers:
+    heavy_pen: +0.80
+    support_weapon: +0.60
+    orbital: +0.40
+    light_pen: -0.50
+
+anti_air:
+  description: Gunships, Shriekers or Overships are present.
+  modifiers:
+    heavy_pen: +0.50
+    support_weapon: +0.60
+    ranged: +0.40
+    sentry: -0.20       # most sentries do not engage air
+    melee: -0.40
+
+close_quarters_fight:
+  description: Engagements resolve inside roughly fifteen metres.
+  modifiers:
+    close_quarters: +0.60
+    stagger_primary: +0.50
+    melee: +0.30
+    marksman: -0.40
+
+sustained_hold:
+  description: The squad must survive in place while a process completes.
+  modifiers:
+    sentry: +0.60
+    shield_pack: +0.50
+    backpack_sustain: +0.50
+    ammo_independent: +0.40
+    static_position: +0.50
+    mobility: -0.20
+
+# ---------------- objective mechanics ----------------
+
+structure_demo:
+  description: Fixed structures must be destroyed.
+  modifiers:
+    heavy_pen: +0.40
+    support_weapon: +0.40
+    eagle: +0.30
+    orbital: +0.30
+
+hole_closing:
+  description: Nests or bug holes must be sealed.
+  modifiers:
+    explosive_secondary: +0.60
+    eagle: +0.40
+    mobility: +0.30
+
+hellbomb:
+  description: An objective requires arming a hellbomb and surviving the timer.
+  modifiers:
+    sentry: +0.50
+    shield_pack: +0.40
+    static_position: +0.40
+    sustain_fire: +0.30
+
+escort:
+  description: A moving asset must be protected or carried.
+  modifiers:
+    mobility: +0.40
+    stagger_primary: +0.40
+    guard_dog: +0.30
+    sentry: -0.20       # the fight moves; emplacements get left behind
+    orbital: -0.30      # long cooldowns land where the asset used to be
+
+objective_defense:
+  description: A point must be held while a process runs, with reinforcement waves.
+  modifiers:
+    sentry: +0.70
+    static_position: +0.50
+    shield_pack: +0.40
+    mobility: -0.30
+
+# ---------------- constraints ----------------
+
+no_stratagem_support:
+  description: >
+    Commando operations and Stratagem Jammer radii. Stratagems are unavailable or
+    unreliable. Same inversion as Ion Storms — what you carry is what you have.
+  modifiers:
+    support_weapon: +0.80
+    strong_primary: +0.60
+    ammo_independent: +0.50
+    backpack_sustain: +0.40
+    orbital: -0.80
+    eagle: -0.80
+    sentry: -0.60
+
+blocks_eagle:
+  description: An Anti-Air Emplacement denies Eagle stratagems across a radius.
+  modifiers:
+    eagle: -0.70
+    orbital: +0.40
+    support_weapon: +0.40
+
+# ---------------- friendly assets ----------------
+# These describe what becomes available, so the modifiers are mild. They inform
+# the brief more than the kit.
+
+friendly_asset:
+  description: An activatable Super Earth asset is present on the map.
+  modifiers: {}
+
+free_stratagem:
+  description: Grants a stratagem that does not consume a loadout slot.
+  modifiers:
+    orbital: +0.10
+
+intel_reveal:
+  description: Reveals map information — radar stations, mobile radar.
+  modifiers:
+    radar_booster: -0.40    # the map gives you this; do not pay a slot for it

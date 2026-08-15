@@ -1,0 +1,348 @@
+# Tactical (optional) objectives. Up to five spawn per map depending on difficulty.
+#
+# STATUS: VERIFIED against helldivers.wiki.gg/wiki/Missions (oldid 127925,
+# last edited 2026-08-09) on 2026-08-11.
+#
+# Verified fields:   id, display_name, faction, difficulty_min, difficulty_max
+# Editorial fields:  kit_impact, tags
+#
+# These matter more to a kit than the primary objective does. A Stratagem Jammer
+# forces the same problem Ion Storms do — everything you called is unavailable inside
+# its radius, and the only way to remove it is a hellbomb or a support weapon. A
+# Gunship Facility mandates an anti-air answer regardless of what the mission is.
+#
+# kit_impact is the flag the resolver should key on. `mandates` = the squad needs the
+# tagged capability or the objective cannot be cleared. `rewards` = it makes the drop
+# materially easier. `none` = no kit consequence, purely a detour.
+#
+# faction 'super_earth' entries are friendly assets to activate, not enemy structures.
+
+# ---------------- any faction ----------------
+
+- id: to_terminate_illegal_broadcast
+  display_name: "Terminate Illegal Broadcast"
+  faction: any
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  verified: true
+
+- id: to_geological_survey
+  display_name: "Conduct Geological Survey"
+  faction: any
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: to_launch_icbm
+  display_name: "Launch ICBM"
+  faction: any
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [objective_defense, timer_pressure]
+  verified: true
+
+- id: to_upload_escape_pod_data
+  display_name: "Upload Escape Pod Data"
+  faction: any
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: to_spread_democracy
+  display_name: "Spread Democracy"
+  faction: any
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+# ---------------- automaton ----------------
+
+- id: to_destroy_transmission_network
+  display_name: "Destroy Transmission Network"
+  faction: automatons
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  verified: true
+
+- id: to_enemy_bio_processors
+  display_name: "Enemy Bio-Processors"
+  faction: automatons
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  verified: true
+
+- id: to_raze_strategic_infrastructure
+  display_name: "Raze Strategic Infrastructure"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [structure_demo]
+  verified: true
+
+- id: to_erase_terrorist_memorials
+  display_name: "Erase Terrorist Memorials"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  verified: true
+
+- id: to_stratagem_jammer
+  display_name: "Stratagem Jammer"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [structure_demo, hellbomb, no_stratagem_support]
+  note: >
+    Disables all stratagems inside its radius, including the hellbomb needed to destroy
+    it unless a fabricator is co-located. Functionally a localised Ion Storm — the same
+    inversion applies: what you are carrying is what you have. A squad with no support
+    weapon and no primary damage cannot clear this.
+  verified: true
+
+- id: to_anti_air_emplacement
+  display_name: "Anti-Air Emplacement"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [structure_demo, hellbomb, blocks_eagle]
+  note: >
+    Blocks Eagle stratagems across a wide radius while active. Eagle-heavy loadouts lose
+    their primary tool until it is destroyed, which makes clearing it a priority rather
+    than a detour.
+  verified: true
+
+- id: to_mortar_emplacement
+  display_name: "Mortar Emplacement"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [structure_demo, anti_air, fixed_location]
+  note: Punishes static positions specifically. A hardpoint doctrine must clear it first.
+  verified: true
+
+- id: to_compromise_automaton_defenses
+  display_name: "Compromise Automaton Defenses"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [structure_demo]
+  verified: true
+
+- id: to_detector_tower
+  display_name: "Detector Tower"
+  faction: automatons
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [structure_demo, hellbomb, high_traversal]
+  note: >
+    Permanently detects the squad inside its radius, generating continuous patrols and
+    drops. Defeats scout and stealth play outright until destroyed — the single most
+    disruptive tactical objective for a reconnaissance role.
+  verified: true
+
+- id: to_gunship_facility
+  display_name: "Gunship Facility"
+  faction: automatons
+  difficulty_min: 6
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [structure_demo, hellbomb, anti_air, anti_heavy]
+  note: >
+    Spawns gunships continuously until destroyed, and requires a hellbomb or heavy
+    ordnance to clear. A squad with no anti-air answer will be attritted indefinitely.
+  verified: true
+
+- id: to_intercept_convoy
+  display_name: "Intercept Convoy"
+  faction: automatons
+  difficulty_min: 7
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [anti_heavy, high_traversal, timer_pressure]
+  verified: true
+
+# ---------------- terminid ----------------
+
+- id: to_spore_spewer
+  display_name: "Spore Spewer"
+  faction: terminids
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [structure_demo, anti_air]
+  note: Obscures the map while active. Clearing it restores visibility for the whole squad.
+  verified: true
+
+- id: to_retrieve_mutant_larva
+  display_name: "Retrieve Mutant Larva"
+  faction: terminids
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [escort]
+  note: The only tactical objective that requires successful extraction to award its reward.
+  verified: true
+
+- id: to_recover_scientific_specimen
+  display_name: "Recover Scientific Specimen"
+  faction: terminids
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [escort]
+  verified: true
+
+- id: to_recover_sssd
+  display_name: "Recover SSSD"
+  faction: terminids
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [escort, objective_defense]
+  verified: true
+
+- id: to_purge_hatcheries
+  display_name: "Purge Hatcheries"
+  faction: terminids
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: none
+  tags: [hole_closing, structure_demo]
+  verified: true
+
+- id: to_stalker_lair
+  display_name: "Stalker Lair"
+  faction: terminids
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [hole_closing, close_quarters_fight]
+  note: >
+    Spawns cloaked ambushers until destroyed. A squad without close-range stopping power
+    will keep losing people to it regardless of the primary objective.
+  verified: true
+
+- id: to_shrieker_nest
+  display_name: "Shrieker Nest"
+  faction: terminids
+  difficulty_min: 4
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [structure_demo, anti_air]
+  note: The Terminid analogue of a Gunship Facility. Needs a ranged or explosive answer.
+  verified: true
+
+- id: to_destroy_high_value_target
+  display_name: "Destroy High-Value Target"
+  faction: terminids
+  difficulty_min: 7
+  difficulty_max: 10
+  kit_impact: mandates
+  tags: [anti_heavy]
+  note: Awards XP only, no requisition. Hive Lord class target.
+  verified: true
+
+# ---------------- illuminate ----------------
+
+- id: to_cognitive_disruptor
+  display_name: "Cognitive Disruptor"
+  faction: illuminate
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [structure_demo]
+  verified: true
+
+- id: to_eliminate_overseers
+  display_name: "Eliminate Overseers"
+  faction: illuminate
+  difficulty_min: 3
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [anti_heavy]
+  verified: true
+
+# ---------------- super earth assets ----------------
+
+- id: to_reinforcement_pods
+  display_name: "Reinforcement Pods"
+  faction: super_earth
+  difficulty_min: 1
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset]
+  verified: true
+
+- id: to_seaf_artillery
+  display_name: "SEAF Artillery"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset, anti_air, free_stratagem]
+  note: >
+    Presence is detectable before the drop — if the SEAF Artillery stratagem appears in
+    the loadout screen, the map has a site. That is a free pre-drop intel signal and the
+    resolver should surface it.
+  verified: true
+
+- id: to_mobile_radar
+  display_name: "Mobile Radar"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset, intel_reveal]
+  verified: true
+
+- id: to_seaf_sam_site
+  display_name: "SEAF SAM Site"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset, anti_air]
+  note: Counters Gunship Facility and Shrieker Nest pressure once activated.
+  verified: true
+
+- id: to_radar_station
+  display_name: "Radar Station"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset, intel_reveal]
+  note: >
+    Reveals all remaining tactical objectives on the map. The direct counter to a
+    poor-intel operation and the first thing a scout role should look for.
+  verified: true
+
+- id: to_destroy_rogue_research_station
+  display_name: "Destroy Rogue Research Station"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  verified: true

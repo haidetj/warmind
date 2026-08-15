@@ -1,0 +1,665 @@
+# Static mission catalog. The war APIs expose planets and campaigns, never the
+# per-planet mission pool — that is resolved client-side at operation select.
+#
+# STATUS: VERIFIED against helldivers.wiki.gg/wiki/Missions (oldid 127925,
+# last edited 2026-08-09) on 2026-08-11.
+#
+# Verified fields:   id, display_name, factions, difficulty_min, difficulty_max
+# Editorial fields:  archetype, duration_band, tags  (kit-advisor taxonomy, not game data)
+#
+# Difficulty scale: 1 Trivial, 2 Easy, 3 Medium, 4 Challenging, 5 Hard,
+#                   6 Extreme, 7 Suicide, 8 Impossible, 9 Helldive, 10 Super Helldive
+#
+# difficulty_max is load-bearing and was absent from the previous scaffold. Several
+# missions never appear at high difficulty at all — every Eliminate mission caps out
+# at 6 or below, so none of them can occur in a Super Helldive operation. Filtering on
+# difficulty_min alone will surface missions that cannot be played.
+#
+# Tactical (optional) objectives live in tactical_objectives.yaml. Several of them —
+# Stratagem Jammer, Gunship Facility, Detector Tower, Anti-Air Emplacement — shape a
+# kit more than the primary objective does.
+#
+# Missions whose display_name is shared across factions (Blitz Search And Destroy)
+# carry a faction-suffixed id, because their difficulty gates differ: Terminid opens
+# at Easy, Automaton not until Medium.
+
+- id: start_fuel_pumps
+  display_name: "Start Fuel Pumps"
+  archetype: objective
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 2
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: upload_escape_pod_data
+  display_name: "Upload Escape Pod Data"
+  archetype: objective
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 2
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: terminate_illegal_broadcast
+  display_name: "Terminate Illegal Broadcast"
+  archetype: sabotage
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 2
+  tags: [structure_demo, high_traversal]
+  verified: true
+
+- id: spread_democracy
+  display_name: "Spread Democracy"
+  archetype: objective
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold, chaff_volume]
+  verified: true
+
+- id: retrieve_essential_personnel
+  display_name: "Retrieve Essential Personnel"
+  archetype: evac
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 9
+  tags: [objective_defense, chaff_volume, sustained_hold]
+  verified: true
+
+- id: geological_survey
+  display_name: "Conduct Geological Survey"
+  archetype: survey
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 2
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: emergency_evacuation
+  display_name: "Emergency Evacuation"
+  archetype: evac
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [objective_defense, chaff_volume, sustained_hold]
+  verified: true
+
+- id: retrieve_valuable_data
+  display_name: "Retrieve Valuable Data"
+  archetype: objective
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: launch_icbm
+  display_name: "Launch ICBM"
+  archetype: objective
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [objective_defense, timer_pressure]
+  verified: true
+
+- id: evacuate_high_value_assets
+  display_name: "Evacuate High-Value Assets"
+  archetype: evac
+  factions: [terminids, automatons, illuminate]
+  duration_band: standard
+  difficulty_min: 5
+  difficulty_max: 10
+  tags: [objective_defense, chaff_volume, sustained_hold]
+  verified: true
+
+- id: collect_gloom_infused_oil
+  display_name: "Collect Gloom-Infused Oil"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: mobile_e711_extraction
+  display_name: "Conduct Mobile E-711 Extraction"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [escort, sustained_hold, chaff_volume]
+  verified: true
+
+- id: activate_tcs_plus
+  display_name: "Activate TCS+ Station"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: restore_air_quality
+  display_name: "Restore Air Quality"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: restart_pumps
+  display_name: "Restart Pumps"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: extract_e711
+  display_name: "Extract E-711"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [escort, sustained_hold, chaff_volume]
+  verified: true
+
+- id: eliminate_brood_commanders
+  display_name: "Eliminate Brood Commanders"
+  archetype: eliminate
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 1
+  difficulty_max: 2
+  tags: [anti_heavy]
+  verified: true
+
+- id: extract_research_probe_data
+  display_name: "Extract Research Probe Data"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: collect_meteorological_data
+  display_name: "Collect Meteorological Data"
+  archetype: survey
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [high_traversal, fixed_location]
+  verified: true
+
+- id: blitz_secure_research_site
+  display_name: "Blitz: Secure Research Site"
+  archetype: blitz
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [timer_pressure, high_traversal]
+  verified: true
+
+- id: collect_gloom_spore_readings
+  display_name: "Collect Gloom Spore Readings"
+  archetype: survey
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [high_traversal]
+  verified: true
+
+- id: deploy_dark_fluid
+  display_name: "Deploy Dark Fluid"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 9
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: deactivate_tcs
+  display_name: "Deactivate Terminid Control System"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 9
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: activate_oil_pumps
+  display_name: "Activate Oil Pumps"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 2
+  difficulty_max: 3
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: blitz_search_destroy_terminid
+  display_name: "Blitz Search And Destroy"
+  archetype: blitz
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 2
+  difficulty_max: 10
+  tags: [hole_closing, timer_pressure, high_traversal]
+  verified: true
+
+- id: eradicate_terminid_swarm
+  display_name: "Eradicate Terminid Swarm"
+  archetype: eradicate
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 2
+  difficulty_max: 10
+  tags: [fixed_location, chaff_volume, objective_defense]
+  verified: true
+
+- id: activate_tcs
+  display_name: "Activate Terminid Control System"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 2
+  difficulty_max: 9
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: purge_hatcheries
+  display_name: "Purge Hatcheries"
+  archetype: sabotage
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 2
+  difficulty_max: 10
+  tags: [hole_closing, structure_demo, high_traversal]
+  verified: true
+
+- id: eliminate_chargers
+  display_name: "Eliminate Chargers"
+  archetype: eliminate
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 3
+  tags: [anti_heavy]
+  verified: true
+
+- id: destroy_spore_lung
+  display_name: "Destroy Spore Lung"
+  archetype: sabotage
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [structure_demo, high_traversal]
+  verified: true
+
+- id: chart_terminid_tunnels
+  display_name: "Chart Terminid Tunnels"
+  archetype: survey
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [high_traversal]
+  verified: true
+
+- id: cleanse_infested_district
+  display_name: "Cleanse Infested District"
+  archetype: sabotage
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 4
+  difficulty_max: 10
+  tags: [urban, structure_demo, chaff_volume, close_quarters_fight]
+  verified: true
+
+- id: enable_oil_extraction
+  display_name: "Enable Oil Extraction"
+  archetype: objective
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 4
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold, chaff_volume]
+  verified: true
+
+- id: nuke_nursery
+  display_name: "Nuke Nursery"
+  archetype: sabotage
+  factions: [terminids]
+  duration_band: standard
+  difficulty_min: 4
+  difficulty_max: 10
+  tags: [hole_closing, hellbomb]
+  verified: true
+
+- id: eliminate_bile_titans
+  display_name: "Eliminate Bile Titans"
+  archetype: eliminate
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 4
+  difficulty_max: 5
+  tags: [anti_heavy]
+  verified: true
+
+- id: eliminate_impaler
+  display_name: "Eliminate Impaler"
+  archetype: eliminate
+  factions: [terminids]
+  duration_band: short
+  difficulty_min: 5
+  difficulty_max: 5
+  tags: [anti_heavy]
+  verified: true
+
+- id: confiscate_assets
+  display_name: "Confiscate Assets"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: sabotage_orgo_plasma
+  display_name: "Sabotage Orgo-Plasma Synthesis"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, high_traversal]
+  verified: true
+
+- id: commando_extract_intel
+  display_name: "Commando: Extract Intel"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [no_stratagem_support, high_traversal]
+  verified: true
+
+- id: annex_mineral_sites
+  display_name: "Annex Untapped Mineral Sites"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: commando_acquire_evidence
+  display_name: "Commando: Acquire Evidence"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [no_stratagem_support, high_traversal]
+  verified: true
+
+- id: sabotage_supply_bases
+  display_name: "Sabotage Supply Bases"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, high_traversal]
+  verified: true
+
+- id: commando_secure_black_box
+  display_name: "Commando: Secure Black Box"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [no_stratagem_support, high_traversal]
+  verified: true
+
+- id: eliminate_devastators
+  display_name: "Eliminate Devastators"
+  archetype: eliminate
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 1
+  difficulty_max: 2
+  tags: [anti_heavy]
+  verified: true
+
+- id: seize_industrial_complex
+  display_name: "Seize Industrial Complex"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: eradicate_automaton_forces
+  display_name: "Eradicate Automaton Forces"
+  archetype: eradicate
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 2
+  difficulty_max: 10
+  tags: [fixed_location, chaff_volume, objective_defense]
+  verified: true
+
+- id: destroy_transmission_network
+  display_name: "Destroy Transmission Network"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 2
+  difficulty_max: 3
+  tags: [structure_demo, high_traversal]
+  verified: true
+
+- id: blitz_search_destroy_automaton
+  display_name: "Blitz Search And Destroy"
+  archetype: blitz
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [structure_demo, timer_pressure, high_traversal]
+  verified: true
+
+- id: rapid_acquisition
+  display_name: "Rapid Acquisition"
+  archetype: objective
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [timer_pressure, high_traversal]
+  verified: true
+
+- id: sabotage_air_base
+  display_name: "Sabotage Air Base"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [structure_demo, hellbomb, anti_air]
+  verified: true
+
+- id: eliminate_automaton_hulks
+  display_name: "Eliminate Automaton Hulks"
+  archetype: eliminate
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 3
+  tags: [anti_heavy]
+  verified: true
+
+- id: eliminate_factory_strider
+  display_name: "Eliminate Automaton Factory Strider"
+  archetype: eliminate
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 4
+  difficulty_max: 6
+  tags: [anti_heavy]
+  verified: true
+
+- id: halt_cyborg_production
+  display_name: "Halt Cyborg Production"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 4
+  difficulty_max: 10
+  tags: [structure_demo, hellbomb]
+  verified: true
+
+- id: neutralize_ground_to_orbit
+  display_name: "Neutralize Ground-to-Orbit Defenses"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 4
+  difficulty_max: 10
+  tags: [structure_demo, hellbomb, objective_defense, sustained_hold]
+  verified: true
+
+- id: blitz_destroy_bio_processors
+  display_name: "Blitz: Destroy Bio-Processors"
+  archetype: blitz
+  factions: [automatons]
+  duration_band: short
+  difficulty_min: 5
+  difficulty_max: 10
+  tags: [structure_demo, timer_pressure, high_traversal]
+  verified: true
+
+- id: destroy_command_bunkers
+  display_name: "Destroy Command Bunkers"
+  archetype: sabotage
+  factions: [automatons]
+  duration_band: standard
+  difficulty_min: 5
+  difficulty_max: 10
+  tags: [structure_demo]
+  verified: true
+
+- id: evacuate_colonists
+  display_name: "Evacuate Colonists"
+  archetype: evac
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [urban, objective_defense, chaff_volume, close_quarters_fight]
+  verified: true
+
+- id: retrieve_recon_craft_intel
+  display_name: "Retrieve Recon Craft Intel"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [objective_defense, sustained_hold]
+  verified: true
+
+- id: free_colony
+  display_name: "Free Colony"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [urban, chaff_volume, close_quarters_fight]
+  verified: true
+
+- id: take_down_overship
+  display_name: "Take Down Overship"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [anti_air, anti_heavy, urban]
+  verified: true
+
+- id: blitz_destroy_warp_ships
+  display_name: "Blitz: Destroy Illuminate Warp Ships"
+  archetype: blitz
+  factions: [illuminate]
+  duration_band: short
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, timer_pressure, high_traversal]
+  verified: true
+
+- id: destroy_harvesters
+  display_name: "Destroy Harvesters"
+  archetype: eliminate
+  factions: [illuminate]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 3
+  tags: [anti_heavy]
+  verified: true
+
+- id: destroy_exospire
+  display_name: "Destroy Exospire"
+  archetype: sabotage
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [structure_demo, hellbomb]
+  verified: true
+
+- id: repel_invasion_fleet
+  display_name: "Repel Invasion Fleet"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [objective_defense, anti_air, chaff_volume, sustained_hold]
+  verified: true
+
