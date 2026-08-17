@@ -16,15 +16,18 @@ import vision
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("usage: python vision_smoke.py <screenshot.png>")
+    if len(sys.argv) < 2:
+        print("usage: python vision_smoke.py <screenshot.png> [more.png ...]")
         raise SystemExit(2)
     if vision.MOCK:
         print("ANTHROPIC_API_KEY is not set — this would run in MOCK mode, not a live call.")
         raise SystemExit(1)
-    path = pathlib.Path(sys.argv[1])
-    media = mimetypes.guess_type(str(path))[0] or "image/png"
-    parsed = vision.parse_career(path.read_bytes(), media)
+    images = []
+    for arg in sys.argv[1:]:
+        p = pathlib.Path(arg)
+        images.append((p.read_bytes(), mimetypes.guess_type(str(p))[0] or "image/png"))
+    print(f"reading {len(images)} screenshot(s)…")
+    parsed = vision.parse_career(images)
     print("callsign :", parsed["callsign"])
     print("play_style:", parsed["play_style"], "—", parsed["style_note"])
     if parsed["validity"]:

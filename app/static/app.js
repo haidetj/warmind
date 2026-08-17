@@ -191,7 +191,30 @@
     liveEl = el("div", { class: "stack" });
     app.appendChild(liveEl);
     renderLive();
+    app.appendChild(glossaryCard());
     window.scrollTo(0, scrollY);
+  }
+
+  function glossaryCard() {
+    const d = el("details", { class: "card gloss" });
+    d.appendChild(el("summary", {}, ["What the roles & play-styles mean"]));
+    const body = el("div", { class: "glossbody" });
+    body.appendChild(el("div", { class: "section-title" }, ["Roles — assigned per drop"]));
+    (META.roles || []).forEach(r => body.appendChild(el("div", { class: "glossrow" }, [
+      el("span", { class: "gk" }, [r.name]),
+      el("span", { class: "gv" }, [r.blurb + (r.reactive ? " Holds the squad's reactive-stratagem call." : "")]),
+    ])));
+    body.appendChild(el("div", { class: "section-title", style: "margin-top:16px" }, ["Play-styles — read from your career stats"]));
+    (META.play_styles || []).forEach(p => body.appendChild(el("div", { class: "glossrow" }, [
+      el("span", { class: "gk" }, [p.label]), el("span", { class: "gv" }, [p.desc]),
+    ])));
+    body.appendChild(el("div", { class: "section-title", style: "margin-top:16px" }, ["On a card"]));
+    body.appendChild(el("div", { class: "glossrow" }, [el("span", { class: "gk gold" }, ["Growth"]),
+      el("span", { class: "gv" }, ["One pick deliberately outside your comfort zone that this mission rewards — how the coach stretches you, not a handicap."])]));
+    body.appendChild(el("div", { class: "glossrow" }, [el("span", { class: "gk thin" }, ["Thin"]),
+      el("span", { class: "gv" }, ["A capability you're light on this drop — always covered by a named teammate. Check the capability matrix to see who."])]));
+    d.appendChild(body);
+    return d;
   }
 
   function renderLive() {
@@ -292,23 +315,25 @@
   function joinCard() {
     const wrap = el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Join this drop"])]);
     const name = el("input", { type: "text", placeholder: "Your callsign (optional if it's in your screenshot)" });
-    const upload = el("label", { class: "btn primary filebtn" }, ["Upload career stats", el("input", { type: "file", accept: "image/*" })]);
-    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files[0]);
+    const upload = el("label", { class: "btn primary filebtn" }, ["Upload career stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
+    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files);
     const skip = el("button", { class: "btn" }, ["Join without stats"]);
     skip.onclick = () => doJoin(name.value, null);
     wrap.appendChild(el("div", { class: "field" }, [name]));
     wrap.appendChild(el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [upload, skip]));
-    wrap.appendChild(el("div", { class: "hint" }, ["Open your in-game Career screen and screenshot it. WARMIND reads it to learn how you play — you can override the read anytime."]));
+    wrap.appendChild(el("div", { class: "hint" }, ["Open your in-game Career screen and screenshot it. The list scrolls — take a few shots and select them all; WARMIND merges them. You can override the read anytime."]));
     return wrap;
   }
-  async function doJoin(callsign, file) {
+  async function doJoin(callsign, files) {
     busy = true;
     try {
-      const fd = new FormData(); fd.append("callsign", callsign || ""); if (file) fd.append("image", file);
+      const list = files ? Array.from(files) : [];
+      const fd = new FormData(); fd.append("callsign", callsign || "");
+      list.forEach(f => fd.append("images", f));
       const r = await api("/api/lobby/" + LID + "/join", { method: "POST", body: fd });
       store.setMe(LID, { id: r.player_id, token: r.player_token });
       STATE = await api("/api/lobby/" + LID); render();
-      toast(file ? "Read as " + label(r.play_style) : "Joined — pick your style");
+      toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
     } catch (e) { toast(e.message); } finally { busy = false; }
   }
 
@@ -367,11 +392,14 @@
 
   function myActions(p) {
     const box = el("div", { class: "actions" });
-    const restat = el("label", { class: "btn filebtn" }, ["Re-read stats", el("input", { type: "file", accept: "image/*" })]);
+    const restat = el("label", { class: "btn filebtn" }, ["Re-read stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
     restat.querySelector("input").onchange = async ev => {
-      const f = ev.target.files[0]; if (!f) return; busy = true; toast("Reading…");
-      try { const r = await fpost("/api/lobby/" + LID + "/player/" + p.id + "/career", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style)); }
-      catch (e) { toast(e.message); } finally { busy = false; }
+      const list = Array.from(ev.target.files || []); if (!list.length) return; busy = true; toast("Reading…");
+      try {
+        const fd = new FormData(); list.forEach(f => fd.append("images", f));
+        const r = await api("/api/lobby/" + LID + "/player/" + p.id + "/career", { method: "POST", headers: { "x-token": store.me(LID).token }, body: fd });
+        STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style));
+      } catch (e) { toast(e.message); } finally { busy = false; }
     };
     const styleSel = el("select", { style: "width:auto;padding:6px 8px;font-size:12.5px" }, META.archetypes.map(k => el("option", { value: k }, [label(k)])));
     styleSel.value = p.play_style;

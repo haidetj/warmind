@@ -34,11 +34,14 @@ CAREER_FIELDS = [
 ]
 
 CAREER_PROMPT = (
-    "This is a Helldivers 2 career stats screen. Read every visible number. Return ONE JSON "
-    "object, no prose, with these integer fields where visible (omit any you cannot read): "
+    "These are one or more screenshots of the SAME Helldivers 2 career stats screen — it "
+    "scrolls, so a value may appear in only one image. Read every visible number across ALL "
+    "images and merge them into ONE result. Return ONE JSON object, no prose, with these integer "
+    "fields where visible (omit any you cannot read in any image): "
     + ", ".join(CAREER_FIELDS) +
     ". Also include \"callsign\" if a player name is visible. Stats are cumulative career totals. "
-    "If a value is not shown, omit the key rather than guessing. Return only the JSON object."
+    "If the same field appears in more than one image, use the clearest reading. If a value is "
+    "not shown anywhere, omit the key rather than guessing. Return only the JSON object."
 )
 
 RESULT_FIELDS = ["kills", "accuracy_pct", "shots_fired", "shots_hit", "deaths", "stims_used",
@@ -56,21 +59,20 @@ def _b64(image_bytes: bytes) -> str:
     return base64.standard_b64encode(image_bytes).decode()
 
 
-def _call(image_bytes: bytes, media_type: str, prompt: str, max_tokens: int = 1024) -> str:
-    """One vision message. Returns the model's text. Raises on transport/HTTP error."""
+def _call(images, prompt: str, max_tokens: int = 1024) -> str:
+    """One vision message over one or more images. `images` is a list of
+    (bytes, media_type). Returns the model's text. Raises on transport/HTTP error."""
     headers = {
         "x-api-key": API_KEY,
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
-    body = {
-        "model": MODEL, "max_tokens": max_tokens,
-        "messages": [{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": _b64(image_bytes)}},
-            {"type": "text", "text": prompt},
-        ]}],
-    }
-    with httpx.Client(timeout=60) as client:
+    content = [{"type": "image", "source": {"type": "base64", "media_type": mt, "data": _b64(b)}}
+               for (b, mt) in images]
+    content.append({"type": "text", "text": prompt})
+    body = {"model": MODEL, "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": content}]}
+    with httpx.Client(timeout=90) as client:
         r = client.post(f"{BASE_URL}/v1/messages", headers=headers, json=body)
         r.raise_for_status()
         data = r.json()
@@ -90,12 +92,13 @@ def _extract_json(text: str) -> dict:
 
 
 # ---------------------------------------------------------------- career intake
-def parse_career(image_bytes: bytes, media_type: str, mock_index: int = 0) -> dict:
+def parse_career(images, mock_index: int = 0) -> dict:
+    """images: list of (bytes, media_type) — one or more shots of the scrolling career screen."""
     if MOCK:
         snap = dict(_SEED_SNAPS[mock_index % len(_SEED_SNAPS)])
         raw = {k: snap.get(k) for k in CAREER_FIELDS if k in snap}
     else:
-        raw = _extract_json(_call(image_bytes, media_type, CAREER_PROMPT))
+        raw = _extract_json(_call(images, CAREER_PROMPT))
     snapshot = {k: int(raw[k]) for k in CAREER_FIELDS if isinstance(raw.get(k), (int, float))}
     problems = stats.validate(snapshot)
     play_style, note = stats.classify(snapshot)
@@ -122,7 +125,7 @@ def parse_mission(image_bytes: bytes, media_type: str, mission_ids: list[str]) -
         "\"operation_modifiers\" (array of strings you can read, e.g. 'complex stratagem plotting', "
         "'poor intel'). Omit anything not clearly visible. Return only the JSON object."
     )
-    raw = _extract_json(_call(image_bytes, media_type, prompt))
+    raw = _extract_json(_call([(image_bytes, media_type)], prompt))
     return raw
 
 
@@ -136,7 +139,7 @@ def review_results(image_bytes: bytes, media_type: str, context: dict) -> dict:
         aar = ("Mock review. Accuracy held above the career baseline and the discipline rule was "
                "kept (zero accidentals). The role's signature metric moved the right way.")
         return {"result": result, "aar_text": aar}
-    result = _extract_json(_call(image_bytes, media_type, RESULT_PROMPT))
+    result = _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
     prompt = (
         "You are WARMIND, a Helldivers 2 squad coach. Grade the ADVICE you gave, not the player. "
         "Tone: stoic, state the finding then the evidence, never moralise about K/D or friendly fire. "
@@ -150,7 +153,7 @@ def review_results(image_bytes: bytes, media_type: str, context: dict) -> dict:
         "If the result was poor, check whether a thin capability with no deep partner caused it — "
         "that is a design error to own, not a player error. Return only the review text."
     )
-    aar = _call(image_bytes, media_type, prompt, max_tokens=400).strip()
+    aar = _call([(image_bytes, media_type)], prompt, max_tokens=400).strip()
     return {"result": result, "aar_text": aar}
 
 

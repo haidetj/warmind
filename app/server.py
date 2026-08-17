@@ -98,6 +98,31 @@ def _media_type(upload: UploadFile) -> str:
     return ct if ct in ("image/png", "image/jpeg", "image/webp", "image/gif") else "image/png"
 
 
+async def _read_images(uploads) -> list:
+    """UploadFile list (or single/None) -> [(bytes, media_type)], skipping empties. Cap 8."""
+    if uploads is None:
+        return []
+    if not isinstance(uploads, (list, tuple)):
+        uploads = [uploads]
+    out = []
+    for up in uploads[:8]:
+        if up is None:
+            continue
+        data = await up.read()
+        if data:
+            out.append((data, _media_type(up)))
+    return out
+
+
+PLAY_STYLE_DESC = {
+    "siege_anchor": "Holds ground and fortifies it — turrets, emplacements, a prepared position.",
+    "danger_close": "Ordnance-first — eagles and stratagems lead every engagement.",
+    "fire_for_effect": "Orbital bombardment specialist; softens targets before contact.",
+    "forward_eye": "Mobile scout — marksman, covers ground, marks objectives ahead of the squad.",
+    "by_the_book": "Balanced generalist with no single dominant tendency.",
+}
+
+
 # ---------------------------------------------------------------- meta
 @app.get("/api/meta")
 def meta():
@@ -110,10 +135,15 @@ def meta():
     tacticals = [{"id": t["id"], "name": t["display_name"], "faction": t.get("faction", "any"),
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
                  for t in loader.tactical_objectives().values()]
+    from warmind.roles import ROLES, PLAY_STYLES
+    roles = [{"name": r.name, "blurb": r.blurb, "reactive": r.reactive} for r in ROLES.values()]
+    play_styles = [{"key": k, "label": PLAY_STYLES[k].label, "desc": PLAY_STYLE_DESC.get(k, "")}
+                   for k in stats.ALLOWED]
     return {"missions": sorted(missions, key=lambda x: x["name"]),
             "hazards": sorted(hazards, key=lambda x: x["name"]),
             "tacticals": sorted(tacticals, key=lambda x: x["name"]),
-            "archetypes": list(stats.ALLOWED), "vision": vision.status()}
+            "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
+            "vision": vision.status()}
 
 
 # ---------------------------------------------------------------- lobby lifecycle
@@ -188,7 +218,7 @@ async def mission_prefill(lid: str, image: UploadFile = File(...), x_token: str 
 
 # ---------------------------------------------------------------- players
 @app.post("/api/lobby/{lid}/join")
-async def join(lid: str, callsign: str = Form(""), image: UploadFile = File(None)):
+async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = File(default=[])):
     lobby = db.get_lobby(lid)
     if not lobby:
         raise HTTPException(404, "lobby not found")
@@ -196,10 +226,10 @@ async def join(lid: str, callsign: str = Form(""), image: UploadFile = File(None
     n_existing = len(db.list_players(lid))
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
     parsed_call = callsign.strip()
-    if image is not None:
-        data = await image.read()
+    imgs = await _read_images(images)
+    if imgs:
         try:
-            parsed = vision.parse_career(data, _media_type(image), mock_index=n_existing)
+            parsed = vision.parse_career(imgs, mock_index=n_existing)
         except Exception as e:
             raise HTTPException(502, f"could not read the screenshot: {e}")
         snapshot = parsed["snapshot"]
@@ -232,11 +262,13 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/career")
-async def update_career(lid: str, pid: str, image: UploadFile = File(...), x_token: str = Header(None)):
+async def update_career(lid: str, pid: str, images: list[UploadFile] = File(default=[]), x_token: str = Header(None)):
     p = _require_player(pid, x_token)
-    data = await image.read()
+    imgs = await _read_images(images)
+    if not imgs:
+        raise HTTPException(400, "no screenshot provided")
     try:
-        parsed = vision.parse_career(data, _media_type(image), mock_index=len(db.list_players(lid)))
+        parsed = vision.parse_career(imgs, mock_index=len(db.list_players(lid)))
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     db.add_or_update_player(pid, lid, p["token"], parsed.get("callsign") or p["callsign"],
