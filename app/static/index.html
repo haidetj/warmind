@@ -45,7 +45,11 @@ header{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 8
 .iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:10px;padding:8px 12px;cursor:pointer;min-height:40px}
 .iconbtn:hover{color:var(--ink);border-color:var(--muted)}
 
-main{padding:26px 0 110px}
+main{padding:22px 0 110px}
+.themefab{position:fixed;bottom:16px;right:16px;z-index:40;width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer;box-shadow:var(--shadow);
+  display:flex;align-items:center;justify-content:center;font-size:16px;opacity:.82}
+.themefab:hover{opacity:1;color:var(--ink);border-color:var(--muted)}
 .stack{display:flex;flex-direction:column;gap:20px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
 .section-title{font-size:11px;text-transform:uppercase;letter-spacing:1.6px;color:var(--muted);font-weight:750;margin:0 0 15px}
@@ -187,12 +191,8 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 @media(prefers-reduced-motion:reduce){.hero .stars,.hero .radar,.hero .scan,.term .cursor{animation:none}}
 </style>
 </head><body>
-<header><div class="wrap hd">
-  <div class="brand"><span class="by">SUPER EARTH</span><b>Warmind</b><span class="muted" style="font-size:12px">squad coach</span></div>
-  <div class="spacer"></div>
-  <button id="theme" class="iconbtn" title="Toggle theme" aria-label="Toggle theme">◐</button>
-</div></header>
 <main class="wrap"><div id="app" class="stack"></div></main>
+<button id="theme" class="themefab" title="Toggle light / dark" aria-label="Toggle theme">◐</button>
 <div class="toast" id="toast"></div>
 <script src="/app.js"></script>
 </body></html>
