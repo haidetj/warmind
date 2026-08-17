@@ -55,25 +55,66 @@
   // ---------- home ----------
   function renderHome() {
     app.innerHTML = "";
-    const name = el("input", { type: "text", placeholder: "Squad name (e.g. Fist of Family Values)", "aria-label": "Squad name" });
-    const create = el("button", { class: "btn primary wide" }, ["Create lobby"]);
+    const name = el("input", { type: "text", placeholder: "SQUAD DESIGNATION", "aria-label": "Squad name" });
+    const create = el("button", { class: "deploy" }, ["▶ Brief Squad"]);
     create.onclick = async () => {
-      create.disabled = true;
+      create.disabled = true; create.textContent = "▶ Establishing link…";
       try {
         const fd = new FormData(); fd.append("name", name.value || "Squad");
         const r = await api("/api/lobby", { method: "POST", body: fd });
         store.setCreator(r.lobby_id, r.creator_token);
         location.search = "?l=" + r.lobby_id;
-      } catch (e) { toast(e.message); create.disabled = false; }
+      } catch (e) { toast(e.message); create.disabled = false; create.textContent = "▶ Brief Squad"; }
     };
-    app.appendChild(el("section", { class: "card center" }, [
-      el("div", { class: "big stencil", style: "margin-bottom:6px" }, ["Brief a squad"]),
-      el("div", { class: "muted", style: "margin-bottom:16px" }, ["Make a lobby, share the link. Friends upload a career screenshot and get a loadout with a reason."]),
-      el("div", { class: "field", style: "max-width:420px;margin:0 auto" }, [name]),
-      el("div", { style: "max-width:420px;margin:12px auto 0" }, [create]),
-    ]));
+    name.addEventListener("keydown", e => { if (e.key === "Enter") create.click(); });
+
+    const term = el("div", { class: "term", "aria-hidden": "true" });
+    const hero = el("section", { class: "hero" }, [
+      el("div", { class: "fx stars" }), el("div", { class: "fx grid" }),
+      el("div", { class: "fx radar" }), el("div", { class: "fx scan" }), el("div", { class: "fx vig" }),
+      el("div", { class: "hero-body" }, [
+        el("div", { class: "eyebrow" }, ["Super Earth · War Table"]),
+        el("div", { class: "title" }, ["WARMIND"]),
+        el("div", { class: "sub" }, ["Tactical Squad Coach"]),
+        term,
+        el("div", { class: "console" }, [
+          el("div", { class: "prompt" }, ["> DESIGNATE SQUAD"]),
+          name, create,
+        ]),
+        el("div", { class: "foot" }, ["Create a war table, then share the link. Divers upload a career screenshot and receive a loadout — with a reason."]),
+      ]),
+    ]);
+    app.appendChild(hero);
     if (META.vision && META.vision.mock)
-      app.appendChild(el("div", { class: "mockbanner" }, ["Vision is in mock mode — set ANTHROPIC_API_KEY to read real screenshots. Screenshot uploads will return sample data until then."]));
+      app.appendChild(el("div", { class: "mockbanner" }, ["Vision is in mock mode — set ANTHROPIC_API_KEY on the server to read real screenshots. Uploads return sample data until then."]));
+    bootSequence(term);
+  }
+
+  function bootSequence(term) {
+    const M = META || {};
+    const nMissions = (M.missions || []).length || "—";
+    const nHazards = (M.hazards || []).length || "—";
+    const lines = [
+      ["> init managed_democracy ……… ", "OK"],
+      ["> war table uplink ……………… ", "ESTABLISHED"],
+      ["> mission database …………… ", nMissions + " OPS"],
+      ["> hazard model ………………… ", nHazards + " TAGS"],
+      ["> stratagem resolver ……… ", "ONLINE"],
+      ["> awaiting squad designation", ""],
+    ];
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let i = 0;
+    function add() {
+      if (!term.isConnected) return;
+      const [head, tail] = lines[i];
+      const ln = el("div", { class: "ln" }, [head]);
+      if (tail) ln.appendChild(el("span", { class: "ok" }, [tail]));
+      if (i === lines.length - 1) ln.appendChild(el("span", { class: "cursor" }));
+      term.appendChild(ln);
+      i++;
+      if (i < lines.length) reduce ? add() : setTimeout(add, 190);
+    }
+    add();
   }
 
   // ---------- polling ----------
