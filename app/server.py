@@ -132,6 +132,31 @@ def lobby_state(lid: str):
     return _resolve(lobby)
 
 
+@app.post("/api/lobbies/summary")
+def lobbies_summary(payload: dict):
+    """Light summaries for a caller-supplied list of lobby ids (the ones on their
+    device). Missing ids are simply omitted so the client can prune them."""
+    ids = (payload.get("ids") or [])[:60]
+    out = []
+    for lid in ids:
+        if not isinstance(lid, str):
+            continue
+        lobby = db.get_lobby(lid)
+        if not lobby:
+            continue
+        mission = _mission_from(lobby)
+        mname = None
+        if mission and mission.get("mission_id"):
+            m = loader.missions().get(mission["mission_id"])
+            mname = m["display_name"] if m else None
+        out.append({
+            "id": lid, "name": lobby["name"], "players": len(db.list_players(lid)),
+            "mission_name": mname, "mode": mission.get("mode") if mission else None,
+            "updated_at": lobby["updated_at"],
+        })
+    return {"lobbies": out}
+
+
 def _require_creator(lobby, token):
     if not token or token != lobby["creator_token"]:
         raise HTTPException(403, "only the lobby creator can do that")

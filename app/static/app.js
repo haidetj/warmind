@@ -85,9 +85,57 @@
       ]),
     ]);
     app.appendChild(hero);
+    renderMyLobbies();
     if (META.vision && META.vision.mock)
       app.appendChild(el("div", { class: "mockbanner" }, ["Vision is in mock mode — set ANTHROPIC_API_KEY on the server to read real screenshots. Uploads return sample data until then."]));
     bootSequence(term);
+  }
+
+  function storedLobbies() {
+    const map = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      const m = k && k.match(/^wm_(creator|me)_(.+)$/);
+      if (m) { const id = m[2]; map[id] = map[id] || { id: id }; if (m[1] === "creator") map[id].own = true; else map[id].member = true; }
+    }
+    return Object.keys(map).map(id => map[id]);
+  }
+
+  function forgetLobby(id) { localStorage.removeItem("wm_creator_" + id); localStorage.removeItem("wm_me_" + id); }
+
+  async function renderMyLobbies() {
+    const mine = storedLobbies();
+    if (!mine.length) return;
+    const card = el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Your war tables"])]);
+    const list = el("div", { class: "lobbylist" }, [el("div", { class: "hint", style: "margin:0" }, ["Loading…"])]);
+    card.appendChild(list);
+    app.appendChild(card);
+
+    let data;
+    try { data = await jpost("/api/lobbies/summary", { ids: mine.map(x => x.id) }); }
+    catch (e) { card.remove(); return; }
+
+    const found = new Set((data.lobbies || []).map(l => l.id));
+    mine.forEach(x => { if (!found.has(x.id)) forgetLobby(x.id); });     // prune expired
+    const rows = (data.lobbies || []).sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+    if (!rows.length) { card.remove(); return; }
+
+    list.innerHTML = "";
+    const owned = new Set(mine.filter(x => x.own).map(x => x.id));
+    rows.forEach(l => {
+      const meta = [l.players + " diver" + (l.players === 1 ? "" : "s"), l.mission_name || "no mission set", l.mode || null].filter(Boolean).join(" · ");
+      const isOwn = owned.has(l.id);
+      const resume = el("button", { class: "btn" }, ["Resume"]);
+      resume.onclick = () => { location.search = "?l=" + l.id; };
+      const forget = el("button", { class: "forget", title: "Forget on this device", "aria-label": "Forget" }, ["×"]);
+      const row = el("div", { class: "lobbyrow" }, [
+        el("div", { class: "grow" }, [el("div", { class: "nm" }, [l.name || "Squad"]), el("div", { class: "mt" }, [meta])]),
+        el("span", { class: "rolebadge" + (isOwn ? " own" : "") }, [isOwn ? "Created" : "Joined"]),
+        resume, forget,
+      ]);
+      forget.onclick = () => { forgetLobby(l.id); row.remove(); if (!list.children.length) card.remove(); };
+      list.appendChild(row);
+    });
   }
 
   function bootSequence(term) {
@@ -121,11 +169,15 @@
   function startPolling() { tick(); pollT = setInterval(tick, 3500); }
   async function tick() {
     if (busy) return;
-    try { STATE = await api("/api/lobby/" + LID); render(); }
+    try { STATE = await api("/api/lobby/" + LID); liveEl ? renderLive() : render(); }
     catch (e) { if (String(e.message).match(/not found/i)) { clearInterval(pollT); app.innerHTML = ""; app.appendChild(el("div", { class: "card center" }, ["Lobby not found. It may have expired.", el("div", { style: "margin-top:12px" }, [el("a", { href: "/", class: "btn" }, ["Start a new one"])])])); } }
   }
 
   // ---------- render lobby ----------
+  // Full render builds the control panels (share / mission / join) ONCE; the poll
+  // only refreshes the live section, so it never clobbers a form you're editing.
+  let liveEl = null;
+
   function render() {
     const scrollY = window.scrollY;
     app.innerHTML = "";
@@ -136,10 +188,20 @@
     app.appendChild(shareCard(isCreator));
     if (isCreator) app.appendChild(missionCard());
     if (!joined) app.appendChild(joinCard());
-    app.appendChild(rosterSection(me));
-    if (STATE.directive) app.appendChild(squadBlocks());
+    liveEl = el("div", { class: "stack" });
+    app.appendChild(liveEl);
+    renderLive();
+    window.scrollTo(0, scrollY);
+  }
+
+  function renderLive() {
+    if (!liveEl) return render();
+    const scrollY = window.scrollY;
+    liveEl.innerHTML = "";
+    liveEl.appendChild(rosterSection(store.me(LID)));
+    if (STATE.directive) liveEl.appendChild(squadBlocks());
     if (META.vision && META.vision.mock)
-      app.appendChild(el("div", { class: "mockbanner" }, ["Vision in mock mode — screenshot reads return sample data until ANTHROPIC_API_KEY is set on the server."]));
+      liveEl.appendChild(el("div", { class: "mockbanner" }, ["Vision in mock mode — screenshot reads return sample data until ANTHROPIC_API_KEY is set on the server."]));
     window.scrollTo(0, scrollY);
   }
 
@@ -207,7 +269,7 @@
     const save = el("button", { class: "btn primary" }, ["Set mission"]);
     save.onclick = async () => {
       save.disabled = true; busy = true;
-      try { STATE = await jpost("/api/lobby/" + LID + "/mission", { mission: draft }, store.creator(LID)); render(); toast("Mission set — loadouts rebuilt"); }
+      try { STATE = await jpost("/api/lobby/" + LID + "/mission", { mission: draft }, store.creator(LID)); renderLive(); toast("Mission set — loadouts rebuilt"); }
       catch (e) { toast(e.message); } finally { busy = false; save.disabled = false; }
     };
     const prefill = el("label", { class: "btn filebtn" }, ["Read from screenshot", el("input", { type: "file", accept: "image/*" })]);
@@ -219,7 +281,7 @@
         if (s.faction) { facSel.value = s.faction; draft.faction = s.faction; fillMissions(); }
         if (s.difficulty) { diffSel.value = s.difficulty; draft.difficulty = s.difficulty; fillMissions(); }
         toast(s.note ? s.note : "Prefilled — confirm and set");
-      } catch (e) { toast(e.message); } finally { busy = false; render(); }
+      } catch (e) { toast(e.message); } finally { busy = false; }
     };
     wrap.appendChild(el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" }, [save, prefill]));
     wrap.appendChild(el("div", { class: "hint" }, ["Optional: upload a mission-select screenshot to prefill faction & difficulty, then confirm."]));
@@ -308,16 +370,16 @@
     const restat = el("label", { class: "btn filebtn" }, ["Re-read stats", el("input", { type: "file", accept: "image/*" })]);
     restat.querySelector("input").onchange = async ev => {
       const f = ev.target.files[0]; if (!f) return; busy = true; toast("Reading…");
-      try { const r = await fpost("/api/lobby/" + LID + "/player/" + p.id + "/career", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); render(); toast("Read as " + label(r.play_style)); }
+      try { const r = await fpost("/api/lobby/" + LID + "/player/" + p.id + "/career", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style)); }
       catch (e) { toast(e.message); } finally { busy = false; }
     };
     const styleSel = el("select", { style: "width:auto;padding:6px 8px;font-size:12.5px" }, META.archetypes.map(k => el("option", { value: k }, [label(k)])));
     styleSel.value = p.play_style;
-    styleSel.onchange = async () => { busy = true; try { await jpost("/api/lobby/" + LID + "/player/" + p.id + "/style", { play_style: styleSel.value }, store.me(LID).token); STATE = await api("/api/lobby/" + LID); render(); } catch (e) { toast(e.message); } finally { busy = false; } };
+    styleSel.onchange = async () => { busy = true; try { await jpost("/api/lobby/" + LID + "/player/" + p.id + "/style", { play_style: styleSel.value }, store.me(LID).token); STATE = await api("/api/lobby/" + LID); renderLive(); } catch (e) { toast(e.message); } finally { busy = false; } };
     const result = el("label", { class: "btn filebtn" }, ["Submit result", el("input", { type: "file", accept: "image/*" })]);
     result.querySelector("input").onchange = async ev => {
       const f = ev.target.files[0]; if (!f) return; busy = true; toast("Reviewing drop…");
-      try { await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); render(); toast("After-action ready"); }
+      try { await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); renderLive(); toast("After-action ready"); }
       catch (e) { toast(e.message); } finally { busy = false; }
     };
     box.appendChild(restat); box.appendChild(styleSel);
