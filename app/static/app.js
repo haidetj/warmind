@@ -240,7 +240,7 @@
       el("div", { class: "who", html: '<span class="cs">' + esc(p.callsign) + "</span> · " + label(p.play_style) }),
       badge, mine ? el("span", { class: "badge" }, ["you"]) : null,
     ]));
-    if (p.style_note) card.appendChild(el("div", { class: "hint", style: "padding:0 14px" }, [p.style_note]));
+    if (p.style_note) card.appendChild(el("div", { class: "hint", style: "padding:2px 20px 0" }, [p.style_note]));
     if (a) {
       const kit = el("ul", { class: "kit" });
       const row = (sl, v, mono) => el("li", {}, [el("span", { class: "sl" }, [sl]), el("span", { class: "vv" + (mono ? " mono" : "") }, [v])]);
