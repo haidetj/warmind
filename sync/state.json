@@ -1,0 +1,7 @@
+{
+  "last_seen_gid": null,
+  "last_seen_title": null,
+  "last_seen_date": 0,
+  "processed_gid": null,
+  "_note": "last_seen_* is advanced by patch_watch.py when HD2 posts a new patch. processed_gid is advanced when the data-update PR for that patch merges."
+}

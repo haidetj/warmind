@@ -1,0 +1,77 @@
+name: data-sync
+
+# Keeps the WARMIND game data honest:
+#   - validate : on every push to the data/scripts, prove the seed is internally
+#                coherent (catches an edit that would silently break loadouts).
+#   - watch    : daily, poll the HD2 patch feed. When a new patch ships, commit the
+#                notes, advance state, and open an issue. The daily Claude "data-sync"
+#                Routine then drafts a PR updating the seed for review.
+
+on:
+  schedule:
+    - cron: "0 14 * * *"        # daily ~14:00 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - "app/warmind/data/**"
+      - "app/warmind/roles.py"
+      - "sync/**"
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install --quiet pyyaml
+      - name: Validate seed is coherent
+        run: python3 sync/validate_data.py
+
+  watch:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Poll the HD2 patch feed
+        id: watch
+        run: |
+          set +e
+          python3 sync/patch_watch.py
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          # 0 = no new patch, 10 = new patch, 2 = transient fetch error — none should fail the job
+          if [ "$code" = "0" ] || [ "$code" = "10" ] || [ "$code" = "2" ]; then exit 0; fi
+          exit $code
+      - name: Commit notes + open issue on a new patch
+        if: steps.watch.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.watch.outputs.title }}
+        run: |
+          git config user.name  "warmind data bot"
+          git config user.email "actions@github.com"
+          git add sync/state.json sync/latest_patch.md
+          git commit -m "data-sync: HD2 patch detected — ${TITLE}"
+          for i in 1 2 3 4; do git push && break || { echo "retry $i"; sleep $((2**i)); }; done
+          gh label create data-sync --color 1f6feb --description "HD2 data freshness" 2>/dev/null || true
+          {
+            echo "A new Helldivers 2 patch shipped. Notes committed at \`sync/latest_patch.md\`."
+            echo ""
+            echo "Update \`app/warmind/data/\` against the notes, then run \`python3 sync/validate_data.py\`:"
+            echo "- [ ] New / renamed **missions** -> missions.yaml"
+            echo "- [ ] New **tactical objectives** -> tactical_objectives.yaml"
+            echo "- [ ] Changed **hazards** / planet effects -> hazards.yaml"
+            echo "- [ ] New **warbond / items**, re-tiered gear -> items.yaml"
+            echo ""
+            echo "The daily **data-sync** Claude Routine drafts a PR for this; review and merge it."
+          } > /tmp/issue_body.md
+          gh issue create --title "HD2 patch: ${TITLE} — review WARMIND seed" \
+            --label data-sync --body-file /tmp/issue_body.md
