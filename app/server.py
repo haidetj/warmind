@@ -71,10 +71,13 @@ def _resolve(lobby) -> dict:
     for i, p in enumerate(players_rows):
         a = by_pid.get(p["id"])
         res = db.latest_result(p["id"])
+        snap = json.loads(p["snapshot_json"]) if p["snapshot_json"] else None
+        rates = _round(stats.derive(snap)) if snap else None
         players_out.append({
             "id": p["id"], "callsign": p["callsign"], "accent": ACCENTS[i % len(ACCENTS)],
             "play_style": p["play_style"], "style_source": p["style_source"],
-            "style_note": p["style_note"], "has_stats": bool(p["snapshot_json"]),
+            "style_note": p["style_note"], "has_stats": bool(snap),
+            "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"])} if res else None),
         })
@@ -82,6 +85,10 @@ def _resolve(lobby) -> dict:
         "id": lobby["id"], "name": lobby["name"], "mission": mission,
         "players": players_out, "directive": directive,
     }
+
+
+def _round(d: dict) -> dict:
+    return {k: (round(v, 3) if isinstance(v, float) else v) for k, v in (d or {}).items()}
 
 
 def _assignment_dict(a):

@@ -369,6 +369,7 @@
       badge, mine ? el("span", { class: "badge" }, ["you"]) : null,
     ]));
     if (p.style_note) card.appendChild(el("div", { class: "hint", style: "padding:2px 20px 0" }, [p.style_note]));
+    if (p.stats) card.appendChild(statRead(p));
     if (a) {
       const kit = el("ul", { class: "kit" });
       const row = (sl, v, mono) => el("li", {}, [el("span", { class: "sl" }, [sl]), el("span", { class: "vv" + (mono ? " mono" : "") }, [v])]);
@@ -385,9 +386,55 @@
       if (a.thin && a.thin.length) card.appendChild(el("div", { class: "thin" }, ["Thin: " + a.thin.join(", ") + " — covered by the squad."]));
       card.appendChild(el("div", { class: "why" }, [a.rationale]));
     }
-    if (p.aar) card.appendChild(el("div", { class: "aar" }, [el("div", { class: "h" }, ["After-action"]), p.aar.text]));
+    if (p.aar) card.appendChild(aarBlock(p));
     if (mine) card.appendChild(myActions(p));
     return card;
+  }
+
+  const fmt = n => (n == null ? "—" : Number(n).toLocaleString());
+
+  function statRead(p) {
+    const s = p.stats || {}, r = p.rates || {};
+    const d = el("details", { class: "statread" });
+    d.appendChild(el("summary", {}, ["Career read — from your screenshots"]));
+    const body = el("div", { class: "statbody" });
+    const grid = () => el("div", { class: "statgrid" });
+    const add = (g, k, v) => { if (v == null || v === "") return; g.appendChild(el("span", { class: "sk" }, [k])); g.appendChild(el("span", { class: "sv mono" }, [v])); };
+
+    const dg = grid();
+    if (r.accuracy != null) add(dg, "Accuracy", (r.accuracy * 100).toFixed(1) + "%");
+    if (r.kills_per_min != null) add(dg, "Kills / min", r.kills_per_min.toFixed(1));
+    if (r.deaths_per_mission != null) add(dg, "Deaths / mission", r.deaths_per_mission.toFixed(2));
+    if (r.win_rate != null) add(dg, "Win rate", (r.win_rate * 100).toFixed(0) + "%");
+    if (r.def_share != null) add(dg, "Stratagem mix", "def " + (r.def_share * 100).toFixed(0) + "% · orb " + (r.orb_share * 100).toFixed(0) + "% · eagle " + (r.eagle_share * 100).toFixed(0) + "%");
+    if (dg.children.length) { body.appendChild(el("div", { class: "statsub" }, ["The read"])); body.appendChild(dg); }
+
+    const rg = grid();
+    add(rg, "Enemy kills", fmt(s.enemy_kills));
+    add(rg, "Deaths", fmt(s.deaths));
+    add(rg, "Shots hit / fired", fmt(s.shots_hit) + " / " + fmt(s.shots_fired));
+    add(rg, "Missions won / played", fmt(s.missions_won) + " / " + fmt(s.missions_played));
+    add(rg, "Total stratagems", fmt(s.total_stratagems));
+    add(rg, "Friendly kills", fmt(s.friendly_kills));
+    if (rg.children.length) { body.appendChild(el("div", { class: "statsub" }, ["Raw — verify against your screen"])); body.appendChild(rg); }
+    d.appendChild(body);
+    return d;
+  }
+
+  function aarBlock(p) {
+    const box = el("div", { class: "aar" }, [el("div", { class: "h" }, ["After-action"])]);
+    const r = p.aar.result || {};
+    const chips = [["Kills", r.kills], ["Accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null],
+      ["Deaths", r.deaths], ["Accidentals", r.accidentals], ["Reinforces", r.times_reinforcing],
+      ["Samples", r.samples_extracted]].filter(x => x[1] != null);
+    if (chips.length) {
+      const g = el("div", { class: "statgrid" });
+      chips.forEach(([k, v]) => { g.appendChild(el("span", { class: "sk" }, [k])); g.appendChild(el("span", { class: "sv mono" }, [String(v)])); });
+      box.appendChild(el("div", { class: "statsub" }, ["Scoreboard — as read"]));
+      box.appendChild(g);
+    }
+    box.appendChild(el("div", { class: "aartext" }, [p.aar.text]));
+    return box;
   }
 
   function myActions(p) {
