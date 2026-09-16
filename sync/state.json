@@ -1,7 +1,7 @@
 {
-  "last_seen_gid": null,
-  "last_seen_title": null,
-  "last_seen_date": 0,
+  "last_seen_gid": "1840944183773828",
+  "last_seen_title": "HELLDIVERS 2 Devoid of Liberty Update Out Now",
+  "last_seen_date": 1786536335,
   "processed_gid": null,
   "_note": "last_seen_* is advanced by patch_watch.py when HD2 posts a new patch. processed_gid is advanced when the data-update PR for that patch merges."
 }
