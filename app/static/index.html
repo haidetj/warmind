@@ -153,6 +153,13 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 .filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
 .sharebar{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .mockbanner{background:color-mix(in srgb,var(--warn) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));color:var(--ink-2);border-radius:10px;padding:12px 15px;font-size:13px}
+.upstatus{display:none;align-items:center;gap:9px;margin-top:11px;font-size:13px;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2)}
+.upstatus.working{color:var(--info);border-color:color-mix(in srgb,var(--info) 40%,var(--line))}
+.upstatus.ok{color:var(--favored);border-color:color-mix(in srgb,var(--favored) 40%,var(--line))}
+.upstatus.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.upstatus.err{color:var(--thin);border-color:color-mix(in srgb,var(--thin) 45%,var(--line))}
+.upstatus .spin{width:13px;height:13px;flex:0 0 auto;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:wmspin .7s linear infinite}
+@keyframes wmspin{to{transform:rotate(360deg)}}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
