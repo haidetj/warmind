@@ -407,6 +407,7 @@
     }
     if (p.aar) card.appendChild(aarBlock(p));
     if (mine) card.appendChild(myActions(p));
+    if (mine) { const g = gearCard(p); if (g) card.appendChild(g); }
     return card;
   }
 
@@ -524,6 +525,59 @@
     }
     const notes = el("ul", { class: "notes" }); (d.notes || []).forEach(n => notes.appendChild(el("li", {}, [n])));
     wrap.appendChild(el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Field notes"]), notes]));
+    return wrap;
+  }
+
+  // ---------- warbond ownership checklist ----------
+  let gearOpen = {};  // pid -> details open state, kept across poll re-renders
+  function gearCard(p) {
+    const wbs = META.warbonds || [];
+    if (!wbs.length) return null;
+    const allNames = []; wbs.forEach(w => w.items.forEach(i => allNames.push(i.name)));
+    // p.owned null/undefined means "owns everything"; seed the local set accordingly
+    const owned = new Set(p.owned == null ? allNames : p.owned);
+
+    const wrap = el("details", { class: "gearcard" });
+    wrap.open = !!gearOpen[p.id];
+    wrap.ontoggle = () => { gearOpen[p.id] = wrap.open; };
+    wrap.appendChild(el("summary", {}, ["My gear — warbonds I own"]));
+    const body = el("div", { class: "gearbody" });
+    body.appendChild(el("div", { class: "hint", style: "margin-bottom:10px" }, ["Tell WARMIND which warbonds you own and it only builds loadouts you can actually equip. Stratagems aren't warbond gear — always available."]));
+    wrap.appendChild(body);
+
+    async function save() {
+      if (busy) return; busy = true;
+      try {
+        const payload = owned.size >= allNames.length ? { owned: null } : { owned: [...owned] };
+        await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, store.me(LID).token);
+        STATE = await api("/api/lobby/" + LID); renderLive(); toast("Gear updated");
+      } catch (e) { toast(e.message); } finally { busy = false; }
+    }
+
+    wbs.forEach(w => {
+      const names = w.items.map(i => i.name);
+      const have = names.filter(n => owned.has(n)).length;
+      const state = have === names.length ? "all" : have === 0 ? "none" : "some";
+      const seg = el("div", { class: "seg" });
+      const btns = {};
+      ["all", "some", "none"].forEach(v => {
+        const b = el("button", { class: "segbtn" + (state === v ? " on" : "") }, [{ all: "Have all", some: "Some", none: "None" }[v]]);
+        btns[v] = b; seg.appendChild(b);
+      });
+      const items = el("div", { class: "gearitems" }); items.style.display = state === "some" ? "grid" : "none";
+      w.items.forEach(i => {
+        const cb = el("input", { type: "checkbox" }); if (owned.has(i.name)) cb.setAttribute("checked", "");
+        cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); save(); };
+        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [i.name]), el("span", { class: "gslot" }, [i.slot])]));
+      });
+      const setSeg = v => { ["all", "some", "none"].forEach(k => btns[k].classList.toggle("on", k === v)); items.style.display = v === "some" ? "grid" : "none"; };
+      btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
+      btns.none.onclick = () => { names.forEach(n => owned.delete(n)); setSeg("none"); save(); };
+      btns.some.onclick = () => setSeg("some");
+      body.appendChild(el("div", { class: "gearrow" }, [
+        el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name]), seg]), items,
+      ]));
+    });
     return wrap;
   }
 

@@ -37,6 +37,18 @@ def _mission_from(lobby) -> dict | None:
     return json.loads(lobby["mission_json"]) if lobby and lobby["mission_json"] else None
 
 
+def _owned_of(p) -> list | None:
+    """A player row's owned-gear list, or None meaning 'owns everything'."""
+    raw = p.get("owned_json") if isinstance(p, dict) else None
+    if not raw:
+        return None
+    try:
+        v = json.loads(raw)
+        return v if isinstance(v, list) else None
+    except Exception:
+        return None
+
+
 def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
@@ -46,6 +58,7 @@ def _resolve(lobby) -> dict:
         roster.append(Player(
             id=p["id"], callsign=p["callsign"] or f"Diver {i+1}",
             play_style=p["play_style"] or "by_the_book",
+            owned_items=_owned_of(p),
             accent_hex=ACCENTS[i % len(ACCENTS)],
         ))
     directive = None
@@ -79,6 +92,7 @@ def _resolve(lobby) -> dict:
             "play_style": p["play_style"], "style_source": p["style_source"],
             "style_note": p["style_note"], "has_stats": bool(snap),
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
+            "owned": _owned_of(p),           # None = owns everything; else owned non-base gear
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"])} if res else None),
         })
@@ -151,6 +165,7 @@ def meta():
             "hazards": sorted(hazards, key=lambda x: x["name"]),
             "tacticals": sorted(tacticals, key=lambda x: x["name"]),
             "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
+            "warbonds": loader.warbond_catalog()["warbonds"],
             "vision": vision.status()}
 
 
@@ -270,6 +285,21 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         raise HTTPException(400, "unknown play style")
     db.add_or_update_player(pid, lid, p["token"], p["callsign"], ps, "manual",
                             "Chosen by the diver.", json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
+    return {"ok": True}
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/owned")
+def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Set which non-base gear this diver owns. Body: {"owned": [name,...]} or
+    {"owned": null} to mean 'owns everything'. Loadouts then avoid unowned gear."""
+    _require_player(pid, x_token)
+    owned = payload.get("owned", None)
+    if owned is not None:
+        if not isinstance(owned, list):
+            raise HTTPException(400, "owned must be a list or null")
+        valid = set(loader.warbond_catalog()["map"].keys())
+        owned = [n for n in owned if isinstance(n, str) and n in valid]
+    db.set_owned(pid, owned)
     return {"ok": True}
 
 
