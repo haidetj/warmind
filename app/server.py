@@ -234,18 +234,22 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
     parsed_call = callsign.strip()
     imgs = await _read_images(images)
+    vision_error = None
     if imgs:
         try:
             parsed = vision.parse_career(imgs, mock_index=n_existing)
+            snapshot = parsed["snapshot"]
+            play_style, note, source = parsed["play_style"], parsed["style_note"], "screenshot"
+            parsed_call = parsed_call or parsed.get("callsign") or ""
         except Exception as e:
-            raise HTTPException(502, f"could not read the screenshot: {e}")
-        snapshot = parsed["snapshot"]
-        play_style, note, source = parsed["play_style"], parsed["style_note"], "screenshot"
-        parsed_call = parsed_call or parsed.get("callsign") or ""
+            # A bad/unreadable screenshot must never lock a diver out of the lobby.
+            # Join them with a pending style and let them pick one or retry.
+            vision_error = str(e)
+            note = "Couldn't read that screenshot — pick your style or try another shot."
     callsign_final = parsed_call or f"Diver {n_existing + 1}"
     db.add_or_update_player(pid, lid, token, callsign_final, play_style, source, note, snapshot)
     return {"player_id": pid, "player_token": token, "play_style": play_style,
-            "style_note": note, "style_source": source}
+            "style_note": note, "style_source": source, "vision_error": vision_error}
 
 
 def _require_player(pid, token):
@@ -277,7 +281,8 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
     try:
         parsed = vision.parse_career(imgs, mock_index=len(db.list_players(lid)))
     except Exception as e:
-        raise HTTPException(502, f"could not read the screenshot: {e}")
+        # Player already has a spot; a failed re-read just reports back, no crash.
+        return {"ok": False, "vision_error": str(e)}
     db.add_or_update_player(pid, lid, p["token"], parsed.get("callsign") or p["callsign"],
                             parsed["play_style"], "screenshot", parsed["style_note"], parsed["snapshot"])
     return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"],

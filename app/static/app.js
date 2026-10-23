@@ -34,6 +34,16 @@
 
   let toastT;
   function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 1800); }
+  // Persistent inline status for uploads (model reads take several seconds —
+  // a 1.8s toast isn't enough feedback). kind: working | ok | warn | err.
+  function setStatus(node, kind, msg) {
+    if (!node) return;
+    node.className = "upstatus " + kind;
+    node.innerHTML = "";
+    if (kind === "working") node.appendChild(el("span", { class: "spin" }));
+    node.appendChild(el("span", {}, [msg]));
+    node.style.display = "flex";
+  }
   function copy(text, msg) {
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast(msg), () => {
       const ta = el("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); toast(msg);
@@ -315,26 +325,35 @@
   function joinCard() {
     const wrap = el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Join this drop"])]);
     const name = el("input", { type: "text", placeholder: "Your callsign (optional if it's in your screenshot)" });
+    const status = el("div", { class: "upstatus" });
     const upload = el("label", { class: "btn primary filebtn" }, ["Upload career stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
-    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files);
+    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files, status);
     const skip = el("button", { class: "btn" }, ["Join without stats"]);
-    skip.onclick = () => doJoin(name.value, null);
+    skip.onclick = () => doJoin(name.value, null, status);
     wrap.appendChild(el("div", { class: "field" }, [name]));
     wrap.appendChild(el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [upload, skip]));
+    wrap.appendChild(status);
     wrap.appendChild(el("div", { class: "hint" }, ["Open your in-game Career screen and screenshot it. The list scrolls — take a few shots and select them all; WARMIND merges them. You can override the read anytime."]));
     return wrap;
   }
-  async function doJoin(callsign, files) {
+  async function doJoin(callsign, files, status) {
+    if (busy) return;
     busy = true;
+    const list = files ? Array.from(files) : [];
+    setStatus(status, "working", list.length ? ("Reading " + (list.length > 1 ? list.length + " screenshots" : "your screenshot") + "… this takes a few seconds.") : "Joining…");
     try {
-      const list = files ? Array.from(files) : [];
       const fd = new FormData(); fd.append("callsign", callsign || "");
       list.forEach(f => fd.append("images", f));
       const r = await api("/api/lobby/" + LID + "/join", { method: "POST", body: fd });
       store.setMe(LID, { id: r.player_id, token: r.player_token });
+      // Success paths rebuild the whole page (join card goes away); a toast carries
+      // the result. A hard failure keeps the join card, so the inline status shows it.
       STATE = await api("/api/lobby/" + LID); render();
-      toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
-    } catch (e) { toast(e.message); } finally { busy = false; }
+      if (r.vision_error) toast("Joined — couldn't read that screenshot, pick your style or re-read below.");
+      else toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
+    } catch (e) {
+      setStatus(status, "err", "Upload failed: " + e.message + " — try again.");
+    } finally { busy = false; }
   }
 
   // ---------- roster ----------
@@ -439,26 +458,33 @@
 
   function myActions(p) {
     const box = el("div", { class: "actions" });
+    // One status line shared by the re-read and result uploads (both are model
+    // calls that take a few seconds); given full width so it sits below the row.
+    const actstatus = el("div", { class: "upstatus", style: "width:100%" });
     const restat = el("label", { class: "btn filebtn" }, ["Re-read stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
     restat.querySelector("input").onchange = async ev => {
-      const list = Array.from(ev.target.files || []); if (!list.length) return; busy = true; toast("Reading…");
+      const list = Array.from(ev.target.files || []); if (!list.length || busy) return;
+      busy = true; setStatus(actstatus, "working", "Reading " + (list.length > 1 ? list.length + " screenshots" : "your screenshot") + "… this takes a few seconds.");
       try {
         const fd = new FormData(); list.forEach(f => fd.append("images", f));
         const r = await api("/api/lobby/" + LID + "/player/" + p.id + "/career", { method: "POST", headers: { "x-token": store.me(LID).token }, body: fd });
-        STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style));
-      } catch (e) { toast(e.message); } finally { busy = false; }
+        if (r.ok === false) { setStatus(actstatus, "warn", "Couldn't read that one — try a clearer or less-cropped shot."); }
+        else { STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style)); }
+      } catch (e) { setStatus(actstatus, "err", "Upload failed: " + e.message + " — try again."); } finally { busy = false; }
     };
     const styleSel = el("select", { style: "width:auto;padding:6px 8px;font-size:12.5px" }, META.archetypes.map(k => el("option", { value: k }, [label(k)])));
     styleSel.value = p.play_style;
     styleSel.onchange = async () => { busy = true; try { await jpost("/api/lobby/" + LID + "/player/" + p.id + "/style", { play_style: styleSel.value }, store.me(LID).token); STATE = await api("/api/lobby/" + LID); renderLive(); } catch (e) { toast(e.message); } finally { busy = false; } };
     const result = el("label", { class: "btn filebtn" }, ["Submit result", el("input", { type: "file", accept: "image/*" })]);
     result.querySelector("input").onchange = async ev => {
-      const f = ev.target.files[0]; if (!f) return; busy = true; toast("Reviewing drop…");
+      const f = ev.target.files[0]; if (!f || busy) return; busy = true;
+      setStatus(actstatus, "working", "Reviewing your drop… this takes a few seconds.");
       try { await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); renderLive(); toast("After-action ready"); }
-      catch (e) { toast(e.message); } finally { busy = false; }
+      catch (e) { setStatus(actstatus, "err", "Review failed: " + e.message + " — try again."); } finally { busy = false; }
     };
     box.appendChild(restat); box.appendChild(styleSel);
     if (p.assignment) box.appendChild(result);
+    box.appendChild(actstatus);
     return box;
   }
 
