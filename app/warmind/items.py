@@ -30,6 +30,7 @@ class Item:
     grade: dict = field(default_factory=dict, hash=False, compare=False)
     weight: str = ""                # armor only
     passive: str = ""               # armor only
+    warbond: str = ""               # source warbond; "" / "Helldivers Mobilize" = base (always owned)
 
     def base_grade(self, faction: str) -> float:
         return GRADE_SCALE.get(self.grade.get(faction, "C"), -0.2)
@@ -46,7 +47,17 @@ def _mk(rec: dict, slot: str) -> Item:
         grade=rec.get("grade", {}),
         weight=rec.get("weight", ""),
         passive=rec.get("passive", ""),
+        warbond=rec.get("warbond", ""),
     )
+
+
+# What counts as always-owned (free default / requisition). Items with these
+# warbond values are never gated by ownership.
+BASE_WARBONDS = {"", "Helldivers Mobilize", "Standard"}
+
+
+def is_base_warbond(wb: str) -> bool:
+    return (wb or "") in BASE_WARBONDS
 
 
 class Pool:

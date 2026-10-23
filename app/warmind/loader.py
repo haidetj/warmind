@@ -41,6 +41,34 @@ def items() -> dict:
     return _load("items.yaml")
 
 
+#: slots whose items a player either owns or doesn't (stratagems are requisition,
+#: never warbond-gated, so they are excluded here).
+GATED_SLOTS = ("primaries", "secondaries", "grenades", "armor", "boosters")
+_SLOT_LABEL = {"primaries": "Primary", "secondaries": "Secondary", "grenades": "Grenade",
+               "armor": "Armor", "boosters": "Booster"}
+_BASE = {"", "Helldivers Mobilize", "Standard"}
+
+
+def warbond_catalog() -> dict:
+    """Gated gear grouped by source warbond, for the ownership checklist. Returns
+    {"warbonds": [{"name", "items": [{"name","slot"}...]}...], "map": {item_name: warbond}}.
+    Only non-base warbonds appear; base/requisition gear is always owned."""
+    raw = items()
+    groups: dict[str, list] = {}
+    flat: dict[str, str] = {}
+    for slot in GATED_SLOTS:
+        for rec in raw.get(slot, []):
+            wb = (rec.get("warbond") or "").strip()
+            name = rec["name"]
+            flat[name] = wb
+            if wb in _BASE:
+                continue
+            groups.setdefault(wb, []).append({"name": name, "slot": _SLOT_LABEL[slot]})
+    warbonds = [{"name": wb, "items": sorted(groups[wb], key=lambda x: (x["slot"], x["name"]))}
+                for wb in sorted(groups)]
+    return {"warbonds": warbonds, "map": flat}
+
+
 def kit_tag_vocabulary() -> set[str]:
     """The closed set of kit tags, defined by hazards + situation modifiers."""
     vocab: set[str] = set()

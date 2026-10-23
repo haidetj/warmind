@@ -15,7 +15,7 @@ import itertools
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import coverage, modes, pressure as pressure_mod, roles as roles_mod, scoring
+from . import coverage, items as items_mod, loader as loader_mod, modes, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -43,6 +43,7 @@ class Player:
     play_style: str = "by_the_book"
     unlocked_warbonds: list = field(default_factory=list)
     excluded_items: list = field(default_factory=list)
+    owned_items: list | None = None  # non-base gear this diver owns; None = owns everything
     accent_hex: str = "#D9CBA3"
 
 
@@ -83,18 +84,24 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
           cover_weight=0.3, exclude=frozenset(), squad_used=None):
     """Highest-scoring item, with soft role preferences and a squad-duplicate penalty."""
     squad_used = squad_used or Counter()
+    excl_owned = session_excluded(session)
     best, best_s = None, float("-inf")
+    fb, fb_s = None, float("-inf")  # fallback ignoring ownership, so a slot never strands
     for it in cands:
-        if it.name in exclude or it.name in session_excluded(session):
+        if it.name in exclude:  # hard excludes (squad dupes, explicit) always hold
             continue
         s = scoring.score(it, session._pressure, session.faction, pstyle, history, session.mode)
         s += 0.4 * len(it.tags & pref_tags)
         if pref_cover and pref_cover in it.coverage:
             s += cover_weight
         s -= 0.25 * squad_used.get(it.name, 0)
+        if s > fb_s:
+            fb, fb_s = it, s
+        if it.name in excl_owned:  # ownership exclusion is soft
+            continue
         if s > best_s:
             best, best_s = it, s
-    return best
+    return best if best is not None else fb
 
 
 def session_excluded(session) -> set:
@@ -215,13 +222,16 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(ordered_roles, pool):
+def _assign_boosters(ordered_roles, pool, excluded=frozenset()):
+    """excluded: booster names no diver in the squad owns (skipped unless nothing
+    else is left, so a slot never strands)."""
+    avail = [b for b in pool.boosters if b["name"] not in excluded] or pool.boosters
     chosen, used = {}, set()
     for role_name in ordered_roles:
         bias = _ROLE_BIAS.get(role_name, "any")
         pick = None
         for want_strong in (True, False):
-            for b in pool.boosters:
+            for b in avail:
                 if b["name"] in used:
                     continue
                 if b["role_bias"] in (bias, "any") and bool(b.get("strong")) == want_strong:
@@ -230,7 +240,7 @@ def _assign_boosters(ordered_roles, pool):
             if pick:
                 break
         if not pick:  # nothing matched bias — take any unused
-            pick = next((b for b in pool.boosters if b["name"] not in used), None)
+            pick = next((b for b in avail if b["name"] not in used), None)
         if pick:
             chosen[role_name] = pick["name"]
             used.add(pick["name"])
@@ -282,8 +292,26 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     mission_ideal = roles_mod.select_roles(p, len(players), poor_intel=poor_intel)
     swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
 
+    # Ownership: a diver's own equip slots are limited to the gear they own; boosters
+    # (one per squad, carried by whoever owns it) are limited to what someone owns.
+    wb_of = loader_mod.warbond_catalog()["map"]
+    gated = {n for n, wb in wb_of.items() if not items_mod.is_base_warbond(wb)}
+
+    def _diver_excluded(pl):
+        if pl.owned_items is None:
+            return set(pl.excluded_items or [])
+        return set(pl.excluded_items or []) | (gated - set(pl.owned_items))
+
+    squad_owns_all = any(pl.owned_items is None for pl in players)
+    if squad_owns_all:
+        excluded_boosters = frozenset()
+    else:
+        squad_owned = set().union(*[set(pl.owned_items or []) for pl in players]) if players else set()
+        excluded_boosters = {n for n in gated if n not in squad_owned and
+                             any(b["name"] == n for b in pool.boosters)}
+
     present_role_names = [roles_mod.ROLES[k].name for k in role_map.values()]
-    boosters = _assign_boosters(present_role_names, pool)
+    boosters = _assign_boosters(present_role_names, pool, excluded_boosters)
 
     assignments, kits_by_role = [], {}
     squad_used = Counter()
@@ -295,7 +323,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         role = roles_mod.ROLES[role_key]
         pstyle = roles_mod.play_style(pl.play_style)
         hist = set(history.get(pl.id, []))
-        session._excluded = set(pl.excluded_items or [])
+        session._excluded = _diver_excluded(pl)
 
         armor = _pick(pool.armor_of_weight(role.armor_weight), session, pstyle, hist)
         primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref)

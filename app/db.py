@@ -59,6 +59,17 @@ CREATE INDEX IF NOT EXISTS idx_result_player ON result(player_id);
 def init():
     with _lock, _conn() as c:
         c.executescript(SCHEMA)
+        # migration: per-diver gear ownership (added after first deploy)
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(player)").fetchall()}
+        if "owned_json" not in cols:
+            c.execute("ALTER TABLE player ADD COLUMN owned_json TEXT")
+
+
+def set_owned(pid, owned):
+    """owned: list of owned non-base item names, or None to mean 'owns everything'."""
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET owned_json=?, updated_at=? WHERE id=?",
+                  (json.dumps(owned) if owned is not None else None, time.time(), pid))
 
 
 def create_lobby(lobby_id, name, creator_token):
