@@ -160,6 +160,11 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 .upstatus.err{color:var(--thin);border-color:color-mix(in srgb,var(--thin) 45%,var(--line))}
 .upstatus .spin{width:13px;height:13px;flex:0 0 auto;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:wmspin .7s linear infinite}
 @keyframes wmspin{to{transform:rotate(360deg)}}
+.swaps{display:flex;flex-direction:column;gap:9px}
+.swaprow{padding:10px 12px;border:1px solid color-mix(in srgb,var(--gold) 35%,var(--line));border-radius:9px;background:color-mix(in srgb,var(--gold) 8%,var(--surface))}
+.swapmove{font-size:14px}
+.swapmove b{color:var(--gold)}
+.swapwhy{font-size:12.5px;color:var(--muted);margin-top:3px}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
