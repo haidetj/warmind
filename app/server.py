@@ -65,6 +65,7 @@ def _resolve(lobby) -> dict:
         directive = {
             "pressure": d.pressure, "matrix": d.capability_matrix,
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
+            "swaps": d.swaps,
         }
 
     players_out = []

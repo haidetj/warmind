@@ -490,6 +490,19 @@
 
   function squadBlocks() {
     const d = STATE.directive, wrap = el("section", { class: "stack" });
+    if (d.swaps && d.swaps.length) {
+      const sw = el("div", { class: "swaps" });
+      d.swaps.forEach(s => sw.appendChild(el("div", { class: "swaprow" }, [
+        el("div", { class: "swapmove", html: esc(s.callsign) + ": <b>" + esc(s.from_role) + "</b> → <b>" + esc(s.to_role) + "</b>" }),
+        el("div", { class: "swapwhy" }, [s.why]),
+      ])));
+      const card = el("section", { class: "card" }, [
+        el("div", { class: "section-title" }, ["Mission coverage — suggested swaps"]),
+        el("div", { class: "hint", style: "margin-bottom:8px" }, ["Everyone's on the role that fits them. For this mission, these optional swaps close the gaps — the squad decides."]),
+        sw,
+      ]);
+      wrap.appendChild(card);
+    }
     const mtx = el("div", { class: "matrix" });
     [["at", "heavy armour"], ["st", "structures"], ["ch", "chaff"], ["bc", "break contact"]].forEach(([ax, lbl]) => {
       mtx.appendChild(el("div", { class: "ax" }, [lbl]));

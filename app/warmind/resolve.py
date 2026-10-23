@@ -74,6 +74,7 @@ class Directive:
     cadence: list
     reactive_role: str | None
     notes: list
+    swaps: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------- kit filling
@@ -131,8 +132,9 @@ def _growth_pick(strat_items, pstyle, session):
 # ---------------------------------------------------------------- role assignment
 
 def _assign_roles(players, chosen_roles, mode):
-    """Optimal player->role matching for the mode. improvement aligns to affinity,
-    challenge maximises distance from it. N<=5 so brute force the permutations."""
+    """Optimal player->role matching against a FIXED role set, for the mode.
+    improvement aligns to affinity, challenge maximises distance from it. Used when
+    the caller already decided which roles to field."""
     n = len(players)
     role_slots = chosen_roles[:n]
     best_perm, best_obj = None, float("-inf")
@@ -151,6 +153,60 @@ def _assign_roles(players, chosen_roles, mode):
         if ri < len(role_slots):
             mapping[players[pi].id] = role_slots[ri]
     return mapping
+
+
+def _assign_roles_by_fit(players, mode):
+    """Stats-first: give each diver the role their read play-style fits best for the
+    mode (improvement = comfort, challenge = stretch, fun = comfort tiebreak), with
+    roles kept distinct. Picks the best N of the five roles; mission coverage is a
+    separate advisory (see _coverage_swaps), not a constraint here. N<=5, brute force."""
+    role_keys = list(roles_mod.ROLES.keys())
+    n = len(players)
+    best_perm, best_obj = None, float("-inf")
+    for perm in itertools.permutations(role_keys, n):
+        obj = 0.0
+        for pi, role_key in enumerate(perm):
+            pstyle = roles_mod.play_style(players[pi].play_style)
+            aff = pstyle.affinity.get(role_key, 0.3)
+            obj += modes.role_objective(aff, mode) + 1e-3 * aff
+        if obj > best_obj:
+            best_obj, best_perm = obj, perm
+    return {players[pi].id: role_key for pi, role_key in enumerate(best_perm or role_keys[:n])}
+
+
+def _coverage_swaps(role_map, players, mission_ideal, mode):
+    """After stats-first assignment, suggest role swaps that better satisfy the
+    mission. mission_ideal is the mission-driven role priority (roles.select_roles).
+    Each suggestion moves one diver off a role the mission doesn't need onto one it
+    does, choosing the diver whose affinity cost is lowest."""
+    assigned = set(role_map.values())
+    pid_by_role = {rk: pid for pid, rk in role_map.items()}
+    style_by_pid = {p.id: p.play_style for p in players}
+    call_by_pid = {p.id: p.callsign for p in players}
+    missing = [r for r in mission_ideal if r not in assigned]
+    surplus = [r for r in role_map.values() if r not in mission_ideal]
+    swaps, used = [], set()
+    for want in missing:
+        best = None  # (cost, pid, current_role)
+        for cur in surplus:
+            pid = pid_by_role.get(cur)
+            if pid is None or pid in used:
+                continue
+            aff = roles_mod.play_style(style_by_pid[pid]).affinity
+            cost = aff.get(cur, 0.3) - aff.get(want, 0.3)
+            if best is None or cost < best[0]:
+                best = (cost, pid, cur)
+        if best is None:
+            continue
+        _, pid, cur = best
+        used.add(pid)
+        swaps.append({
+            "player_id": pid, "callsign": call_by_pid[pid],
+            "from_role": roles_mod.ROLES[cur].name, "to_role": roles_mod.ROLES[want].name,
+            "why": f"The mission calls for a {roles_mod.ROLES[want].name}; "
+                   f"{call_by_pid[pid]} is the lowest-cost swap from {roles_mod.ROLES[cur].name}.",
+        })
+    return swaps
 
 
 # ---------------------------------------------------------------- boosters
@@ -220,8 +276,11 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     session._excluded = set()
 
     poor_intel = OP_POOR_INTEL in session.operation_modifiers
-    chosen = roles_mod.select_roles(p, len(players), poor_intel=poor_intel)
-    role_map = _assign_roles(players, chosen, session.mode)
+    # Stats-first: each diver gets the role that fits them. Mission coverage becomes
+    # a set of suggested swaps the squad can opt into once everyone's confirmed.
+    role_map = _assign_roles_by_fit(players, session.mode)
+    mission_ideal = roles_mod.select_roles(p, len(players), poor_intel=poor_intel)
+    swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
 
     present_role_names = [roles_mod.ROLES[k].name for k in role_map.values()]
     boosters = _assign_boosters(present_role_names, pool)
@@ -277,6 +336,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         session=session, pressure=p, assignments=final,
         capability_matrix=matrix, loop=_loop(list(kits_by_role.keys())),
         cadence=_cadence(list(kits_by_role.keys())), reactive_role=reactive, notes=notes,
+        swaps=swaps,
     )
 
 
