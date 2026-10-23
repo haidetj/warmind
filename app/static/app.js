@@ -333,7 +333,8 @@
       const r = await api("/api/lobby/" + LID + "/join", { method: "POST", body: fd });
       store.setMe(LID, { id: r.player_id, token: r.player_token });
       STATE = await api("/api/lobby/" + LID); render();
-      toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
+      if (r.vision_error) toast("Joined — couldn't read that screenshot, pick your style or re-read below.");
+      else toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
     } catch (e) { toast(e.message); } finally { busy = false; }
   }
 
@@ -445,7 +446,8 @@
       try {
         const fd = new FormData(); list.forEach(f => fd.append("images", f));
         const r = await api("/api/lobby/" + LID + "/player/" + p.id + "/career", { method: "POST", headers: { "x-token": store.me(LID).token }, body: fd });
-        STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style));
+        if (r.ok === false) { toast("Couldn't read that one — try a clearer or less-cropped shot."); }
+        else { STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style)); }
       } catch (e) { toast(e.message); } finally { busy = false; }
     };
     const styleSel = el("select", { style: "width:auto;padding:6px 8px;font-size:12.5px" }, META.archetypes.map(k => el("option", { value: k }, [label(k)])));

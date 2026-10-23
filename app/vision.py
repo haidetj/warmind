@@ -9,6 +9,7 @@ seed snapshots so a local demo looks like real intake.
 from __future__ import annotations
 
 import base64
+import io
 import json
 import os
 import pathlib
@@ -16,6 +17,18 @@ import pathlib
 import httpx
 
 from warmind import stats
+
+try:
+    from PIL import Image
+    _HAVE_PIL = True
+except Exception:  # Pillow missing — fall back to sending originals untouched
+    _HAVE_PIL = False
+
+# Anthropic resizes anything whose long edge is over ~1568px; sending bigger just
+# wastes bytes and risks the request-size / dimension limits (a real problem with
+# multiple 4K game screenshots). We downscale + re-encode to JPEG ourselves, which
+# also normalises the media type so a mislabeled upload can't be rejected.
+MAX_EDGE = 1568
 
 MODEL = os.environ.get("WARMIND_MODEL", "claude-sonnet-5")
 API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -59,6 +72,31 @@ def _b64(image_bytes: bytes) -> str:
     return base64.standard_b64encode(image_bytes).decode()
 
 
+def _normalize(images):
+    """Downscale each image so its long edge is <= MAX_EDGE and re-encode to JPEG.
+    Returns a list of (bytes, "image/jpeg"). If Pillow is unavailable or an image
+    can't be decoded, that image is passed through unchanged."""
+    if not _HAVE_PIL:
+        return images
+    out = []
+    for (b, mt) in images:
+        try:
+            im = Image.open(io.BytesIO(b))
+            im.load()
+            if im.mode not in ("RGB", "L"):
+                im = im.convert("RGB")
+            w, h = im.size
+            scale = MAX_EDGE / max(w, h)
+            if scale < 1:
+                im = im.resize((max(1, int(w * scale)), max(1, int(h * scale))))
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=85)
+            out.append((buf.getvalue(), "image/jpeg"))
+        except Exception:
+            out.append((b, mt))  # unreadable by Pillow — let the API try the original
+    return out
+
+
 def _call(images, prompt: str, max_tokens: int = 1024) -> str:
     """One vision message over one or more images. `images` is a list of
     (bytes, media_type). Returns the model's text. Raises on transport/HTTP error."""
@@ -67,6 +105,7 @@ def _call(images, prompt: str, max_tokens: int = 1024) -> str:
         "anthropic-version": "2023-06-01",
         "content-type": "application/json",
     }
+    images = _normalize(images)
     content = [{"type": "image", "source": {"type": "base64", "media_type": mt, "data": _b64(b)}}
                for (b, mt) in images]
     content.append({"type": "text", "text": prompt})
@@ -74,7 +113,9 @@ def _call(images, prompt: str, max_tokens: int = 1024) -> str:
             "messages": [{"role": "user", "content": content}]}
     with httpx.Client(timeout=90) as client:
         r = client.post(f"{BASE_URL}/v1/messages", headers=headers, json=body)
-        r.raise_for_status()
+        if r.status_code >= 400:
+            # Surface the API's own message so failures are diagnosable, not opaque.
+            raise RuntimeError(f"vision API {r.status_code}: {r.text[:300]}")
         data = r.json()
     return "".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
 
