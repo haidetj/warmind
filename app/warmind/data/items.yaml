@@ -50,7 +50,7 @@ primaries:
   - {name: "LAS-12 Sai", warbond: Superstore, coverage: [], tags: [ammo_independent, energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LAS-13 Trident", warbond: "Siege Breakers", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LAS-16 Sickle", warbond: "Cutting Edge", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "LAS-17 Double-Edge Sickle", warbond: "Servants of Freedom", coverage: [at], tags: [ammo_independent, energy, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-17 Double-Edge Sickle", warbond: "Servants of Freedom", coverage: [ch], tags: [ammo_independent, energy, sustain_fire], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "M7S SMG", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "M90A Shotgun", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "MA5C Assault Rifle", warbond: "Halo: ODST", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
@@ -255,10 +255,10 @@ armor:
   - {name: "SS-15 Focal Point",     warbond: "Scope of Authority", weight: Medium, passive: "Stationary Shroud", coverage: [bc], tags: [stealth]}
   - {name: "TG-8 Sharpshooter",     warbond: "Castellan's Creed", weight: Medium, passive: "True Grit",         coverage: [],   tags: []}
   - {name: "TG-122 Demo-Trooper",   warbond: "Castellan's Creed", weight: Heavy,  passive: "True Grit",         coverage: [],   tags: []}
-  - {name: "A-35 Recon", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [], tags: []}
-  - {name: "A-9 Helljumper", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [], tags: []}
-  - {name: "AC-1 Dutiful", warbond: "Righteous Revenants", weight: Medium, passive: Acclimated, coverage: [], tags: []}
-  - {name: "AC-2 Obedient", warbond: "Righteous Revenants", weight: Light, passive: Acclimated, coverage: [], tags: [light_armor]}
+  - {name: "A-35 Recon", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [bc], tags: [stealth]}
+  - {name: "A-9 Helljumper", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [bc], tags: [stealth]}
+  - {name: "AC-1 Dutiful", warbond: "Righteous Revenants", weight: Medium, passive: Acclimated, coverage: [], tags: [fire_resist_armor]}
+  - {name: "AC-2 Obedient", warbond: "Righteous Revenants", weight: Light, passive: Acclimated, coverage: [], tags: [light_armor, fire_resist_armor]}
   - {name: "AD-11 Livewire", warbond: Superstore, weight: Light, passive: "Adreno-Defibrillator", coverage: [], tags: [light_armor]}
   - {name: "AD-26 Bleeding Edge", warbond: "Control Group", weight: Medium, passive: "Adreno-Defibrillator", coverage: [], tags: []}
   - {name: "AD-49 Apollonian", warbond: "Control Group", weight: Heavy, passive: "Adreno-Defibrillator", coverage: [], tags: []}
@@ -297,9 +297,9 @@ armor:
   - {name: "DP-11 Champion of the People", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
   - {name: "DP-53 Savior of the Free", warbond: "Super Citizen Edition", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
   - {name: "DP-8 Mountain-Scaled", warbond: Superstore, weight: Medium, passive: "Siege-Ready", coverage: [], tags: [sustain_fire]}
-  - {name: "DS-10 Big Game Hunter", warbond: Superstore, weight: Light, passive: "Desert Stormer", coverage: [], tags: [light_armor]}
-  - {name: "DS-191 Scorpion", warbond: "Dust Devils", weight: Medium, passive: "Desert Stormer", coverage: [], tags: []}
-  - {name: "DS-42 Federation's Blade", warbond: "Dust Devils", weight: Heavy, passive: "Desert Stormer", coverage: [], tags: []}
+  - {name: "DS-10 Big Game Hunter", warbond: Superstore, weight: Light, passive: "Desert Stormer", coverage: [], tags: [light_armor, fire_resist_armor]}
+  - {name: "DS-191 Scorpion", warbond: "Dust Devils", weight: Medium, passive: "Desert Stormer", coverage: [], tags: [fire_resist_armor]}
+  - {name: "DS-42 Federation's Blade", warbond: "Dust Devils", weight: Heavy, passive: "Desert Stormer", coverage: [], tags: [fire_resist_armor]}
   - {name: "EX-00 Prototype X", warbond: "Cutting Edge", weight: Light, passive: "Electrical Conduit", coverage: [], tags: [light_armor]}
   - {name: "EX-03 Prototype 3", warbond: "Cutting Edge", weight: Medium, passive: "Electrical Conduit", coverage: [], tags: []}
   - {name: "EX-16 Prototype 16", warbond: "Cutting Edge", weight: Medium, passive: "Electrical Conduit", coverage: [], tags: []}
@@ -319,7 +319,7 @@ armor:
   - {name: "IE-12 Righteous", warbond: "Servants of Freedom", weight: Medium, passive: "Integrated Explosives", coverage: [], tags: []}
   - {name: "IE-3 Martyr", warbond: "Servants of Freedom", weight: Medium, passive: "Integrated Explosives", coverage: [], tags: []}
   - {name: "IE-57 Hell-Bent", warbond: Superstore, weight: Light, passive: "Integrated Explosives", coverage: [], tags: [light_armor]}
-  - {name: "KDM-500 Outrider", warbond: "Permanent Enclosure", weight: Heavy, passive: "Kinetic Displacement Mitigation", coverage: [], tags: []}
+  - {name: "KDM-500 Outrider", warbond: "Permanent Enclosure", weight: Heavy, passive: "Kinetic Displacement Mitigation", coverage: [], tags: [fire_resist_armor]}
   - {name: "O-2 Heavy Operator", warbond: "Exo Experts", weight: Heavy, passive: Oxygenator, coverage: [], tags: []}
   - {name: "O-3 Free Spirit", warbond: "Exo Experts", weight: Light, passive: Oxygenator, coverage: [], tags: [light_armor]}
   - {name: "O-44 Bonded Pilot", warbond: Superstore, weight: Medium, passive: Oxygenator, coverage: [], tags: []}
