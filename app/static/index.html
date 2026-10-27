@@ -184,6 +184,21 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 .gearitem .gslot{margin-left:auto;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
 .squadread{margin-top:10px;padding:9px 12px;border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 7%,var(--surface));font-size:13.5px;font-style:italic;color:var(--ink-2)}
 .cmark{font-style:normal}
+.sizeseg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sizebtn{background:rgba(6,12,10,.6);border:1px solid rgba(120,200,150,.3);color:#9fb8c4;font-family:var(--mono);
+  font-size:18px;font-weight:700;border-radius:9px;padding:10px 0;min-height:46px;cursor:pointer}
+.sizebtn:hover{border-color:rgba(215,165,58,.6);color:#e8f2ec}
+.sizebtn.on{background:rgba(215,165,58,.18);border-color:#e6b53f;color:#f2cf73;box-shadow:0 0 14px rgba(215,165,58,.18)}
+.readiness .rdylist{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px 14px;margin:4px 0 8px}
+.rdy{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted)}
+.rdy .rdot{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);font-size:11px}
+.rdy.ok{color:var(--ink)}
+.rdy.ok .rdot{background:var(--favored);border-color:var(--favored);color:#fff}
+.readiness.final{border-color:color-mix(in srgb,var(--favored) 45%,var(--line))}
+.provtag{margin-left:8px;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:2px 6px;border-radius:5px;
+  border:1px dashed var(--warn);color:var(--warn);vertical-align:middle;font-family:var(--mono)}
+.gearcard.unset{border-color:color-mix(in srgb,var(--gold) 55%,var(--line));background:color-mix(in srgb,var(--gold) 7%,var(--surface-2))}
+.gearcard.unset>summary{color:var(--gold)}
 .cmark.ok{color:var(--favored)}
 .cmark.warn{color:var(--thin)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}

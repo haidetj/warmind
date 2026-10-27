@@ -111,6 +111,7 @@ def _resolve(lobby) -> dict:
             "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
             "confidence": _conf_of(p),       # which read fields were double-read-verified
             "owned": _owned_of(p),           # None = owns everything; else owned non-base gear
+            "gear_confirmed": bool(p.get("gear_confirmed")),
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"])} if res else None),
         })
@@ -119,7 +120,24 @@ def _resolve(lobby) -> dict:
         "id": lobby["id"], "name": lobby["name"], "mission": mission,
         "players": players_out, "directive": directive,
         "squad_readout": stats.squad_readout(all_snaps),
+        "readiness": _readiness(lobby, players_rows, mission),
     }
+
+
+def _readiness(lobby, players_rows, mission) -> dict:
+    """What the holistic briefing still needs. Loadouts resolve live as divers join,
+    but they're provisional until the squad is full and everyone has a read + gear —
+    or the creator briefs early."""
+    joined = len(players_rows)
+    expected = lobby.get("squad_size") or max(joined, 1)  # older lobbies: whoever's here
+    read = sum(1 for p in players_rows if (p.get("style_source") or "pending") != "pending")
+    gear = sum(1 for p in players_rows if p.get("gear_confirmed"))
+    mission_set = bool(mission and mission.get("mission_id"))
+    ready = mission_set and joined >= expected and read >= joined and gear >= joined and joined > 0
+    briefed = bool(lobby.get("briefed"))
+    return {"expected": expected, "joined": joined, "read": read, "gear": gear,
+            "mission_set": mission_set, "ready": ready, "briefed": briefed,
+            "final": ready or briefed}
 
 
 def _round(d: dict) -> dict:
@@ -191,10 +209,21 @@ def meta():
 
 # ---------------------------------------------------------------- lobby lifecycle
 @app.post("/api/lobby")
-def create_lobby(name: str = Form("Squad")):
+def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4)):
     lid, token = _id(4), secrets.token_urlsafe(16)
-    db.create_lobby(lid, name.strip() or "Squad", token)
+    db.create_lobby(lid, name.strip() or "Squad", token, max(1, min(4, squad_size)))
     return {"lobby_id": lid, "creator_token": token}
+
+
+@app.post("/api/lobby/{lid}/brief")
+def brief_now(lid: str, x_token: str = Header(None)):
+    """Creator finalizes the briefing before every expected diver is in."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    db.set_briefed(lid, True)
+    return _resolve(db.get_lobby(lid))
 
 
 @app.get("/api/lobby/{lid}")
@@ -224,6 +253,7 @@ def lobbies_summary(payload: dict):
             mname = m["display_name"] if m else None
         out.append({
             "id": lid, "name": lobby["name"], "players": len(db.list_players(lid)),
+            "squad_size": lobby.get("squad_size"),
             "mission_name": mname, "mode": mission.get("mode") if mission else None,
             "updated_at": lobby["updated_at"],
         })

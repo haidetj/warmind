@@ -65,13 +65,27 @@ def init():
             c.execute("ALTER TABLE player ADD COLUMN owned_json TEXT")
         if "confidence_json" not in cols:
             c.execute("ALTER TABLE player ADD COLUMN confidence_json TEXT")
+        if "gear_confirmed" not in cols:
+            c.execute("ALTER TABLE player ADD COLUMN gear_confirmed INTEGER DEFAULT 0")
+        lcols = {r["name"] for r in c.execute("PRAGMA table_info(lobby)").fetchall()}
+        if "squad_size" not in lcols:
+            c.execute("ALTER TABLE lobby ADD COLUMN squad_size INTEGER")
+        if "briefed" not in lcols:
+            c.execute("ALTER TABLE lobby ADD COLUMN briefed INTEGER DEFAULT 0")
 
 
 def set_owned(pid, owned):
-    """owned: list of owned non-base item names, or None to mean 'owns everything'."""
+    """owned: list of owned non-base item names, or None to mean 'owns everything'.
+    Either way the diver has now told us about their gear, so it's confirmed."""
     with _lock, _conn() as c:
-        c.execute("UPDATE player SET owned_json=?, updated_at=? WHERE id=?",
+        c.execute("UPDATE player SET owned_json=?, gear_confirmed=1, updated_at=? WHERE id=?",
                   (json.dumps(owned) if owned is not None else None, time.time(), pid))
+
+
+def set_briefed(lobby_id, briefed: bool):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET briefed=?, updated_at=? WHERE id=?",
+                  (1 if briefed else 0, time.time(), lobby_id))
 
 
 def set_confidence(pid, confidence):
@@ -81,11 +95,11 @@ def set_confidence(pid, confidence):
                   (json.dumps(confidence) if confidence else None, pid))
 
 
-def create_lobby(lobby_id, name, creator_token):
+def create_lobby(lobby_id, name, creator_token, squad_size=4):
     now = time.time()
     with _lock, _conn() as c:
-        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,created_at,updated_at)"
-                  " VALUES(?,?,?,?,?,?)", (lobby_id, name, creator_token, None, now, now))
+        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,squad_size,created_at,updated_at)"
+                  " VALUES(?,?,?,?,?,?,?)", (lobby_id, name, creator_token, None, squad_size, now, now))
 
 
 def get_lobby(lobby_id):
