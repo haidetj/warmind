@@ -128,7 +128,7 @@ def wiki_map() -> dict:
 # menu group, stratagem permit colour and icon. This arranges the ownership checklist the
 # way the game's loadout menu does. Only gated gear is listed — base gear is always owned.
 WEAPON_ORDER = ["Assault Rifles", "Marksman Rifles", "Sniper Rifles", "Submachine Guns", "Shotguns",
-                "Explosives", "Energy-Based", "Special", "Pistols", "Melee", "Standard", "Other"]
+                "Explosives", "Energy-Based", "Pistols", "Melee", "Standard", "Special", "Other"]
 PERMITS = [("Offensive", ["Orbital", "Eagle"]), ("Supply", ["Support Weapons", "Backpacks", "Vehicles"]),
            ("Defensive", ["Sentries", "Emplacements"])]
 
@@ -147,12 +147,14 @@ def armory() -> list:
 
     out = []
     for slot in GATED_SLOTS:
-        gated = [r for r in raw.get(slot, []) if (wb.get(r["name"]) or "") not in _BASE]
+        gated = [r for r in raw.get(slot, []) if (wb.get(r["name"]) or "") not in _BASE and not r.get("novelty")]
         groups: dict = {}
         for r in gated:
             m = meta.get(r["name"], {})
             if slot == "stratagems":
-                key = (m.get("permit") or "Supply", m.get("group") or "Other")
+                pm = (m.get("permit") or "Supply").strip().title()
+                pm = "Offensive" if pm.startswith("Offens") else "Defensive" if pm.startswith("Defens") else pm
+                key = (pm, m.get("group") or "Other")
             elif slot == "armor":
                 key = (None, r.get("weight") or "Other")
             elif slot == "boosters":

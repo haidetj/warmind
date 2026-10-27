@@ -139,6 +139,13 @@
 
   // ======================================================================= boot
   initLang();
+  // device handoff: a "use on another device" link carries #me=<pid>.<token>
+  (function claimFromHash() {
+    const m = location.hash.match(/^#me=([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+    if (!m || !LID) return;
+    store.setMe(LID, { id: m[1], token: m[2] });
+    history.replaceState(null, "", location.pathname + location.search);   // don't leave the token in the address bar
+  })();
   (async function boot() {
     META = await api("/api/meta");
     if (!LID) return renderHome();
@@ -436,7 +443,17 @@
       const row = el("div", { class: "mrow" + (mine ? " me" : "") }, [
         el("div", { class: "stripe" }),
         el("div", { style: "min-width:0" }, [el("div", { class: "nm" }, [p.callsign]), el("div", { class: "sub" }, [sub])]),
-        el("div", { class: "pips" }, [mine ? tag("amber", t("common.you")) : null, stats, gear, medal]),
+        el("div", { class: "pips" }, [mine ? tag("amber", t("common.you")) : null, stats, gear, medal,
+          isCreator() && !mine ? (() => {
+            const rm = el("button", { class: "btn sm red rm", type: "button", title: t("man.remove"), "aria-label": t("man.remove") }, ["×"]);
+            rm.onclick = async () => {
+              if (busy || !confirm(t("man.remove.confirm", { callsign: p.callsign }))) return;
+              busy = true;
+              try { await api("/api/lobby/" + LID + "/player/" + p.id, { method: "DELETE", headers: { "x-token": store.creator(LID) } }); busy = false; await refresh(); }
+              catch (e) { toast(e.message); } finally { busy = false; }
+            };
+            return rm;
+          })() : null]),
       ]);
       row.style.setProperty("--acc", p.accent);
       rows.appendChild(row);
@@ -507,6 +524,9 @@
       el("div", { class: "field" }, [reread]),
     ]));
     kids.push(status);
+    const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
+    dev.onclick = () => copy(location.origin + "/?l=" + LID + "#me=" + p.id + "." + meRec().token, t("me.device.copied"));
+    kids.push(el("div", { class: "btnrow" }, [dev]));
     if (gear && p.gear_confirmed) kids.push(gear);
     const pn = panel(t("me.pid"), t("me.title"), { tone: "amber", status: p.callsign, statusKind: "warn" }, kids);
     return pn;
@@ -945,30 +965,44 @@
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
     if (m.oath) kids.push(el("div", { class: "readout-q", style: "margin:0 0 12px;font-style:normal" }, [t("deb.oath", { name: t("oath." + m.oath + ".name"), rule: t("oath." + m.oath + ".rule") })]));
-    if (me && me.assignment) {
+    // result upload: the diver for themself, or the creator for any diver (a diver on another device)
+    function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-      const up = fileBtn("primary", t("deb.submit"), false);
+      const up = fileBtn(primary ? "primary" : "sm", label, false);
       up.querySelector("input").onchange = async ev => {
         const f = ev.target.files[0]; if (!f || busy) return;
         busy = true; lockControls([up], true);
         const stop = workTicker(status, lines("tick.review.", 5));
         try {
           const fd = new FormData(); fd.append("image", f); fd.append("lang", LANG);
-          const rr = await fdpost("/api/lobby/" + LID + "/player/" + me.id + "/result", fd, meRec().token);
-          stop(); await refresh();
+          const token = me && me.id === target.id ? meRec().token : store.creator(LID);
+          const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
+          stop(); busy = false; await refresh();
           const v = rr.verdict;
           toast(v && v.passed === true && v.medal ? t("toast.medal", { name: v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal") })
             : v && v.passed === false ? t("toast.broken") : t("toast.aar"));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
+      return [up, status];
+    }
+    if (me) {
+      const [up, status] = uploader(me, t("deb.submit"), true);
       kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
+    } else if (!isCreator()) {
+      kids.push(el("div", { class: "alert" }, [el("b", {}, ["!"]), t("deb.nodevice")]));
     }
     kids.push(el("div", { class: "sub-h" }, [t("deb.honors")]));
     const honors = el("div", { class: "honors" });
     STATE.players.forEach(p => {
       const aar = p.aar, inner = [el("div", { class: "nm" }, [p.callsign + (p.assignment ? "  ·  " + p.assignment.role : "")])];
-      if (!aar) inner.push(el("div", { class: "st" }, [t("deb.pending")]));
+      if (!aar) {
+        inner.push(el("div", { class: "st" }, [t("deb.pending")]));
+        if (isCreator() && !(me && me.id === p.id)) {
+          const [up, status] = uploader(p, t("deb.upload_for", { callsign: p.callsign }), false);
+          inner.push(el("div", { class: "btnrow", style: "margin:6px 0 0" }, [up]), status);
+        }
+      }
       else {
         const vb = verdictBlock(aar.verdict); if (vb) inner.push(vb);
         const r = aar.result || {};

@@ -195,7 +195,7 @@ stratagems:
   - {name: "EXO-49 Emancipator Exosuit", slot: stratagem, category: vehicle, coverage: [at, st], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "EXO-51 Lumberer Exosuit", warbond: "Exo Experts", slot: stratagem, category: vehicle, coverage: [at, ch, st], tags: [fire_kit, heavy_pen], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
   - {name: "EXO-55 Breakthrough Exosuit", warbond: "Exo Experts", slot: stratagem, category: vehicle, coverage: [at], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "Eagle Fly By", warbond: "Liberty Day 2026", slot: stratagem, category: eagle, coverage: [], tags: [eagle], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Eagle Fly By", novelty: true, warbond: "Liberty Day 2026", slot: stratagem, category: eagle, coverage: [], tags: [eagle], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "Eagle Gas Airstrike", warbond: "Counterdissident Hammer", slot: stratagem, category: eagle, coverage: [ch, st], tags: [eagle], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "Eagle Strafing Run", slot: stratagem, category: eagle, coverage: [at], tags: [eagle, heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LIFT-182 Warp Pack", warbond: "Control Group", slot: stratagem, category: backpack, coverage: [bc], tags: [jump_pack, mobility], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
@@ -208,7 +208,7 @@ stratagems:
   - {name: "Orbital 120mm HE Barrage", slot: stratagem, category: orbital, coverage: [at, ch, st], tags: [heavy_pen, orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "Orbital 380mm HE Barrage", slot: stratagem, category: orbital, coverage: [at, ch, st], tags: [heavy_pen, orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "Orbital Airburst Strike", slot: stratagem, category: orbital, coverage: [ch, st], tags: [orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "Orbital Confetti", warbond: "Liberty Day 2026", slot: stratagem, category: orbital, coverage: [], tags: [orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Orbital Confetti", novelty: true, warbond: "Liberty Day 2026", slot: stratagem, category: orbital, coverage: [], tags: [orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SH-20 Ballistic Shield Backpack", slot: stratagem, category: backpack, coverage: [bc], tags: [shield_pack], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SH-51 Directional Shield", warbond: "Urban Legends", slot: stratagem, category: backpack, coverage: [bc], tags: [shield_pack], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "TD-110 Maelstrom", warbond: "Armored Eagle", slot: stratagem, category: vehicle, coverage: [at], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}

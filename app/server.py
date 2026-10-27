@@ -100,20 +100,30 @@ def _resolve(lobby) -> dict:
     directive = None
     by_pid = {}
     readiness = _readiness(lobby, players_rows, mission)
-    # Loadouts are generated once, holistically: when the whole squad is in with stats
-    # and gear (or the creator briefs early) — never piecemeal as divers trickle in.
+    if readiness["ready"] and not lobby.get("briefed"):
+        # the squad just completed: lock this roster so a late joiner can't un-ready it
+        db.lock_roster(lobby["id"], [p["id"] for p in players_rows])
+        lobby = db.get_lobby(lobby["id"])
+        readiness = _readiness(lobby, players_rows, mission)
+    # Loadouts are generated once, holistically, for the locked roster (the divers present
+    # when the squad completed, the creator generated, or the mission/reroll last changed).
+    # Late joiners are fitted around them in their own group and never reshuffle anyone.
     if readiness["final"] and mission and mission.get("mission_id") and roster:
-        session = Session(
-            planet_name=mission.get("planet_name", ""),
-            planet_hazards=mission.get("planet_hazards", []),
-            mission_id=mission["mission_id"], faction=mission.get("faction", "automatons"),
-            difficulty=mission.get("difficulty", 7), mode=mission.get("mode", "improvement"),
-            operation_modifiers=mission.get("operation_modifiers", []),
-            tactical_objectives=mission.get("tactical_objectives", []),
-            is_city_map=mission.get("is_city_map", False),
-            seed=int(lobby.get("reroll") or 0),
-        )
-        d = resolve_squad(session, roster, {})
+        locked = set(json.loads(lobby["roster_json"])) if lobby.get("roster_json") else {p.id for p in roster}
+        core = [p for p in roster if p.id in locked] or roster[:SQUAD_MAX]
+        rest = [p for p in roster if p not in core]
+        groups = [core[i:i + SQUAD_MAX] for i in range(0, len(core), SQUAD_MAX)]
+        groups += [rest[i:i + SQUAD_MAX] for i in range(0, len(rest), SQUAD_MAX)]
+        taken, d = set(), None
+        for gi, grp in enumerate(groups):
+            for pl in grp:  # later groups avoid the stratagems the squad already brings
+                pl.excluded_items = sorted(taken)
+            dg = resolve_squad(_session_of(mission, lobby), grp, {})
+            taken |= {s for a in dg.assignments for s in a.stratagems}
+            if d is None:
+                d = dg
+            else:
+                d.assignments.extend(dg.assignments)
         by_pid = {a.player_id: a for a in d.assignments}
         directive = {
             # top/driver are computed methods on Pressure — the dataclass serializer
@@ -155,6 +165,22 @@ def _resolve(lobby) -> dict:
         "squad_readout_keys": stats.squad_readout_keys(all_snaps),
         "readiness": readiness, "reroll": int(lobby.get("reroll") or 0),
     }
+
+
+SQUAD_MAX = 4  # a Helldivers 2 squad
+
+
+def _session_of(mission, lobby) -> Session:
+    return Session(
+        planet_name=mission.get("planet_name", ""),
+        planet_hazards=mission.get("planet_hazards", []),
+        mission_id=mission["mission_id"], faction=mission.get("faction", "automatons"),
+        difficulty=mission.get("difficulty", 7), mode=mission.get("mode", "improvement"),
+        operation_modifiers=mission.get("operation_modifiers", []),
+        tactical_objectives=mission.get("tactical_objectives", []),
+        is_city_map=mission.get("is_city_map", False),
+        seed=int(lobby.get("reroll") or 0),
+    )
 
 
 def _readiness(lobby, players_rows, mission) -> dict:
@@ -263,7 +289,7 @@ def brief_now(lid: str, x_token: str = Header(None)):
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
-    db.set_briefed(lid, True)
+    db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
     return _resolve(db.get_lobby(lid))
 
 
@@ -275,6 +301,8 @@ def reroll(lid: str, x_token: str = Header(None)):
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
     db.bump_reroll(lid)
+    if lobby.get("briefed"):  # a reroll regenerates the whole squad, late joiners included
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
     return _resolve(db.get_lobby(lid))
 
 
@@ -330,6 +358,8 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     if m.get("oath") not in oaths.OATHS:
         m["oath"] = None
     db.set_mission(lid, m)
+    if lobby.get("briefed"):  # a new mission regenerates the whole squad, late joiners included
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
     return _resolve(db.get_lobby(lid))
 
 
@@ -403,6 +433,18 @@ def _require_player(pid, token):
     return p
 
 
+def _require_player_or_creator(lid, pid, token):
+    """The diver themself, or the lobby creator acting for them (e.g. a diver whose
+    device lost their link, or a duplicate diver record being cleaned up)."""
+    p = db.get_player(pid)
+    lobby = db.get_lobby(lid)
+    if not p or not lobby or p["lobby_id"] != lid:
+        raise HTTPException(404, "player not found")
+    if token and (token == p["token"] or token == lobby["creator_token"]):
+        return p
+    raise HTTPException(403, "not your diver")
+
+
 @app.post("/api/lobby/{lid}/player/{pid}/style")
 def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     p = _require_player(pid, x_token)
@@ -453,7 +495,7 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
 @app.post("/api/lobby/{lid}/player/{pid}/result")
 async def submit_result(lid: str, pid: str, image: UploadFile = File(...), lang: str = Form("en"),
                         x_token: str = Header(None)):
-    p = _require_player(pid, x_token)
+    p = _require_player_or_creator(lid, pid, x_token)
     lobby = db.get_lobby(lid)
     state = _resolve(lobby)
     mission = _mission_from(lobby) or {}
@@ -483,7 +525,7 @@ async def submit_result(lid: str, pid: str, image: UploadFile = File(...), lang:
 
 @app.delete("/api/lobby/{lid}/player/{pid}")
 def leave(lid: str, pid: str, x_token: str = Header(None)):
-    _require_player(pid, x_token)
+    _require_player_or_creator(lid, pid, x_token)
     db.remove_player(pid)
     return {"ok": True}
 

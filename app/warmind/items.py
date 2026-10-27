@@ -66,7 +66,7 @@ class Pool:
     """The full equipment pool, indexed by slot and category."""
 
     def __init__(self) -> None:
-        raw = loader.items()
+        raw = {k: [r for r in v if not r.get("novelty")] for k, v in loader.items().items()}  # no joke stratagems
         self.primaries = [_mk(r, "primary") for r in raw["primaries"]]
         self.secondaries = [_mk(r, "secondary") for r in raw["secondaries"]]
         self.grenades = [_mk(r, "grenade") for r in raw["grenades"]]
