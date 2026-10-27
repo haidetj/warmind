@@ -63,6 +63,7 @@ class Assignment:
     growth_slot: str | None
     thin: list
     rationale: str
+    rationale_parts: list = field(default_factory=list)  # [{"k","p"}] — same text, translatable
 
 
 @dataclass
@@ -77,6 +78,7 @@ class Directive:
     notes: list
     swaps: list = field(default_factory=list)
     doctrine: dict | None = None  # mission-type doctrine card (e.g. Commando), or None
+    notes_i18n: list = field(default_factory=list)  # [{"k","p"}] parallel to notes
 
 
 # ---------------------------------------------------------------- kit filling
@@ -366,44 +368,55 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         kit = [primary, secondary, grenade, armor] + strat
         thin = coverage.thin_axes(kit)
         growth = _growth_pick(strat, pstyle, session)
-        rationale = _rationale(role, pstyle, session, growth, thin, matrix)
+        rationale, rparts = _rationale(role, pstyle, session, growth, thin, matrix, style_key=pl.play_style)
         if commando:
             rationale += (" Commando op: no statics — carry your support weapon, keep one strike "
                           "for each Super Destroyer window.")
+            rparts.append({"k": "rat.commando", "p": {}})
         final.append(Assignment(
             player_id=pl.id, callsign=pl.callsign, role=role.name,
             primary=primary.name, secondary=secondary.name, grenade=grenade.name,
             armor=armor.name, armor_weight=armor.weight, armor_passive=armor.passive,
             booster=boosters.get(role.name, ""),
             stratagems=[s.name for s in strat], growth_slot=growth,
-            thin=[coverage.AXIS_LABEL[a] for a in thin], rationale=rationale,
+            thin=[coverage.AXIS_LABEL[a] for a in thin], rationale=rationale, rationale_parts=rparts,
         ))
 
     reactive = next((r.name for k, r in
                      ((k, roles_mod.ROLES[k]) for k in role_map.values()) if r.reactive), None)
-    notes = _notes(session, p)
+    note_phrases = _notes(session, p)
+    notes = [n["t"] for n in note_phrases]
 
     return Directive(
         session=session, pressure=p, assignments=final,
         capability_matrix=matrix, loop=_loop(list(kits_by_role.keys())),
         cadence=_cadence(list(kits_by_role.keys())), reactive_role=reactive, notes=notes,
         swaps=swaps, doctrine=doctrine,
+        notes_i18n=[{"k": n["k"], "p": n["p"]} for n in note_phrases],
     )
 
 
-def _rationale(role, pstyle, session, growth, thin, matrix):
-    parts = [role.blurb]
+def _role_key(role) -> str:
+    return role.name.replace(" ", "_")
+
+
+def _rationale(role, pstyle, session, growth, thin, matrix, style_key=""):
+    """English rationale text plus the same thing as translatable phrases."""
+    parts, phrases = [role.blurb], [{"k": f"role.{_role_key(role)}.blurb", "p": {}}]
     driver = session._pressure.driver()
     if driver:
         parts.append(f"The read is {driver}.")
+        phrases.append({"k": "rat.read", "p": {"driver": driver}})
     if growth:
         parts.append(f"{growth} is the growth pick — outside {pstyle.label}'s usual reach, "
                      f"placed where the mission rewards it, not as a handicap.")
+        phrases.append({"k": "rat.growth", "p": {"item": growth, "style": style_key}})
     for a in thin:
         owner = coverage.cover_owner(a, matrix, role.name)
         if owner:
             parts.append(f"{coverage.AXIS_LABEL[a].capitalize()} is thin — {owner} is deep there and covers it.")
-    return " ".join(parts)
+            phrases.append({"k": "rat.thin", "p": {"axis": a, "owner": owner}})
+    return " ".join(parts), phrases
 
 
 COMMANDO_ORDERS = (
@@ -420,6 +433,7 @@ COMMANDO_ORDERS = (
 def _doctrine(session) -> dict | None:
     tags = (loader_mod.missions().get(session.mission_id) or {}).get("tags") or []
     if "commando_op" in tags:
+        # client translates title/orders by `kind` (doctrine.commando.title, .1 … .4)
         return {"kind": "commando", "title": "Commando doctrine", "orders": list(COMMANDO_ORDERS)}
     return None
 
@@ -432,20 +446,23 @@ D100_ORDERS = (
 
 
 def _notes(session, p):
+    """Field notes as [{"k", "p", "t"}]: a translation key + params, and the English text."""
     notes = []
+    add = lambda k, t, **pp: notes.append({"k": k, "p": pp, "t": t})
     if session.mode == "d100":
-        notes.extend(D100_ORDERS)
+        for i, t in enumerate(D100_ORDERS, 1):
+            add(f"d100.{i}", t)
     if OP_PLOTTING in session.operation_modifiers:
-        notes.append("Complex Stratagem Plotting: every call is 2–4s standing still. Only the "
-                     "reactive diver calls under fire; everyone else plots from inside the relay.")
+        add("note.plotting", "Complex Stratagem Plotting: every call is 2–4s standing still. Only the "
+                             "reactive diver calls under fire; everyone else plots from inside the relay.")
     if OP_POOR_INTEL in session.operation_modifiers:
-        notes.append("Poor Intel: the Forward Eye works a beat ahead so objectives are found "
-                     "without the squad searching as four.")
+        add("note.poor_intel", "Poor Intel: the Forward Eye works a beat ahead so objectives are found "
+                               "without the squad searching as four.")
     if session.is_city_map:
-        notes.append("City map: short sightlines and airborne threats. Emplacements lose arcs; "
-                     "anti-air and entry tools gain value.")
+        add("note.city", "City map: short sightlines and airborne threats. Emplacements lose arcs; "
+                         "anti-air and entry tools gain value.")
     if p.mandates:
-        notes.append("Mandated by the map: " + ", ".join(p.mandates) + ".")
-    notes.append("Recovery: never reinforce into contact; resume from the last completed beat; "
-                 "if the load-bearing asset dies, the sequence stops until it is back.")
+        add("note.mandated", "Mandated by the map: " + ", ".join(p.mandates) + ".", list=", ".join(p.mandates))
+    add("note.recovery", "Recovery: never reinforce into contact; resume from the last completed beat; "
+                         "if the load-bearing asset dies, the sequence stops until it is back.")
     return notes

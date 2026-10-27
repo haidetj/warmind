@@ -41,26 +41,27 @@ def evaluate(oath: str | None, result: dict) -> dict | None:
     if not oath or oath not in OATHS:
         return None
     o = OATHS[oath]
-    passed, reason = None, ""
+    passed, reason, rk, rp = None, "", "", {}   # rk/rp: translation key + params for the reason
     if oath == "no_deaths":
         d = _num(result, "deaths")
         if d is None:
-            reason = "Deaths aren't readable on this scoreboard."
+            reason, rk = "Deaths aren't readable on this scoreboard.", "v.unread_deaths"
         else:
-            passed, reason = d == 0, f"{int(d)} death{'' if d == 1 else 's'}."
+            passed, reason, rk, rp = d == 0, f"{int(d)} death{'' if d == 1 else 's'}.", "v.deaths", {"n": int(d)}
     elif oath == "ghost":
         k = _num(result, "kills")
         if k is None:
-            reason = "Kills aren't readable on this scoreboard."
+            reason, rk = "Kills aren't readable on this scoreboard.", "v.unread_kills"
         else:
-            passed, reason = k == 0, f"{int(k)} kill{'' if k == 1 else 's'}."
+            passed, reason, rk, rp = k == 0, f"{int(k)} kill{'' if k == 1 else 's'}.", "v.kills", {"n": int(k)}
     elif oath == "clean_hands":
         a, ff = _num(result, "accidentals"), _num(result, "friendly_fire_dmg")
         if a is None and ff is None:
-            reason = "Accidentals and friendly fire aren't readable on this scoreboard."
+            reason, rk = "Accidentals and friendly fire aren't readable on this scoreboard.", "v.unread_clean"
         else:
             passed = (a or 0) == 0 and (ff or 0) == 0
             reason = f"{int(a or 0)} accidental{'' if (a or 0) == 1 else 's'}, {int(ff or 0)} friendly-fire damage."
+            rk, rp = "v.clean", {"a": int(a or 0), "ff": int(ff or 0)}
     elif oath == "marksman":
         acc = _num(result, "accuracy_pct")
         if acc is None:
@@ -68,17 +69,21 @@ def evaluate(oath: str | None, result: dict) -> dict | None:
             if sf:
                 acc = (sh or 0) / sf * 100
         if acc is None:
-            reason = "Accuracy isn't readable on this scoreboard."
+            reason, rk = "Accuracy isn't readable on this scoreboard.", "v.unread_acc"
         else:
             passed, reason = acc >= MARKSMAN_PCT, f"{acc:.1f}% accuracy (oath: {MARKSMAN_PCT:.0f}%+)."
+            rk, rp = "v.acc", {"acc": f"{acc:.1f}", "req": f"{MARKSMAN_PCT:.0f}"}
     elif oath == "full_clear":
         c, t = _num(result, "objectives_completed"), _num(result, "objectives_total")
         if c is None or t is None:
             reason = ("Objective completion isn't on this screenshot — upload the mission "
                       "summary screen that lists objectives to verify.")
+            rk = "v.unread_obj"
         else:
             passed, reason = (t > 0 and c >= t), f"{int(c)}/{int(t)} objectives."
-    return {"oath": oath, "name": o["name"], "rule": o["rule"], "passed": passed, "reason": reason}
+            rk, rp = "v.obj", {"c": int(c), "t": int(t)}
+    return {"oath": oath, "name": o["name"], "rule": o["rule"], "passed": passed, "reason": reason,
+            "reason_key": rk, "reason_params": rp}
 
 
 def medal(verdict: dict | None, *, lobby_id: str, player_id: str, result: dict, mode: str | None) -> dict | None:
@@ -89,5 +94,5 @@ def medal(verdict: dict | None, *, lobby_id: str, player_id: str, result: dict, 
     o = OATHS[verdict["oath"]]
     seed = json.dumps([lobby_id, player_id, verdict["oath"], result, mode], sort_keys=True, default=str)
     h = hashlib.sha256(seed.encode()).hexdigest().upper()
-    return {"id": f"WM-{h[:4]}-{h[4:8]}",
+    return {"id": f"WM-{h[:4]}-{h[4:8]}", "d100": mode == "d100",
             "name": o["medal"] + (" — D100 Distinction" if mode == "d100" else "")}
