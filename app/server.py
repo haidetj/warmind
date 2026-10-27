@@ -509,12 +509,16 @@ def i18njs():
 @app.get("/icons/{name}")
 def icon(name: str):
     """Stratagem icons (64px, from the Helldivers 2 wiki — see the field manual)."""
-    if not re.fullmatch(r"[a-z0-9-]+\.png", name):
+    if not re.fullmatch(r"[a-z0-9-]+\.(png|svg)", name):
         raise HTTPException(404, "no such icon")
     f = HERE / "static" / "icons" / name
     if not f.exists():
         raise HTTPException(404, "no such icon")
-    return FileResponse(f, media_type="image/png", headers={"Cache-Control": "public, max-age=604800"})
+    svg = name.endswith(".svg")
+    return FileResponse(f, media_type="image/svg+xml" if svg else "image/png",
+                        headers={"Cache-Control": "public, max-age=604800",
+                                 # an SVG opened directly must never run script
+                                 "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
 
 
 @app.get("/health")

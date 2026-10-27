@@ -114,7 +114,7 @@ TEMPLATES = ["Infobox Weapon", "Infobox Throwable", "Infobox Armor", "Infobox Bo
              "Infobox Vehicle", "Infobox Exosuit", "Infobox Defensive"]
 KEEP = ("type", "passive", "source", "weapon_category", "weapon_type", "weapon_traits", "throwable_traits",
         "stratagem_type", "traits", "base_cooldown", "penetration", "permit_type", "description", "armor", "speed",
-        "stratagem_image")
+        "stratagem_image", "image")
 
 
 def embedded_in(template: str) -> list[str]:
@@ -291,19 +291,12 @@ def armory() -> dict:
             elif sec == "stratagems":
                 e["permit"] = row.get("permit_type") or "Supply"
                 e["group"] = SUB.get(row.get("stratagem_type", ""), "Other")
-                img = row.get("stratagem_image", "").strip()
+                # support-weapon pages call it stratagem_image; other stratagem pages call it image
+                img = (row.get("stratagem_image") or (row.get("image") if row.get("template") == "Infobox Stratagem" else "") or "").strip()
                 if img:
                     want_icons[rec["name"]] = img
             out[rec["name"]] = e
-    if "--debug" in sys.argv:  # what do stratagem infoboxes and imageinfo actually look like?
-        for t in ("Eagle Airstrike", "Orbital Laser", "GR-8 Recoilless Rifle"):
-            _, txt = wikitext(t)
-            print("DEBUG infobox", t, json.dumps(infobox(txt or "")[1])[:700])
-        f0 = sorted(set(want_icons.values()))[:2]
-        print("DEBUG want", f0)
-        print("DEBUG imageinfo", json.dumps(api(action="query", prop="imageinfo", iiprop="url", iiurlwidth=64,
-                                               titles="|".join("File:" + f for f in f0)))[:1500])
-    # resolve icon thumbnails (SVG -> 64px PNG) in batches, then download them
+    # resolve icon files in batches (the wiki serves SVG originals), then download them
     ICONS.mkdir(parents=True, exist_ok=True)
     files = sorted(set(want_icons.values()))
     urls = {}
@@ -322,12 +315,14 @@ def armory() -> dict:
         u = urls.get(f) or urls.get(f.replace("_", " "))
         if not u:
             continue
-        dest = ICONS / (slug(name) + ".png")
+        ext = ".svg" if u.split("?")[0].lower().endswith(".svg") else ".png"
+        dest = ICONS / (slug(name) + ext)
         try:
             req = urllib.request.Request(u, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as r:
                 data = r.read()
-            if data[:4] == b"\x89PNG":
+            ok = data[:4] == b"\x89PNG" or (ext == ".svg" and b"<svg" in data[:2000] and b"<script" not in data.lower())
+            if ok:
                 dest.write_bytes(data)
                 out[name]["icon"] = "/icons/" + dest.name
                 got += 1

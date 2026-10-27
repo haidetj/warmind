@@ -37,7 +37,7 @@ jobs:
         run: python3 sync/verify_wiki.py --passives
       - name: In-game menu layout + stratagem icons
         if: always()
-        run: python3 sync/verify_wiki.py --armory --debug
+        run: python3 sync/verify_wiki.py --armory
       - name: Commit refreshed catalog back to this branch
         if: always() && github.event_name == 'push' && startsWith(github.ref_name, 'claude/')
         run: |
