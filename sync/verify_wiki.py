@@ -238,6 +238,30 @@ def verify(cat: dict) -> int:
     return 1 if problems else 0
 
 
+def passives() -> dict:
+    """What each armour passive does, from its wiki page (or its section of a list page)."""
+    cat = json.loads((ROOT / "sync" / "wiki_catalog.json").read_text())
+    names = sorted({r["passive"] for r in cat["items"] if r.get("passive")})
+    out = {}
+    for name in names:
+        title, text = wikitext(name)
+        if not text:
+            title, text = wikitext(name + " (Armor Passive)")
+        if not text:
+            out[name] = {"page": None, "text": ""}
+            continue
+        sec = re.search(r"^=+\s*" + re.escape(name) + r"\s*=+\s*$(.*?)(?=^=+[^=]|\Z)", text, re.M | re.S)
+        body = sec.group(1) if sec else text
+        _, params = infobox(body)
+        desc = params.get("description") or params.get("effect") or ""
+        lead = re.sub(r"\{\{[^{}]*\}\}", "", body)
+        lead = re.sub(r"\{\{[^{}]*\}\}", "", lead)
+        lead = clean(re.sub(r"^\s*[|!{].*$", "", lead, flags=re.M))
+        out[name] = {"page": title, "text": (desc + " " + lead).strip()[:900]}
+        time.sleep(0.3)
+    return out
+
+
 def discover(n: int) -> int:
     raw = loader.items()
     picks = []
@@ -262,6 +286,12 @@ if __name__ == "__main__":
     if "--discover" in sys.argv:
         i = sys.argv.index("--discover")
         sys.exit(discover(int(sys.argv[i + 1]) if len(sys.argv) > i + 1 else 8))
+    if "--passives" in sys.argv:
+        out = ROOT / "sync" / "passives_wiki.json"
+        data = passives()
+        out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {len(data)} passives; {sum(1 for v in data.values() if v['text'])} with text")
+        sys.exit(0)
     if "--catalog" in sys.argv:
         out = ROOT / "sync" / "wiki_catalog.json"
         data = catalog()

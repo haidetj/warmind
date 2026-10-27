@@ -32,11 +32,14 @@ jobs:
       - name: Verify items.yaml against the wiki
         id: verify
         run: python3 sync/verify_wiki.py          # refreshes sync/wiki_catalog.json, fails on any mismatch
+      - name: Armour passive descriptions
+        if: always()
+        run: python3 sync/verify_wiki.py --passives
       - name: Commit refreshed catalog back to this branch
         if: always() && github.event_name == 'push' && startsWith(github.ref_name, 'claude/')
         run: |
           git config user.name "Claude"; git config user.email "noreply@anthropic.com"
-          git add sync/wiki_catalog.json
+          git add sync/wiki_catalog.json sync/passives_wiki.json
           git diff --cached --quiet && exit 0
           git commit -m "data-verify: refresh wiki catalog"
           git pull --rebase -q && git push
