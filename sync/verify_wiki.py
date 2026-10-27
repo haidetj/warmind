@@ -295,6 +295,14 @@ def armory() -> dict:
                 if img:
                     want_icons[rec["name"]] = img
             out[rec["name"]] = e
+    if "--debug" in sys.argv:  # what do stratagem infoboxes and imageinfo actually look like?
+        for t in ("Eagle Airstrike", "Orbital Laser", "GR-8 Recoilless Rifle"):
+            _, txt = wikitext(t)
+            print("DEBUG infobox", t, json.dumps(infobox(txt or "")[1])[:700])
+        f0 = sorted(set(want_icons.values()))[:2]
+        print("DEBUG want", f0)
+        print("DEBUG imageinfo", json.dumps(api(action="query", prop="imageinfo", iiprop="url", iiurlwidth=64,
+                                               titles="|".join("File:" + f for f in f0)))[:1500])
     # resolve icon thumbnails (SVG -> 64px PNG) in batches, then download them
     ICONS.mkdir(parents=True, exist_ok=True)
     files = sorted(set(want_icons.values()))
