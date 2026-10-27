@@ -35,7 +35,6 @@ primaries:
   - {name: "SMG-37 Defender",                 coverage: [ch],      tags: [high_rof_ballistic, close_quarters],        grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SG-225IE Breaker Incendiary", warbond: "Steeled Veterans",     coverage: [ch],      tags: [fire_kit, high_rof_ballistic, close_quarters], grade: {terminids: S, automatons: C, illuminate: B}}
   - {name: "R-40 Sightliner",                 warbond: "Scope of Authority", coverage: [],        tags: [marksman, ranged, light_pen],           grade: {terminids: C, automatons: A, illuminate: B}}
-  - {name: "LAS-44 Nova",                     warbond: "Scope of Authority", coverage: [],        tags: [energy, ammo_independent, marksman],    grade: {terminids: C, automatons: B, illuminate: B}}
   - {name: "R/40-K Hot-Shot Marksman Rifle",  warbond: "Castellan's Creed", coverage: [],        tags: [marksman, ranged],                      grade: {terminids: C, automatons: B, illuminate: B}}
 
 secondaries:
@@ -104,6 +103,9 @@ stratagems:
   - {name: "MD-6 Anti-Personnel Minefield", slot: stratagem, category: mine,        coverage: [ch],     tags: [static_position], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
   - {name: "MD-I4 Incendiary Mines",        slot: stratagem, category: mine,        coverage: [ch],     tags: [static_position, fire_kit], backpack: false, grade: {terminids: A, automatons: C, illuminate: B}}
   # --- warbond stratagems (gated by ownership like any warbond gear) ---
+  # LAS-44 Nova is a support weapon (charge-up energy rifle, heat-limited ammo), not a primary:
+  # helldivers.wiki.gg/wiki/LAS-44_Nova, Insider Gaming warbond reveal. Flagged by the data-sync drafter.
+  - {name: "LAS-44 Nova",    warbond: "Scope of Authority", slot: stratagem, category: support, coverage: [],       tags: [support_weapon, energy, ammo_independent, marksman], backpack: false, grade: {terminids: C, automatons: B, illuminate: B}}
   - {name: "AMW-20 Apex",    warbond: "Scope of Authority", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, marksman], backpack: true,  grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "40-K Meltagun",  warbond: "Castellan's Creed", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, close_quarters], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
 
