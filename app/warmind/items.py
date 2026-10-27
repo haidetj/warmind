@@ -31,6 +31,7 @@ class Item:
     weight: str = ""                # armor only
     passive: str = ""               # armor only
     warbond: str = ""               # source warbond; "" / "Helldivers Mobilize" = base (always owned)
+    expendable: bool = False        # single-use support weapon (EAT, Commando): pairs with a real one
 
     def base_grade(self, faction: str) -> float:
         return GRADE_SCALE.get(self.grade.get(faction, "C"), -0.2)
@@ -48,6 +49,7 @@ def _mk(rec: dict, slot: str) -> Item:
         weight=rec.get("weight", ""),
         passive=rec.get("passive", ""),
         warbond=rec.get("warbond", ""),
+        expendable=bool(rec.get("expendable", False)),
     )
 
 

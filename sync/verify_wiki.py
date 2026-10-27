@@ -14,6 +14,7 @@ classification can't merge silently.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import re
 import sys
@@ -156,6 +157,87 @@ def catalog() -> dict:
     return {"source": "https://helldivers.wiki.gg", "fetched": time.strftime("%Y-%m-%d"), "items": rows}
 
 
+# ---------------------------------------------------------------- verify
+# Where an item comes from, normalized. Ship modules and the starter kit are
+# requisition / always-owned; everything else is a named unlock source.
+BASE_SOURCES = {"", "helldivers mobilize", "starter equipment", "standard", "patriotic administration center",
+                "engineering bay", "hangar", "hanger", "robotics workshop", "bridge", "orbital cannons", "n/a", "none"}
+SECTION_OF = {"Infobox Weapon": None, "Infobox Throwable": "grenades", "Infobox Armor": "armor",
+              "Infobox Booster": "boosters", "Infobox Support Weapon": "stratagems", "Infobox Stratagem": "stratagems"}
+CATEGORY_OF = {"Support Weapon": {"support"}, "Backpack": {"backpack"}, "Eagle": {"eagle"}, "Orbital": {"orbital"},
+               "Sentry": {"sentry"}, "Emplacement": {"emplacement", "mine", "relay"}, "Vehicle": {"vehicle"}}
+
+
+def norm(s: str) -> str:
+    return re.sub(r"\s+", " ", (s or "").replace("’", "'").replace("!", "").strip()).casefold()
+
+
+def source_of(row: dict) -> str:
+    return norm(re.sub(r"\s*Page\s*\d+.*$", "", row.get("source") or ""))
+
+
+def traits(row: dict) -> set:
+    return {norm(t) for t in (row.get("traits") or "").split("{{*}}") if t.strip()}
+
+
+def wiki_section(row: dict):
+    if row["template"] == "Infobox Weapon":
+        cat = norm(row.get("weapon_category"))
+        return "primaries" if cat.startswith("primary") else "secondaries" if cat.startswith("secondary") else None
+    return SECTION_OF.get(row["template"])
+
+
+def verify(cat: dict) -> int:
+    by_title = {norm(r["title"]): r for r in cat["items"]}
+    raw = loader.items()
+    problems, checked, ours = [], 0, set()
+    for sec in SECTIONS:
+        for rec in raw.get(sec, []):
+            name = rec["name"]
+            row = by_title.get(norm(page_title(rec)))
+            ours.add(norm(page_title(rec)))
+            if not row:
+                problems.append((name, "page", "no wiki page with this exact name — fix the name or set `wiki:`"))
+                continue
+            checked += 1
+            bad = lambda field, have, want: problems.append((name, field, f"ours {have!r} ≠ wiki {want!r}"))
+            if wiki_section(row) and wiki_section(row) != sec:
+                bad("section", sec, wiki_section(row))
+            ours_src, wiki_src = norm(rec.get("warbond", "")), source_of(row)
+            if (ours_src in BASE_SOURCES) != (wiki_src in BASE_SOURCES) or (
+                    ours_src not in BASE_SOURCES and ours_src != wiki_src):
+                bad("warbond", rec.get("warbond", "(base)"), row.get("source") or "(base)")
+            if sec == "armor":
+                if norm(rec.get("weight")) != norm(row.get("type")):
+                    bad("weight", rec.get("weight"), row.get("type"))
+                if norm(rec.get("passive")) != norm(row.get("passive")):
+                    bad("passive", rec.get("passive"), row.get("passive"))
+            if sec == "stratagems":
+                st = row.get("stratagem_type", "")
+                want = CATEGORY_OF.get(st)
+                if want and rec.get("category") not in want:
+                    bad("category", rec.get("category"), st)
+                tr = traits(row)
+                wiki_bp = "backpack" in tr or st == "Backpack"
+                if bool(rec.get("backpack")) != wiki_bp:
+                    bad("backpack", bool(rec.get("backpack")), wiki_bp)
+                if bool(rec.get("expendable")) != ("expendable" in tr):
+                    bad("expendable", bool(rec.get("expendable")), "expendable" in tr)
+    missing = [r for r in cat["items"] if norm(r["title"]) not in ours and wiki_section(r)
+               and r.get("stratagem_type") not in ("Objective", "Ship", "Other")]
+    lines = [f"## Wiki verification: {checked} items checked, {len(problems)} mismatch(es)", ""]
+    if problems:
+        lines += ["| Item | Field | Problem |", "|---|---|---|"] + [f"| {n} | {f} | {m} |" for n, f, m in problems]
+    lines += ["", f"Wiki items not in our data yet: {len(missing)}"]
+    lines += [f"- {r['title']} ({wiki_section(r)}, {r.get('source') or 'base'})" for r in missing[:400]]
+    report = "\n".join(lines)
+    print(report)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+            f.write(report + "\n")
+    return 1 if problems else 0
+
+
 def discover(n: int) -> int:
     raw = loader.items()
     picks = []
@@ -186,5 +268,7 @@ if __name__ == "__main__":
         out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
         print(f"wrote {len(data['items'])} wiki items to {out}")
         sys.exit(0)
-    print("verify mode lands after the catalog; run with --catalog or --discover")
-    sys.exit(0)
+    path = ROOT / "sync" / "wiki_catalog.json"
+    if "--offline" not in sys.argv:
+        path.write_text(json.dumps(catalog(), indent=1, ensure_ascii=False) + "\n")
+    sys.exit(verify(json.loads(path.read_text())))

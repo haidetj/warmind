@@ -24,11 +24,11 @@ primaries:
   - {name: "AR-23C Liberator Concussive", warbond: "Steeled Veterans",     coverage: [ch],      tags: [stagger_primary, ranged],                   grade: {terminids: B, automatons: B, illuminate: A}}
   - {name: "SG-225 Breaker",                  coverage: [ch],      tags: [high_rof_ballistic, close_quarters],        grade: {terminids: A, automatons: B, illuminate: A}}
   - {name: "SG-8 Punisher",                   coverage: [ch],      tags: [stagger_primary, close_quarters],           grade: {terminids: A, automatons: A, illuminate: A}}
-  - {name: "SG-8S Slugger", warbond: "Steeled Veterans",                   coverage: [ch],      tags: [stagger_primary, ranged],                   grade: {terminids: B, automatons: A, illuminate: B}}
+  - {name: "SG-8S Slugger",                   coverage: [ch],      tags: [stagger_primary, ranged],                   grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "JAR-5 Dominator", warbond: "Steeled Veterans",                 coverage: [ch],      tags: [strong_primary, stagger_primary],           grade: {terminids: A, automatons: A, illuminate: A}}
   - {name: "PLAS-1 Scorcher",                 coverage: [ch, st],  tags: [energy, strong_primary],                    grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "R-63 Diligence",                  coverage: [],        tags: [marksman, ranged],                          grade: {terminids: C, automatons: B, illuminate: B}}
-  - {name: "R-63CS Diligence Counter Sniper", warbond: "Steeled Veterans", coverage: [],        tags: [marksman, ranged],                          grade: {terminids: C, automatons: A, illuminate: B}}
+  - {name: "R-63CS Diligence Counter Sniper", coverage: [],        tags: [marksman, ranged],                          grade: {terminids: C, automatons: A, illuminate: B}}
   - {name: "LAS-5 Scythe",                    coverage: [],        tags: [energy, ammo_independent, sustain_fire],    grade: {terminids: C, automatons: C, illuminate: B}}
   - {name: "R-36 Eruptor", warbond: "Democratic Detonation",                    coverage: [ch, st],  tags: [strong_primary, ranged],                    grade: {terminids: A, automatons: A, illuminate: B}}
   - {name: "CB-9 Exploding Crossbow", warbond: "Democratic Detonation",         coverage: [ch, st],  tags: [strong_primary],                            grade: {terminids: B, automatons: B, illuminate: B}}
@@ -56,7 +56,7 @@ grenades:
   - {name: "G-12 High Explosive",   coverage: [ch, st], tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-23 Stun", warbond: "Cutting Edge",             coverage: [bc],     tags: [],           grade: {terminids: A, automatons: A, illuminate: A}}
   - {name: "G-11 Caltrops",         warbond: "Scope of Authority", coverage: [ch, bc], tags: [],          grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "G/40-K Meltamine",      warbond: "Castellan's Creed", coverage: [at],     tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G/40-K Melta Mine",      warbond: "Castellan's Creed", coverage: [at],     tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
 
 stratagems:
   # --- support weapons ---
@@ -64,8 +64,8 @@ stratagems:
   - {name: "FAF-14 Spear",                  slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen], backpack: true,  grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "AC-8 Autocannon",              slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen, sustain_fire], backpack: true, grade: {terminids: A, automatons: S, illuminate: A}}
   - {name: "LAS-99 Quasar Cannon",          slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen, ammo_independent, energy], backpack: false, grade: {terminids: A, automatons: A, illuminate: A}}
-  - {name: "EAT-17 Expendable Anti-Tank",   slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen], backpack: false, grade: {terminids: A, automatons: A, illuminate: A}}
-  - {name: "MLS-4X Commando",               slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen], backpack: false, grade: {terminids: B, automatons: A, illuminate: B}}
+  - {name: "EAT-17 Expendable Anti-Tank",   slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen], backpack: false, expendable: true, grade: {terminids: A, automatons: A, illuminate: A}}
+  - {name: "MLS-4X Commando",               slot: stratagem, category: support,     coverage: [at, st], tags: [support_weapon, heavy_pen], backpack: false, expendable: true, grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "LAS-98 Laser Cannon",           slot: stratagem, category: support,     coverage: [at, ch], tags: [support_weapon, ammo_independent, energy, sustain_fire], backpack: false, grade: {terminids: B, automatons: A, illuminate: A}}
   - {name: "MG-43 Machine Gun",             slot: stratagem, category: support,     coverage: [ch],     tags: [support_weapon, high_rof_ballistic, sustain_fire], backpack: false, grade: {terminids: A, automatons: B, illuminate: B}}
   - {name: "M-105 Stalwart",                slot: stratagem, category: support,     coverage: [ch],     tags: [support_weapon, high_rof_ballistic, light_pen, sustain_fire], backpack: false, grade: {terminids: A, automatons: C, illuminate: B}}
@@ -74,7 +74,7 @@ stratagems:
   - {name: "LIFT-850 Jump Pack",            slot: stratagem, category: backpack,    coverage: [bc],     tags: [jump_pack, mobility], backpack: true,  grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SH-32 Shield Generator Pack",   slot: stratagem, category: backpack,    coverage: [bc],     tags: [shield_pack], backpack: true,  grade: {terminids: B, automatons: A, illuminate: A}}
   - {name: "B-1 Supply Pack",               slot: stratagem, category: backpack,    coverage: [],       tags: [backpack_sustain, ammo_independent], backpack: true,  grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "AX/LAS-5 Guard Dog Rover",      slot: stratagem, category: backpack,    coverage: [ch],     tags: [guard_dog], backpack: true,  grade: {terminids: A, automatons: B, illuminate: A}}
+  - {name: "AX/LAS-5 Rover",      slot: stratagem, category: backpack,    coverage: [ch],     tags: [guard_dog], backpack: true,  grade: {terminids: A, automatons: B, illuminate: A}}
   # --- eagles ---
   - {name: "Eagle Airstrike",               slot: stratagem, category: eagle,       coverage: [ch, st], tags: [eagle], backpack: false, grade: {terminids: S, automatons: S, illuminate: A}}
   - {name: "Eagle Cluster Bomb",            slot: stratagem, category: eagle,       coverage: [ch],     tags: [eagle], backpack: false, grade: {terminids: A, automatons: C, illuminate: A}}
@@ -114,7 +114,7 @@ stratagems:
 armor:
   - {name: "SC-34 Infiltrator",            weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster, stealth]}
   - {name: "SC-30 Trailblazer Scout",      weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster, stealth]}
-  - {name: "SC-37 Legionnaire", warbond: "Superstore",            weight: Medium, passive: "Scout",              coverage: [bc], tags: [mobility, radar_booster, stealth]}
+  - {name: "SC-37 Legionnaire", warbond: "Superstore",            weight: Light,  passive: "Servo-Assisted",     coverage: [],   tags: [light_armor, mobility]}
   - {name: "FS-23 Battle Master",          weight: Heavy,  passive: "Fortified",          coverage: [],   tags: [static_position]}
   - {name: "FS-55 Devastator", warbond: "Democratic Detonation",             weight: Heavy,  passive: "Fortified",          coverage: [],   tags: [static_position]}
   - {name: "CE-35 Trench Engineer",        weight: Medium, passive: "Engineering Kit",    coverage: [],   tags: []}
