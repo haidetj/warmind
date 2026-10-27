@@ -1,0 +1,33 @@
+name: data-verify
+
+# Cross-checks items.yaml against the Helldivers 2 wiki (armor weight/passive,
+# stratagem type, warbond, page exists). Fails on any mismatch, so a wrong
+# classification can't merge. Runs on data changes, weekly, and on demand.
+
+on:
+  push:
+    paths:
+      - "app/warmind/data/items.yaml"
+      - "sync/verify_wiki.py"
+      - ".github/workflows/data-verify.yml"
+  pull_request:
+    paths:
+      - "app/warmind/data/items.yaml"
+      - "sync/verify_wiki.py"
+  schedule:
+    - cron: "17 15 * * 1"        # Mondays ~15:17 UTC: catch wiki-side corrections
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install --quiet pyyaml
+      - name: Discover wiki infobox format
+        run: python3 sync/verify_wiki.py --discover 16
