@@ -13,13 +13,14 @@ import re
 import secrets
 import time
 
-from fastapi import FastAPI, Form, Header, HTTPException, UploadFile, File
+from fastapi import FastAPI, Form, Header, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.gzip import GZipMiddleware
 import pathlib
 
+import budget
 import db
 import vision
 from warmind import coverage, kitrules, loader, oaths, passives, stats
@@ -215,6 +216,17 @@ def _assignment_dict(a):
 _AXIS_CODE = {v: k for k, v in coverage.AXIS_LABEL.items()}  # "heavy armour" -> "at", for the client
 
 
+def _ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    return fwd.split(",")[0].strip() or (request.client.host if request.client else "?")
+
+
+def _charge(request: Request, lid: str, calls: int) -> None:
+    """Spend guard for billed vision calls (no-op in mock mode). Raises budget.OverBudget."""
+    if not vision.status().get("mock"):
+        budget.charge(lid, _ip(request), calls)
+
+
 def _media_type(upload: UploadFile) -> str:
     ct = (upload.content_type or "").lower()
     return ct if ct in ("image/png", "image/jpeg", "image/webp", "image/gif") else "image/png"
@@ -364,15 +376,18 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
 
 
 @app.post("/api/lobby/{lid}/mission/prefill")
-async def mission_prefill(lid: str, image: UploadFile = File(...), x_token: str = Header(None)):
+async def mission_prefill(lid: str, request: Request, image: UploadFile = File(...), x_token: str = Header(None)):
     lobby = db.get_lobby(lid)
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
     data = await image.read()
     try:
+        _charge(request, lid, 1)
         suggestion = await run_in_threadpool(vision.parse_mission, data, _media_type(image),
                                              [m["id"] for m in loader.missions().values()])
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     return {"suggestion": suggestion}
@@ -380,7 +395,7 @@ async def mission_prefill(lid: str, image: UploadFile = File(...), x_token: str 
 
 # ---------------------------------------------------------------- players
 @app.post("/api/lobby/{lid}/join")
-async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = File(default=[])):
+async def join(lid: str, request: Request, callsign: str = Form(""), images: list[UploadFile] = File(default=[])):
     lobby = db.get_lobby(lid)
     if not lobby:
         raise HTTPException(404, "lobby not found")
@@ -389,14 +404,18 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
     parsed_call = callsign.strip()
     imgs = await _read_images(images)
-    vision_error, confidence = None, None
+    vision_error, confidence, over_budget = None, None, False
     if imgs:
         try:
+            _charge(request, lid, 2)  # double read
             parsed = await run_in_threadpool(vision.parse_career, imgs, mock_index=n_existing)
             snapshot = parsed["snapshot"]
             play_style, note, source = parsed["play_style"], parsed["style_note"], "screenshot"
             parsed_call = parsed_call or parsed.get("callsign") or ""
             confidence = parsed.get("confidence")
+        except budget.OverBudget as e:  # spend cap: still join, just without the read
+            vision_error, over_budget = str(e), True
+            note = str(e)
         except Exception as e:
             # A bad/unreadable screenshot must never lock a diver out of the lobby.
             # Join them with a pending style and let them pick one or retry.
@@ -421,7 +440,7 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
         db.remember_callsign(callsign_final, snapshot, confidence, play_style, note)
     return {"player_id": pid, "player_token": token, "play_style": play_style,
             "style_note": note, "style_source": source, "vision_error": vision_error,
-            "restored": restored}
+            "over_budget": over_budget, "restored": restored}
 
 
 def _require_player(pid, token):
@@ -472,13 +491,17 @@ def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/career")
-async def update_career(lid: str, pid: str, images: list[UploadFile] = File(default=[]), x_token: str = Header(None)):
+async def update_career(lid: str, pid: str, request: Request, images: list[UploadFile] = File(default=[]),
+                        x_token: str = Header(None)):
     p = _require_player(pid, x_token)
     imgs = await _read_images(images)
     if not imgs:
         raise HTTPException(400, "no screenshot provided")
     try:
+        _charge(request, lid, 2)  # double read
         parsed = await run_in_threadpool(vision.parse_career, imgs, mock_index=len(db.list_players(lid)))
+    except budget.OverBudget as e:
+        return {"ok": False, "vision_error": str(e), "over_budget": True}
     except Exception as e:
         # Player already has a spot; a failed re-read just reports back, no crash.
         return {"ok": False, "vision_error": str(e)}
@@ -493,7 +516,7 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/result")
-async def submit_result(lid: str, pid: str, image: UploadFile = File(...), lang: str = Form("en"),
+async def submit_result(lid: str, pid: str, request: Request, image: UploadFile = File(...), lang: str = Form("en"),
                         x_token: str = Header(None)):
     p = _require_player_or_creator(lid, pid, x_token)
     lobby = db.get_lobby(lid)
@@ -506,7 +529,10 @@ async def submit_result(lid: str, pid: str, image: UploadFile = File(...), lang:
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
     data, mt = await image.read(), _media_type(image)
     try:
+        _charge(request, lid, 2)  # scoreboard read + after-action review
         result = await run_in_threadpool(vision.read_result, data, mt)
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     # the oath verdict is decided in code from the numbers, before any prose is written
@@ -565,4 +591,4 @@ def icon(name: str):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "vision": vision.status()}
+    return {"ok": True, "vision": vision.status(), "budget": budget.status()}

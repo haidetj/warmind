@@ -422,7 +422,7 @@
       STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE);
       render();
       const st = styleLabel(r.play_style);
-      toast(r.vision_error ? t("toast.joined.err") : r.restored ? t("toast.joined.restored", { style: st })
+      toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err") : r.restored ? t("toast.joined.restored", { style: st })
         : list.length ? (list.length > 1 ? t("toast.joined.reads", { style: st, n: list.length }) : t("toast.joined.read", { style: st })) : t("toast.joined.plain"));
     } catch (e) {
       stop(); lockControls(controls, false);
@@ -508,7 +508,7 @@
         const fd = new FormData(); list.forEach(f => fd.append("images", f));
         const r = await fdpost("/api/lobby/" + LID + "/player/" + p.id + "/career", fd, meRec().token);
         stop();
-        if (r.ok === false) setStatus(status, "warn", t("me.reread.bad"));
+        if (r.ok === false) setStatus(status, "warn", r.over_budget ? r.vision_error : t("me.reread.bad"));
         else { await refresh(); toast(t("toast.joined.read", { style: styleLabel(r.play_style) })); }
       } catch (e) { stop(); setStatus(status, "err", t("join.failed", { msg: e.message })); }
       finally { stop(); lockControls([reread, styleSel], false); busy = false; }

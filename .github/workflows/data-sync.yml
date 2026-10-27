@@ -95,13 +95,20 @@ jobs:
         with: { ref: main }          # the watch job may have just committed new pending patches
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - name: Skip if a data-sync PR is already open
+      - name: Skip if a data-sync PR is open or was just declined
         id: open
-        env: { GH_TOKEN: "${{ github.token }}" }
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEUE_INPUT: ${{ github.event.inputs.requeue_gid }}
         run: |
           N=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("data-sync/"))] | length')
+          # a draft closed without merging in the last 7 days means "not now": don't re-bill Claude daily
+          WEEK=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          C=$(gh pr list --state closed --limit 30 --json headRefName,mergedAt,closedAt \
+               --jq "[.[] | select((.headRefName | startswith(\"data-sync/\")) and .mergedAt == null and .closedAt > \"$WEEK\")] | length")
+          if [ "${REQUEUE_INPUT}" = "" ] && [ "$C" != "0" ]; then N=$((N + C)); echo "A data-sync draft was closed unmerged in the last 7 days — skipping the redraft."; fi
           echo "count=$N" >> "$GITHUB_OUTPUT"
-          if [ "$N" != "0" ]; then echo "A data-sync PR is already open — review that one first."; fi
+          if [ "$N" != "0" ]; then echo "A data-sync PR is open or was just declined — nothing to draft."; fi
       - name: Draft the seed update
         if: steps.open.outputs.count == '0'
         env:
