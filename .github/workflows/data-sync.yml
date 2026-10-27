@@ -47,6 +47,8 @@ jobs:
           python3 sync/patch_watch.py
           code=$?
           echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          # don't fail on a flaky feed, but never let it look like a clean run
+          if [ "$code" = "2" ]; then echo "::warning title=HD2 patch feed unreachable::Steam news fetch failed — patch detection skipped this run."; fi
           # 0 = no new patch, 10 = new patch, 2 = transient fetch error — none should fail the job
           if [ "$code" = "0" ] || [ "$code" = "10" ] || [ "$code" = "2" ]; then exit 0; fi
           exit $code
@@ -58,7 +60,7 @@ jobs:
         run: |
           git config user.name  "warmind data bot"
           git config user.email "actions@github.com"
-          git add sync/state.json sync/latest_patch.md
+          git add sync/state.json sync/latest_patch.md sync/patches/
           git commit -m "data-sync: HD2 patch detected — ${TITLE}"
           for i in 1 2 3 4; do git push && break || { echo "retry $i"; sleep $((2**i)); }; done
           gh label create data-sync --color 1f6feb --description "HD2 data freshness" 2>/dev/null || true

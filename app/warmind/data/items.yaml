@@ -34,6 +34,9 @@ primaries:
   - {name: "CB-9 Exploding Crossbow", warbond: "Democratic Detonation",         coverage: [ch, st],  tags: [strong_primary],                            grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SMG-37 Defender",                 coverage: [ch],      tags: [high_rof_ballistic, close_quarters],        grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SG-225IE Breaker Incendiary", warbond: "Steeled Veterans",     coverage: [ch],      tags: [fire_kit, high_rof_ballistic, close_quarters], grade: {terminids: S, automatons: C, illuminate: B}}
+  - {name: "R-40 Sightliner",                 warbond: "Scope of Authority", coverage: [],        tags: [marksman, ranged, light_pen],           grade: {terminids: C, automatons: A, illuminate: B}}
+  - {name: "LAS-44 Nova",                     warbond: "Scope of Authority", coverage: [],        tags: [energy, ammo_independent, marksman],    grade: {terminids: C, automatons: B, illuminate: B}}
+  - {name: "R/40-K Hot-Shot Marksman Rifle",  warbond: "Castellan's Creed", coverage: [],        tags: [marksman, ranged],                      grade: {terminids: C, automatons: B, illuminate: B}}
 
 secondaries:
   - {name: "P-2 Peacemaker",       coverage: [],   tags: [],                       grade: {terminids: C, automatons: C, illuminate: C}}
@@ -42,6 +45,8 @@ secondaries:
   - {name: "GP-31 Grenade Pistol", warbond: "Democratic Detonation", coverage: [st], tags: [explosive_secondary],    grade: {terminids: A, automatons: A, illuminate: A}}
   - {name: "LAS-7 Dagger", warbond: "Cutting Edge",         coverage: [],   tags: [energy, ammo_independent],grade: {terminids: C, automatons: C, illuminate: C}}
   - {name: "P-11 Stim Pistol", warbond: "Chemical Agents",     coverage: [],   tags: [],                       grade: {terminids: C, automatons: C, illuminate: C}}
+  - {name: "P-44 Mist",            warbond: "Scope of Authority", coverage: [],   tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P/40-K Bolt Pistol",   warbond: "Castellan's Creed", coverage: [],   tags: [],                                  grade: {terminids: B, automatons: B, illuminate: B}}
 
 grenades:
   - {name: "G-6 Frag",              coverage: [ch],     tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
@@ -51,6 +56,8 @@ grenades:
   - {name: "G-13 Incendiary Impact", warbond: "Polar Patriots",coverage: [ch, bc], tags: [fire_kit],   grade: {terminids: A, automatons: C, illuminate: B}}
   - {name: "G-12 High Explosive",   coverage: [ch, st], tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-23 Stun", warbond: "Cutting Edge",             coverage: [bc],     tags: [],           grade: {terminids: A, automatons: A, illuminate: A}}
+  - {name: "G-11 Caltrops",         warbond: "Scope of Authority", coverage: [ch, bc], tags: [],          grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G/40-K Meltamine",      warbond: "Castellan's Creed", coverage: [at],     tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
 
 stratagems:
   # --- support weapons ---
@@ -96,6 +103,9 @@ stratagems:
   - {name: "E/MG-101 HMG Emplacement",      slot: stratagem, category: emplacement, coverage: [at, ch], tags: [static_position, sustain_fire, heavy_pen], backpack: false, grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "MD-6 Anti-Personnel Minefield", slot: stratagem, category: mine,        coverage: [ch],     tags: [static_position], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
   - {name: "MD-I4 Incendiary Mines",        slot: stratagem, category: mine,        coverage: [ch],     tags: [static_position, fire_kit], backpack: false, grade: {terminids: A, automatons: C, illuminate: B}}
+  # --- warbond stratagems (gated by ownership like any warbond gear) ---
+  - {name: "AMW-20 Apex",    warbond: "Scope of Authority", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, marksman], backpack: true,  grade: {terminids: B, automatons: A, illuminate: B}}
+  - {name: "40-K Meltagun",  warbond: "Castellan's Creed", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, close_quarters], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
 
 # Armor: weight is fixed by role; the set is a substitute the player may own.
 # tags map the passive into the kit space; coverage bc for Scout (stealth breaks contact).
@@ -112,6 +122,10 @@ armor:
   - {name: "DP-40 Hero of the Federation", weight: Medium, passive: "Democracy Protects", coverage: [],   tags: []}
   - {name: "CM-14 Physician",              weight: Medium, passive: "Med-Kit",            coverage: [],   tags: []}
   - {name: "B-01 Tactical",                weight: Medium, passive: "Extra Padding",      coverage: [],   tags: []}
+  - {name: "SS-33 Mimetic Marshal", warbond: "Scope of Authority", weight: Light,  passive: "Stationary Shroud", coverage: [bc], tags: [light_armor, stealth]}
+  - {name: "SS-15 Focal Point",     warbond: "Scope of Authority", weight: Medium, passive: "Stationary Shroud", coverage: [bc], tags: [stealth]}
+  - {name: "TG-8 Sharpshooter",     warbond: "Castellan's Creed", weight: Medium, passive: "True Grit",         coverage: [],   tags: []}
+  - {name: "TG-122 Demo-Trooper",   warbond: "Castellan's Creed", weight: Heavy,  passive: "True Grit",         coverage: [],   tags: []}
 
 # Boosters: chosen for four-unique-per-squad. role_bias steers who carries which.
 boosters:

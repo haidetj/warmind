@@ -24,10 +24,10 @@
   async function api(path, opts) {
     let r;
     try { r = await fetch(path, opts); }
-    catch (e) { throw new Error("Can't reach WARMIND — check your connection and try again."); }
+    catch (e) { throw new Error("Can't reach WARMIND — check your connection"); }
     // 502/503/504 come from the host while a new version deploys (disk-backed
     // services restart on every deploy) — say so instead of "Bad Gateway"
-    if ([502, 503, 504].indexOf(r.status) >= 0) throw new Error("WARMIND is redeploying — try again in a minute.");
+    if ([502, 503, 504].indexOf(r.status) >= 0) throw new Error("WARMIND is redeploying, back in about a minute");
     if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
     return r.status === 204 ? {} : r.json();
   }
@@ -48,6 +48,51 @@
     if (kind === "working") node.appendChild(el("span", { class: "spin" }));
     node.appendChild(el("span", {}, [msg]));
     node.style.display = "flex";
+  }
+
+  // Helldivers-flavoured status lines that rotate while a model read is in flight
+  const READ_LINES = [
+    "Transmitting your career records to Super Earth High Command…",
+    "Cross-referencing kill counts with the Ministry of Truth…",
+    "Counting your accidentals. Generously.",
+    "Reading every number twice — Liberty demands accuracy…",
+    "Calibrating freedom-per-minute metrics…",
+    "Confirming you are not a Terminid in a trench coat…",
+    "Filing Form 27-B/Liberty in triplicate…",
+    "Requesting orbital confirmation of your K/D…",
+    "Steeping a fresh cup of Liber-Tea…",
+    "Consulting the Democracy Officer for a second opinion…",
+    "Redacting the friendly-fire incidents. Mostly.",
+    "Decrypting Automaton-proof stat ledgers…",
+  ];
+  const REVIEW_LINES = [
+    "Debriefing with the Ministry of Defense…",
+    "Checking your oath against the official record…",
+    "Polishing a medal… or sharpening an insult…",
+    "Tallying the bugs, bots and squids you liberated…",
+    "Reviewing helmet-cam footage. Some of it twice.",
+    "Asking Democracy how it feels about your performance…",
+  ];
+  // Start a rotating "working" status; returns a stop() for when the request settles.
+  function workTicker(node, lines) {
+    let i = Math.floor(Math.random() * lines.length);
+    setStatus(node, "working", lines[i]);
+    const t = setInterval(() => {
+      i = (i + 1) % lines.length;
+      const span = node.lastElementChild; if (span) span.textContent = lines[i];
+    }, 2400);
+    return () => clearInterval(t);
+  }
+  // Lock upload controls (file-input labels and buttons) until the request completes or fails.
+  function lockControls(els, locked) {
+    els.forEach(c => {
+      if (!c) return;
+      c.classList.toggle("locked", locked);
+      c.setAttribute("aria-disabled", String(locked));
+      const inp = c.tagName === "INPUT" ? c : c.querySelector("input");
+      if (inp) { inp.disabled = locked; if (!locked) inp.value = ""; }
+      if (c.tagName === "BUTTON") c.disabled = locked;
+    });
   }
   function copy(text, msg) {
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast(msg), () => {
@@ -362,9 +407,10 @@
     const name = el("input", { type: "text", placeholder: "Your callsign (optional if it's in your screenshot)" });
     const status = el("div", { class: "upstatus" });
     const upload = el("label", { class: "btn primary filebtn" }, ["Upload career stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
-    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files, status);
     const skip = el("button", { class: "btn" }, ["Join without stats"]);
-    skip.onclick = () => doJoin(name.value, null, status);
+    const controls = [upload, skip, name];
+    upload.querySelector("input").onchange = ev => doJoin(name.value, ev.target.files, status, controls);
+    skip.onclick = () => doJoin(name.value, null, status, controls);
     wrap.appendChild(el("div", { class: "field" }, [name]));
     wrap.appendChild(el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [upload, skip]));
     wrap.appendChild(status);
@@ -372,11 +418,12 @@
     wrap.appendChild(el("div", { class: "hint" }, ["Dropped with WARMIND before? Enter the same callsign and tap “Join without stats” — your last read comes back. (Callsigns aren't passwords: anyone using yours gets your stats.)"]));
     return wrap;
   }
-  async function doJoin(callsign, files, status) {
+  async function doJoin(callsign, files, status, controls) {
     if (busy) return;
     busy = true;
     const list = files ? Array.from(files) : [];
-    setStatus(status, "working", list.length ? ("Reading " + (list.length > 1 ? list.length + " screenshots" : "your screenshot") + "… this takes a few seconds.") : "Joining…");
+    lockControls(controls || [], true);
+    const stop = list.length ? workTicker(status, READ_LINES) : (setStatus(status, "working", "Joining the drop…"), () => {});
     try {
       const fd = new FormData(); fd.append("callsign", callsign || "");
       list.forEach(f => fd.append("images", f));
@@ -389,8 +436,9 @@
       else if (r.restored) toast("Welcome back — restored your last stat read (" + label(r.play_style) + ").");
       else toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
     } catch (e) {
+      stop(); lockControls(controls || [], false);
       setStatus(status, "err", "Upload failed: " + e.message + " — try again.");
-    } finally { busy = false; }
+    } finally { stop(); busy = false; }
   }
 
   // ---------- roster ----------
@@ -584,30 +632,36 @@
     // calls that take a few seconds); given full width so it sits below the row.
     const actstatus = el("div", { class: "upstatus", style: "width:100%" });
     const restat = el("label", { class: "btn filebtn" }, ["Re-read stats", el("input", { type: "file", accept: "image/*", multiple: "" })]);
+    const result = el("label", { class: "btn filebtn" }, ["Submit result", el("input", { type: "file", accept: "image/*" })]);
+    const uploads = [restat, result];  // both are model calls — lock both while either runs
     restat.querySelector("input").onchange = async ev => {
       const list = Array.from(ev.target.files || []); if (!list.length || busy) return;
-      busy = true; setStatus(actstatus, "working", "Reading " + (list.length > 1 ? list.length + " screenshots" : "your screenshot") + "… this takes a few seconds.");
+      busy = true; lockControls(uploads, true);
+      const stop = workTicker(actstatus, READ_LINES);
       try {
         const fd = new FormData(); list.forEach(f => fd.append("images", f));
         const r = await api("/api/lobby/" + LID + "/player/" + p.id + "/career", { method: "POST", headers: { "x-token": store.me(LID).token }, body: fd });
+        stop();
         if (r.ok === false) { setStatus(actstatus, "warn", "Couldn't read that one — try a clearer or less-cropped shot."); }
         else { STATE = await api("/api/lobby/" + LID); renderLive(); toast("Read as " + label(r.play_style)); }
-      } catch (e) { setStatus(actstatus, "err", "Upload failed: " + e.message + " — try again."); } finally { busy = false; }
+      } catch (e) { stop(); setStatus(actstatus, "err", "Upload failed: " + e.message + " — try again."); }
+      finally { stop(); lockControls(uploads, false); busy = false; }
     };
     const styleSel = el("select", { style: "width:auto;padding:6px 8px;font-size:12.5px" }, META.archetypes.map(k => el("option", { value: k }, [label(k)])));
     styleSel.value = p.play_style;
     styleSel.onchange = async () => { busy = true; try { await jpost("/api/lobby/" + LID + "/player/" + p.id + "/style", { play_style: styleSel.value }, store.me(LID).token); STATE = await api("/api/lobby/" + LID); renderLive(); } catch (e) { toast(e.message); } finally { busy = false; } };
-    const result = el("label", { class: "btn filebtn" }, ["Submit result", el("input", { type: "file", accept: "image/*" })]);
     result.querySelector("input").onchange = async ev => {
-      const f = ev.target.files[0]; if (!f || busy) return; busy = true;
-      setStatus(actstatus, "working", "Reviewing your drop… this takes a few seconds.");
+      const f = ev.target.files[0]; if (!f || busy) return;
+      busy = true; lockControls(uploads, true);
+      const stop = workTicker(actstatus, REVIEW_LINES);
       try {
         const rr = await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image");
-        STATE = await api("/api/lobby/" + LID); renderLive();
+        stop(); STATE = await api("/api/lobby/" + LID); renderLive();
         const v = rr.verdict;
         toast(v && v.passed === true && v.medal ? "🎖 Medal earned — " + v.medal.name : v && v.passed === false ? "Oath broken. WARMIND has notes." : "After-action ready");
       }
-      catch (e) { setStatus(actstatus, "err", "Review failed: " + e.message + " — try again."); } finally { busy = false; }
+      catch (e) { stop(); setStatus(actstatus, "err", "Review failed: " + e.message + " — try again."); }
+      finally { stop(); lockControls(uploads, false); busy = false; }
     };
     box.appendChild(restat); box.appendChild(styleSel);
     if (p.assignment) box.appendChild(result);
@@ -673,7 +727,7 @@
     wrap.ontoggle = () => { gearOpen[p.id] = wrap.open; };
     wrap.appendChild(el("summary", {}, [unset ? "Step 1 — set your gear (warbonds you own)" : "My gear — warbonds I own"]));
     const body = el("div", { class: "gearbody" });
-    body.appendChild(el("div", { class: "hint", style: "margin-bottom:10px" }, ["Tell WARMIND which warbonds you own and it only builds loadouts you can actually equip. Stratagems aren't warbond gear — always available."]));
+    body.appendChild(el("div", { class: "hint", style: "margin-bottom:10px" }, ["Tell WARMIND which warbonds you own and it only builds loadouts you can actually equip. Requisition stratagems are always available; warbond stratagems (like the AMW-20 Apex) are listed under their warbond."]));
     wrap.appendChild(body);
 
     async function save() {

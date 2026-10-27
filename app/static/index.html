@@ -158,6 +158,7 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 .upstatus.ok{color:var(--favored);border-color:color-mix(in srgb,var(--favored) 40%,var(--line))}
 .upstatus.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
 .upstatus.err{color:var(--thin);border-color:color-mix(in srgb,var(--thin) 45%,var(--line))}
+.btn.locked,.btn[aria-disabled="true"],input.locked{opacity:.5;pointer-events:none;cursor:not-allowed;filter:saturate(.4)}
 .upstatus .spin{width:13px;height:13px;flex:0 0 auto;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:wmspin .7s linear infinite}
 @keyframes wmspin{to{transform:rotate(360deg)}}
 .swaps{display:flex;flex-direction:column;gap:9px}
