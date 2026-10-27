@@ -182,6 +182,10 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 @media (max-width:520px){.gearitems{grid-template-columns:1fr}}
 .gearitem{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
 .gearitem .gslot{margin-left:auto;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.squadread{margin-top:10px;padding:9px 12px;border-left:3px solid var(--gold);background:color-mix(in srgb,var(--gold) 7%,var(--surface));font-size:13.5px;font-style:italic;color:var(--ink-2)}
+.cmark{font-style:normal}
+.cmark.ok{color:var(--favored)}
+.cmark.warn{color:var(--thin)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}

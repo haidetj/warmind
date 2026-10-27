@@ -13,6 +13,7 @@ import io
 import json
 import os
 import pathlib
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
@@ -133,22 +134,51 @@ def _extract_json(text: str) -> dict:
 
 
 # ---------------------------------------------------------------- career intake
+def _read_once(images) -> dict:
+    return _extract_json(_call(images, CAREER_PROMPT))
+
+
+def _reconcile(a: dict, b: dict):
+    """Merge two independent reads of the same screenshots. A field both reads agree
+    on is 'verified'; a field they disagree on (or only one read saw) is 'uncertain'
+    and we keep the first read's value. Returns (snapshot, verified, uncertain, callsign)."""
+    snapshot, verified, uncertain = {}, [], []
+    for k in CAREER_FIELDS:
+        va = a.get(k) if isinstance(a.get(k), (int, float)) else None
+        vb = b.get(k) if isinstance(b.get(k), (int, float)) else None
+        if va is None and vb is None:
+            continue
+        if va is not None and vb is not None and int(va) == int(vb):
+            snapshot[k] = int(va); verified.append(k)
+        else:
+            snapshot[k] = int(va if va is not None else vb); uncertain.append(k)
+    callsign = a.get("callsign") or b.get("callsign") or None
+    return snapshot, verified, uncertain, callsign
+
+
 def parse_career(images, mock_index: int = 0) -> dict:
-    """images: list of (bytes, media_type) — one or more shots of the scrolling career screen."""
+    """images: list of (bytes, media_type) — one or more shots of the scrolling career
+    screen. Read TWICE (in parallel) and reconcile, so agreeing fields are verified and
+    disagreements are flagged — screenshot OCR is error-prone and this catches misreads."""
     if MOCK:
         snap = dict(_SEED_SNAPS[mock_index % len(_SEED_SNAPS)])
         raw = {k: snap.get(k) for k in CAREER_FIELDS if k in snap}
+        snapshot = {k: int(raw[k]) for k in CAREER_FIELDS if isinstance(raw.get(k), (int, float))}
+        verified, uncertain, callsign = list(snapshot.keys()), [], raw.get("callsign") or None
     else:
-        raw = _extract_json(_call(images, CAREER_PROMPT))
-    snapshot = {k: int(raw[k]) for k in CAREER_FIELDS if isinstance(raw.get(k), (int, float))}
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            fa, fb = ex.submit(_read_once, images), ex.submit(_read_once, images)
+            a, b = fa.result(), fb.result()
+        snapshot, verified, uncertain, callsign = _reconcile(a, b)
     problems = stats.validate(snapshot)
     play_style, note = stats.classify(snapshot)
     return {
         "snapshot": snapshot,
-        "callsign": raw.get("callsign") or None,
+        "callsign": callsign,
         "play_style": play_style,
         "style_note": note,
         "validity": problems,
+        "confidence": {"verified": verified, "uncertain": uncertain},
     }
 
 

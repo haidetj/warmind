@@ -367,8 +367,10 @@
       top.forEach(([k, v]) => read.appendChild(el("span", { class: "k" + (v < 0 ? " neg" : ""), html: k.replace(/_/g, " ") + " <b>" + (v >= 0 ? "+" : "") + v.toFixed(2) + "</b>" })));
       const rc = el("section", { class: "card" }, [el("div", { class: "section-title" }, ["The read"]), read]);
       if (d.pressure.driver) rc.appendChild(el("div", { class: "constraint", html: "The constraint that decides it: <b>" + d.pressure.driver + "</b>." }));
+      if (STATE.squad_readout) rc.appendChild(el("div", { class: "squadread" }, [STATE.squad_readout]));
       wrap.appendChild(rc);
     } else {
+      if (STATE.squad_readout) wrap.appendChild(el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Squad read"]), el("div", { class: "squadread" }, [STATE.squad_readout])]));
       wrap.appendChild(el("section", { class: "card" }, [el("div", { class: "muted" }, [STATE.players.length ? "Waiting on the mission — the creator sets it and every loadout builds at once." : "Waiting for divers to join…"])]));
     }
     const roster = el("div", { class: "roster" });
@@ -414,29 +416,49 @@
   const fmt = n => (n == null ? "—" : Number(n).toLocaleString());
 
   function statRead(p) {
-    const s = p.stats || {}, r = p.rates || {};
+    const s = p.stats || {}, card = p.scorecard || [], conf = p.confidence || null;
+    const ver = conf ? new Set(conf.verified || []) : null;
+    const unc = conf ? new Set(conf.uncertain || []) : null;
     const d = el("details", { class: "statread" });
     d.appendChild(el("summary", {}, ["Career read — from your screenshots"]));
     const body = el("div", { class: "statbody" });
     const grid = () => el("div", { class: "statgrid" });
-    const add = (g, k, v) => { if (v == null || v === "") return; g.appendChild(el("span", { class: "sk" }, [k])); g.appendChild(el("span", { class: "sv mono" }, [v])); };
 
-    const dg = grid();
-    if (r.accuracy != null) add(dg, "Accuracy", (r.accuracy * 100).toFixed(1) + "%");
-    if (r.kills_per_min != null) add(dg, "Kills / min", r.kills_per_min.toFixed(1));
-    if (r.deaths_per_mission != null) add(dg, "Deaths / mission", r.deaths_per_mission.toFixed(2));
-    if (r.win_rate != null) add(dg, "Win rate", (r.win_rate * 100).toFixed(0) + "%");
-    if (r.def_share != null) add(dg, "Stratagem mix", "def " + (r.def_share * 100).toFixed(0) + "% · orb " + (r.orb_share * 100).toFixed(0) + "% · eagle " + (r.eagle_share * 100).toFixed(0) + "%");
-    if (dg.children.length) { body.appendChild(el("div", { class: "statsub" }, ["The read"])); body.appendChild(dg); }
+    // derived "cool stats" scorecard
+    if (card.length) {
+      const g = grid();
+      card.forEach(row => {
+        g.appendChild(el("span", { class: "sk" }, [row.label]));
+        const v = el("span", { class: "sv mono" }, [row.value]); if (row.hint) v.title = row.hint;
+        g.appendChild(v);
+      });
+      body.appendChild(el("div", { class: "statsub" }, ["The read"])); body.appendChild(g);
+    }
 
+    // raw values, with a double-read confidence mark per field
     const rg = grid();
-    add(rg, "Enemy kills", fmt(s.enemy_kills));
-    add(rg, "Deaths", fmt(s.deaths));
-    add(rg, "Shots hit / fired", fmt(s.shots_hit) + " / " + fmt(s.shots_fired));
-    add(rg, "Missions won / played", fmt(s.missions_won) + " / " + fmt(s.missions_played));
-    add(rg, "Total stratagems", fmt(s.total_stratagems));
-    add(rg, "Friendly kills", fmt(s.friendly_kills));
-    if (rg.children.length) { body.appendChild(el("div", { class: "statsub" }, ["Raw — verify against your screen"])); body.appendChild(rg); }
+    const mark = field => {
+      if (unc && unc.has(field)) return el("span", { class: "cmark warn", title: "the two reads disagreed — check this one" }, [" ⚠"]);
+      if (ver && ver.has(field)) return el("span", { class: "cmark ok", title: "confirmed by the double read" }, [" ✓"]);
+      return null;
+    };
+    const raw = (label, field, v) => {
+      if (v == null || v === "") return;
+      rg.appendChild(el("span", { class: "sk" }, [label]));
+      rg.appendChild(el("span", { class: "sv mono" }, [v, mark(field)]));
+    };
+    raw("Enemy kills", "enemy_kills", fmt(s.enemy_kills));
+    raw("Deaths", "deaths", fmt(s.deaths));
+    raw("Shots hit / fired", "shots_hit", fmt(s.shots_hit) + " / " + fmt(s.shots_fired));
+    raw("Missions won / played", "missions_won", fmt(s.missions_won) + " / " + fmt(s.missions_played));
+    raw("Extractions", "extractions", fmt(s.extractions));
+    raw("Samples", "samples", fmt(s.samples));
+    raw("Total stratagems", "total_stratagems", fmt(s.total_stratagems));
+    raw("Friendly kills", "friendly_kills", fmt(s.friendly_kills));
+    if (rg.children.length) {
+      body.appendChild(el("div", { class: "statsub" }, ["Raw — verify against your screen"])); body.appendChild(rg);
+      if (unc && unc.size) body.appendChild(el("div", { class: "hint" }, ["⚠ the two reads disagreed on this number — double-check it."]));
+    }
     d.appendChild(body);
     return d;
   }
