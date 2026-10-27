@@ -96,7 +96,10 @@ def _resolve(lobby) -> dict:
         ))
     directive = None
     by_pid = {}
-    if mission and mission.get("mission_id") and roster:
+    readiness = _readiness(lobby, players_rows, mission)
+    # Loadouts are generated once, holistically: when the whole squad is in with stats
+    # and gear (or the creator briefs early) — never piecemeal as divers trickle in.
+    if readiness["final"] and mission and mission.get("mission_id") and roster:
         session = Session(
             planet_name=mission.get("planet_name", ""),
             planet_hazards=mission.get("planet_hazards", []),
@@ -105,6 +108,7 @@ def _resolve(lobby) -> dict:
             operation_modifiers=mission.get("operation_modifiers", []),
             tactical_objectives=mission.get("tactical_objectives", []),
             is_city_map=mission.get("is_city_map", False),
+            seed=int(lobby.get("reroll") or 0),
         )
         d = resolve_squad(session, roster, {})
         by_pid = {a.player_id: a for a in d.assignments}
@@ -144,14 +148,13 @@ def _resolve(lobby) -> dict:
         "players": players_out, "directive": directive,
         "squad_readout": stats.squad_readout(all_snaps),
         "squad_readout_keys": stats.squad_readout_keys(all_snaps),
-        "readiness": _readiness(lobby, players_rows, mission),
+        "readiness": readiness, "reroll": int(lobby.get("reroll") or 0),
     }
 
 
 def _readiness(lobby, players_rows, mission) -> dict:
-    """What the holistic briefing still needs. Loadouts resolve live as divers join,
-    but they're provisional until the squad is full and everyone has a read + gear —
-    or the creator briefs early."""
+    """What the holistic briefing still needs. Loadouts are generated only once the
+    squad is full and everyone has a read + gear — or the creator briefs early."""
     joined = len(players_rows)
     expected = lobby.get("squad_size") or max(joined, 1)  # older lobbies: whoever's here
     read = sum(1 for p in players_rows if (p.get("style_source") or "pending") != "pending")
@@ -252,6 +255,17 @@ def brief_now(lid: str, x_token: str = Header(None)):
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
     db.set_briefed(lid, True)
+    return _resolve(db.get_lobby(lid))
+
+
+@app.post("/api/lobby/{lid}/reroll")
+def reroll(lid: str, x_token: str = Header(None)):
+    """Creator asks for a different-but-equally-sound set of loadouts."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    db.bump_reroll(lid)
     return _resolve(db.get_lobby(lid))
 
 

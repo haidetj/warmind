@@ -5,13 +5,14 @@ set of players (each with a read play-style), produce one assignment per player:
 a role, a full kit filled by the scoring function, a growth pick, and a rationale.
 Then the squad-level brief: capability matrix, interlock loop, boosters, cadence.
 
-Deterministic. No RNG — same inputs give the same directive, which is what lets the
-AAR grade the advice later.
+Deterministic. No RNG — same inputs (including the reroll seed) give the same
+directive, which is what lets the AAR grade the advice later.
 """
 
 from __future__ import annotations
 
 import itertools
+import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -34,6 +35,7 @@ class Session:
     operation_modifiers: list = field(default_factory=list)
     tactical_objectives: list = field(default_factory=list)
     is_city_map: bool = False
+    seed: int = 0  # creator's reroll counter; 0 = the canonical (best-scoring) loadouts
 
 
 @dataclass
@@ -98,6 +100,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         if pref_cover and pref_cover in it.coverage:
             s += cover_weight
         s -= 0.25 * squad_used.get(it.name, 0)
+        if session.seed:  # reroll: reshuffle near-ties only, never promote a clearly worse pick
+            s += _jitter(it.name, session.seed, getattr(session, "_salt", ""))
         if s > fb_s:
             fb, fb_s = it, s
         if it.name in excl_owned:  # ownership exclusion is soft
@@ -105,6 +109,15 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         if s > best_s:
             best, best_s = it, s
     return best if best is not None else fb
+
+
+def _jitter(name: str, seed: int, salt: str) -> float:
+    """Stable pseudo-random nudge in [0, REROLL_SPREAD) per (item, seed, diver)."""
+    h = zlib.crc32(f"{seed}|{salt}|{name}".encode())
+    return REROLL_SPREAD * (h % 10_000) / 10_000
+
+
+REROLL_SPREAD = 0.3  # under one grade step: rerolls swap near-equal options only
 
 
 def session_excluded(session) -> set:
@@ -343,6 +356,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         pstyle = roles_mod.play_style(pl.play_style)
         hist = set(history.get(pl.id, []))
         session._excluded = _diver_excluded(pl)
+        session._salt = pl.id
 
         # commando: no Heavy armor on a stealth op — cap at Medium
         weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight

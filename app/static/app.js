@@ -253,8 +253,21 @@
     }
     const sig = JSON.stringify(s);
     if (sig === lastSig && STATE) return;   // nothing changed: leave the page (and any open folds) alone
+    if (STATE) announce(STATE, s);
     lastSig = sig; STATE = s;
     try { liveRoot ? renderLive() : render(); } catch (e) { console.error("WARMIND render failed:", e); }
+  }
+  // what changed since the last poll that someone else did — divers in, mission edits, loadouts landing
+  function announce(prev, next) {
+    const me = meRec(), had = new Set(prev.players.map(p => p.id));
+    const fresh = next.players.filter(p => !had.has(p.id) && !(me && me.id === p.id)).map(p => p.callsign);
+    const msgs = [];
+    if (fresh.length) msgs.push(t("toast.diver_in", { list: fresh.join(", ") }));
+    if (JSON.stringify(prev.mission) !== JSON.stringify(next.mission) && prev.mission)
+      msgs.push(next.directive ? t("toast.mission_changed") : t("toast.mission_changed.plain"));
+    else if (!prev.directive && next.directive) msgs.push(t("toast.loadouts_ready"));
+    else if ((prev.reroll || 0) !== (next.reroll || 0)) msgs.push(t("toast.rerolled"));
+    if (msgs.length) toast(msgs.join(" · "));
   }
   async function refresh() { STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive(); }
 
@@ -423,16 +436,16 @@
       kids.push(el("div", { class: "readout-q" }, [t("readout.prefix", { list: STATE.squad_readout_keys.map(k => t("ro." + k)).join("; ") })]));
     else if (STATE.squad_readout) kids.push(el("div", { class: "readout-q" }, [STATE.squad_readout]));
     if (r.final) kids.push(el("div", { class: "hint" }, [r.ready ? t("rdy.final.ready") : t("rdy.final.early")]));
-    else if (STATE.directive) {
-      kids.push(el("div", { class: "hint" }, [t("rdy.prov")]));
-      if (isCreator() && r.joined > 0) {
-        const b = el("button", { class: "btn", type: "button" }, [t("rdy.brief")]);
+    else {
+      kids.push(el("div", { class: "hint" }, [t("rdy.hold")]));
+      if (isCreator() && r.joined > 0 && r.mission_set) {
+        const b = el("button", { class: "btn", type: "button" }, [t("rdy.generate")]);
         b.onclick = async () => {
           if (busy) return; busy = true; b.disabled = true;
-          try { STATE = await jpost("/api/lobby/" + LID + "/brief", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("rdy.briefed")); }
+          try { STATE = await jpost("/api/lobby/" + LID + "/brief", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("rdy.generated")); }
           catch (e) { toast(e.message); b.disabled = false; } finally { busy = false; }
         };
-        kids.push(el("div", { class: "btnrow" }, [b]));
+        kids.push(el("div", { class: "btnrow" }, [b]), el("div", { class: "hint" }, [t("rdy.generate.hint")]));
       }
     }
     return panel(t("man.pid"), t("man.title"), { status: r.final ? t("rdy.briefed") : t("rdy.status.wait"), statusKind: r.final ? "ok" : "warn" }, kids);
@@ -538,7 +551,9 @@
       btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
       btns.none.onclick = () => { names.forEach(n => owned.delete(n)); setSeg("none"); save(); };
       btns.some.onclick = () => setSeg("some");
-      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name]), seg]), items]));
+      const cnt = el("span", { class: "gs" }, [haveN + "/" + names.length]);
+      items.addEventListener("change", () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; });
+      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name, " ", cnt]), seg]), items]));
     });
     const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
     confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
@@ -574,6 +589,8 @@
       ro(t("mis.mode"), t("mode." + m.mode), m.mode === "d100" ? "d100" : ""),
       ro(t("mis.oath"), oath),
       mods.length ? ro(t("mis.mods"), mods.join(" · "), "wide") : null,
+      (m.planet_hazards || []).length ? ro(t("mis.hazards"), m.planet_hazards.map(id => ((META.hazards || []).find(h => h.id === id) || { name: id }).name).join(" · "), "wide") : null,
+      (m.tactical_objectives || []).length ? ro(t("mis.tacticals"), m.tactical_objectives.map(id => ((META.tacticals || []).find(x => x.id === id) || { name: id }).name).join(" · "), "wide") : null,
     ]));
   }
 
@@ -609,8 +626,9 @@
       else { if (!list.some(x => x.id === draft.mission_id)) draft.mission_id = list[0].id; list.forEach(x => misSel.appendChild(el("option", { value: x.id }, [x.name]))); misSel.value = draft.mission_id; }
     }
     fillMissions();
-    facSel.onchange = () => { draft.faction = facSel.value; fillMissions(); };
-    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); };
+    let fillTacticals = () => {};
+    facSel.onchange = () => { draft.faction = facSel.value; fillMissions(); fillTacticals(); };
+    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); };
     misSel.onchange = () => { draft.mission_id = misSel.value; };
     body.appendChild(el("div", { class: "blk grid2" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "m-fac" }, [t("mis.faction")]), facSel]),
@@ -631,6 +649,31 @@
       ops.appendChild(c);
     });
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops]));
+
+    // planet hazards + tactical objectives: both feed the mission pressure
+    const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };
+    const haz = el("div", { class: "chips" });
+    (META.hazards || []).forEach(h => {
+      const c = el("button", { type: "button", class: "chip", "aria-pressed": String(draft.planet_hazards.indexOf(h.id) >= 0) }, [h.name]);
+      c.onclick = () => toggle(draft.planet_hazards, h.id, c);
+      haz.appendChild(c);
+    });
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.hazards.label")]), haz]));
+    const tac = el("div", { class: "chips" });
+    fillTacticals = () => {
+      tac.innerHTML = "";
+      const dv = parseInt(diffSel.value, 10);
+      const list = (META.tacticals || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin && dv <= x.dmax);
+      draft.tactical_objectives = draft.tactical_objectives.filter(id => list.some(x => x.id === id));   // drop ones this map can't have
+      if (!list.length) tac.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("mis.tacticals.none")]));
+      list.forEach(x => {
+        const c = el("button", { type: "button", class: "chip", "aria-pressed": String(draft.tactical_objectives.indexOf(x.id) >= 0) }, [x.name]);
+        c.onclick = () => toggle(draft.tactical_objectives, x.id, c);
+        tac.appendChild(c);
+      });
+    };
+    fillTacticals();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.tacticals.label")]), tac, el("div", { class: "hint" }, [t("mis.vars.hint")])]));
 
     // oath
     const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
@@ -664,7 +707,7 @@
         const s = r.suggestion || {};
         if (s.faction) { facSel.value = s.faction; draft.faction = s.faction; }
         if (s.difficulty) { diffSel.value = s.difficulty; draft.difficulty = s.difficulty; }
-        fillMissions();
+        fillMissions(); fillTacticals();
         toast(s.note ? s.note : t("mis.prefilled"));
       } catch (e) { toast(e.message); } finally { lockControls([prefill, save], false); busy = false; }
     };
@@ -676,9 +719,10 @@
   // ----------------------------------------------------------------- 03: briefing
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
-    if (!d) return [el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];
+    if (!d) return [r.mission_set
+      ? el("div", { class: "alert" }, [el("b", {}, [t("brief.hold.t")]), t("brief.hold")])
+      : el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];
     const out = [];
-    if (!r.final) out.push(el("div", { class: "alert" }, [el("b", {}, [t("brief.prov.t")]), t("rdy.prov")]));
 
     // the read
     const pr = el("div", { class: "pressure" }, ((d.pressure && d.pressure.top) || []).map(([k, v]) =>
@@ -709,8 +753,18 @@
 
     // loadouts
     const roster = el("div", { class: "roster" }); const me = meRec();
-    STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, !r.final)));
-    out.push(panel(t("roster.pid"), t("roster.title"), { status: r.final ? t("rdy.briefed") : t("brief.prov"), statusKind: r.final ? "ok" : "warn" }, [roster]));
+    STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false)));
+    const rkids = [roster];
+    if (isCreator()) {
+      const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
+      rb.onclick = async () => {
+        if (busy) return; busy = true; rb.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled")); }
+        catch (e) { toast(e.message); } finally { busy = false; rb.disabled = false; }
+      };
+      rkids.push(el("div", { class: "btnrow" }, [rb]), el("div", { class: "hint" }, [t("roster.reroll.hint")]));
+    }
+    out.push(panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids));
 
     // coordination
     const mtx = el("div", { class: "matrix" });
