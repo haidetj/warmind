@@ -534,10 +534,14 @@
     return wrap;
   }
 
+  // Gear checklist, laid out like the in-game loadout menu: tabs per slot, stratagems under their
+  // permit colour (Offensive / Supply / Defensive) with their in-game icons. A quick-fill row ticks
+  // or clears a whole warbond. Only gear you have to unlock is listed — base gear is always owned.
+  let gearTab = {};   // pid -> active tab, kept across re-renders
   function gearFold(p) {
-    const wbs = META.warbonds || [];
-    if (!wbs.length) return null;
-    const allNames = []; wbs.forEach(w => w.items.forEach(i => allNames.push(i.name)));
+    const tabs = META.armory || [], wbs = META.warbonds || [];
+    if (!tabs.length) return null;
+    const allNames = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allNames.push(i.name))));
     const owned = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
     const unset = !p.gear_confirmed;
     const d = el("details", { class: "fold" + (unset ? " attn" : "") });
@@ -546,37 +550,90 @@
     d.appendChild(el("summary", {}, [unset ? t("gear.step") : t("gear.title")]));
     const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear.hint")])]);
     d.appendChild(body);
-    async function save() {
-      if (busy) return; busy = true;
-      try {
-        const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
-        await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
-        await refresh(); toast(t("gear.saved"));
-      } catch (e) { toast(e.message); } finally { busy = false; }
+
+    // debounced, queued save: rapid ticks all land (a save in flight no longer drops the next one)
+    let saveT = null;
+    function save(now) {
+      clearTimeout(saveT);
+      saveT = setTimeout(async function go() {
+        if (busy) { saveT = setTimeout(go, 300); return; }
+        busy = true;
+        try {
+          const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
+          await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
+          busy = false; await refresh(); toast(t("gear.saved"));
+        } catch (e) { toast(e.message); } finally { busy = false; }
+      }, now ? 0 : 700);
     }
+    const refreshers = [];
+    const sync = () => refreshers.forEach(f => f());
+
+    // quick fill by warbond
+    const chips = el("div", { class: "chips wbchips" });
     wbs.forEach(w => {
       const names = w.items.map(i => i.name);
-      const haveN = names.filter(n => owned.has(n)).length;
-      const state = haveN === names.length ? "all" : haveN === 0 ? "none" : "some";
-      const seg = el("div", { class: "gseg", role: "group", "aria-label": w.name });
-      const btns = {};
-      ["all", "some", "none"].forEach(v => { const b = el("button", { type: "button", class: state === v ? "on" : "", "aria-pressed": String(state === v) }, [t("gear." + v)]); btns[v] = b; seg.appendChild(b); });
-      const items = el("div", { class: "gearitems" }); items.style.display = state === "some" ? "grid" : "none";
-      w.items.forEach(i => {
-        const cb = el("input", { type: "checkbox" }); cb.checked = owned.has(i.name);
-        cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); save(); };
-        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [wk(i.name)]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
-      });
-      const setSeg = v => { ["all", "some", "none"].forEach(k => { btns[k].classList.toggle("on", k === v); btns[k].setAttribute("aria-pressed", String(k === v)); }); items.style.display = v === "some" ? "grid" : "none"; };
-      btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
-      btns.none.onclick = () => { names.forEach(n => owned.delete(n)); setSeg("none"); save(); };
-      btns.some.onclick = () => setSeg("some");
-      const cnt = el("span", { class: "gs" }, [haveN + "/" + names.length]);
-      items.addEventListener("change", () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; });
-      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.kind === "special" ? t("gear.special") : w.name, " ", cnt]), seg]), items]));
+      const c = el("button", { type: "button", class: "chip" }, [w.kind === "special" ? t("gear.special") : w.name]);
+      const paint = () => { const n = names.filter(x => owned.has(x)).length; c.setAttribute("aria-pressed", String(n === names.length)); c.classList.toggle("part", n > 0 && n < names.length); };
+      c.onclick = () => { const all = names.every(x => owned.has(x)); names.forEach(x => all ? owned.delete(x) : owned.add(x)); sync(); save(); };
+      paint(); refreshers.push(paint); chips.appendChild(c);
     });
+    body.appendChild(el("div", { class: "sub-h", style: "margin-top:2px" }, [t("gear.quick")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 6px" }, [t("gear.quick.hint")]));
+    body.appendChild(chips);
+
+    // in-game tabs
+    const order = ["Stratagem", "Primary", "Secondary", "Grenade", "Armor", "Booster"];
+    const sorted = order.map(k => tabs.find(tb => tb.slot === k)).filter(Boolean);
+    const cur = gearTab[p.id] && sorted.some(tb => tb.slot === gearTab[p.id]) ? gearTab[p.id] : sorted[0].slot;
+    const tabbar = el("div", { class: "seg geartabs", role: "tablist" });
+    const pane = el("div", { class: "gearpane" });
+    const gkey = g => "grp." + String(g).replace(/[^A-Za-z0-9]+/g, "_");
+    function showTab(slot) {
+      gearTab[p.id] = slot;
+      tabbar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.slot === slot)));
+      pane.innerHTML = "";
+      const tb = sorted.find(x => x.slot === slot);
+      let lastPermit = null;
+      tb.groups.forEach(g => {
+        if (g.permit && g.permit !== lastPermit) {
+          pane.appendChild(el("div", { class: "permit " + g.permit.toLowerCase() }, [has("perm." + g.permit) ? t("perm." + g.permit) : g.permit]));
+          lastPermit = g.permit;
+        }
+        const names = g.items.map(i => i.name);
+        const cnt = el("span", { class: "gs" });
+        const paintCnt = () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; };
+        const allB = el("button", { type: "button", class: "btn sm" }, [t("gear.all")]);
+        const noneB = el("button", { type: "button", class: "btn sm" }, [t("gear.none")]);
+        allB.onclick = () => { names.forEach(n => owned.add(n)); sync(); save(); };
+        noneB.onclick = () => { names.forEach(n => owned.delete(n)); sync(); save(); };
+        const grid = el("div", { class: "tiles" });
+        g.items.forEach(i => {
+          const cb = el("input", { type: "checkbox" });
+          const paint = () => { cb.checked = owned.has(i.name); };
+          cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); sync(); save(); };
+          const icon = i.icon ? el("img", { src: i.icon, alt: "", loading: "lazy", width: "32", height: "32" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
+          if (i.icon) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
+          grid.appendChild(el("label", { class: "tile" }, [cb, icon, el("span", { class: "tn" }, [wk(i.name), el("small", {}, [i.warbond === "Superstore" ? "Superstore" : i.warbond])])]));
+          paint(); refreshers.push(paint);
+        });
+        paintCnt(); refreshers.push(paintCnt);
+        pane.appendChild(el("div", { class: "ggroup" }, [
+          el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [has(gkey(g.group)) ? t(gkey(g.group)) : g.group, " ", cnt]), el("span", { class: "btnrow", style: "margin:0" }, [allB, noneB])]),
+          grid]));
+      });
+    }
+    sorted.forEach(tb => {
+      const b = el("button", { type: "button", role: "tab", "data-slot": tb.slot }, [has("slot." + tb.slot) ? t("slot." + tb.slot) : tb.slot]);
+      b.onclick = () => showTab(tb.slot);
+      tabbar.appendChild(b);
+    });
+    body.appendChild(el("div", { class: "sub-h" }, [t("gear.items")]));
+    body.appendChild(tabbar);
+    body.appendChild(pane);
+    showTab(cur);
+
     const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
-    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
+    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; sync(); save(true); };
     body.appendChild(el("div", { class: "btnrow" }, [confirm]));
     return d;
   }
@@ -955,7 +1012,7 @@
         el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? " · " : "") + "[" + (i + 1) + "]"])))]));
     });
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.sources")]));
-    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d"), " ", t("gl.icons")]));
     body.appendChild(src);
     return el("details", { class: "fold panel", style: "padding:0" }, [el("summary", {}, [t("gl.title")]), body]);
   }

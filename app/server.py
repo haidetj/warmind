@@ -14,7 +14,7 @@ import secrets
 import time
 
 from fastapi import FastAPI, Form, Header, HTTPException, UploadFile, File
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 from starlette.middleware.gzip import GZipMiddleware
@@ -243,6 +243,7 @@ def meta():
             "oaths": oaths.catalog(),
             "wiki": loader.wiki_map(),
             "kit_rules": list(_RULES.values()),
+            "armory": loader.armory(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "vision": vision.status()}
 
@@ -503,6 +504,17 @@ def appjs():
 def i18njs():
     from fastapi.responses import Response
     return Response((HERE / "static" / "i18n.js").read_text(), media_type="application/javascript")
+
+
+@app.get("/icons/{name}")
+def icon(name: str):
+    """Stratagem icons (64px, from the Helldivers 2 wiki — see the field manual)."""
+    if not re.fullmatch(r"[a-z0-9-]+\.png", name):
+        raise HTTPException(404, "no such icon")
+    f = HERE / "static" / "icons" / name
+    if not f.exists():
+        raise HTTPException(404, "no such icon")
+    return FileResponse(f, media_type="image/png", headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/health")
