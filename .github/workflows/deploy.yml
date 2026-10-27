@@ -1,0 +1,33 @@
+name: deploy
+
+# Triggers a Render deploy on every push to main by POSTing the service's deploy
+# hook. This makes deploys fire from CI instead of depending on Render's native
+# auto-deploy poll. The hook URL is a secret (RENDER_DEPLOY_HOOK); if it is ever
+# unset the job no-ops instead of failing, so CI never breaks over a missing secret.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  render-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not set — skipping deploy trigger."
+            exit 0
+          fi
+          code=$(curl -sS -X POST -o /tmp/render_resp -w "%{http_code}" "$HOOK") || {
+            echo "::error::Could not reach the Render deploy hook."; exit 1; }
+          echo "Render deploy hook -> HTTP $code"
+          head -c 500 /tmp/render_resp 2>/dev/null || true
+          echo
+          case "$code" in
+            2??) echo "Deploy triggered." ;;
+            *)   echo "::error::Render hook returned HTTP $code"; exit 1 ;;
+          esac
