@@ -22,7 +22,12 @@
 
   // ---------- api ----------
   async function api(path, opts) {
-    const r = await fetch(path, opts);
+    let r;
+    try { r = await fetch(path, opts); }
+    catch (e) { throw new Error("Can't reach WARMIND — check your connection and try again."); }
+    // 502/503/504 come from the host while a new version deploys (disk-backed
+    // services restart on every deploy) — say so instead of "Bad Gateway"
+    if ([502, 503, 504].indexOf(r.status) >= 0) throw new Error("WARMIND is redeploying — try again in a minute.");
     if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch (e) {} throw new Error(m); }
     return r.status === 204 ? {} : r.json();
   }
@@ -364,6 +369,7 @@
     wrap.appendChild(el("div", { style: "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" }, [upload, skip]));
     wrap.appendChild(status);
     wrap.appendChild(el("div", { class: "hint" }, ["Open your in-game Career screen and screenshot it. The list scrolls — take a few shots and select them all; WARMIND merges them. You can override the read anytime."]));
+    wrap.appendChild(el("div", { class: "hint" }, ["Dropped with WARMIND before? Enter the same callsign and tap “Join without stats” — your last read comes back. (Callsigns aren't passwords: anyone using yours gets your stats.)"]));
     return wrap;
   }
   async function doJoin(callsign, files, status) {
@@ -380,6 +386,7 @@
       // the result. A hard failure keeps the join card, so the inline status shows it.
       STATE = await api("/api/lobby/" + LID); render();
       if (r.vision_error) toast("Joined — couldn't read that screenshot, pick your style or re-read below.");
+      else if (r.restored) toast("Welcome back — restored your last stat read (" + label(r.play_style) + ").");
       else toast(list.length ? "Read as " + label(r.play_style) + (list.length > 1 ? " (" + list.length + " shots)" : "") : "Joined — pick your style");
     } catch (e) {
       setStatus(status, "err", "Upload failed: " + e.message + " — try again.");
@@ -450,7 +457,9 @@
     const mine = me && me.id === p.id;
     const card = el("div", { class: "dcard" }); card.style.setProperty("--acc", p.accent);
     const a = p.assignment;
-    const badge = p.has_stats ? el("span", { class: "badge stats" }, ["stats read"]) : el("span", { class: "badge pending" }, ["no stats"]);
+    const badge = !p.has_stats ? el("span", { class: "badge pending" }, ["no stats"])
+      : p.style_source === "remembered" ? el("span", { class: "badge stats", title: "Restored from your last read by callsign" }, ["stats remembered"])
+      : el("span", { class: "badge stats" }, ["stats read"]);
     const provisional = a && STATE.readiness && !STATE.readiness.final;
     card.appendChild(el("div", { class: "top" }, [
       el("div", { class: "role stencil" }, [a ? a.role : "AWAITING MISSION", provisional ? el("span", { class: "provtag" }, ["provisional"]) : null]),
@@ -608,6 +617,10 @@
 
   function squadBlocks() {
     const d = STATE.directive, wrap = el("section", { class: "stack" });
+    if (d.doctrine) {
+      const ol = el("ol", { class: "doctrine" }); d.doctrine.orders.forEach(o => ol.appendChild(el("li", {}, [o])));
+      wrap.appendChild(el("section", { class: "card doctrinecard" }, [el("div", { class: "section-title" }, [d.doctrine.title]), ol]));
+    }
     if (d.swaps && d.swaps.length) {
       const sw = el("div", { class: "swaps" });
       d.swaps.forEach(s => sw.appendChild(el("div", { class: "swaprow" }, [

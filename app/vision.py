@@ -168,10 +168,19 @@ def parse_career(images, mock_index: int = 0) -> dict:
         snapshot = {k: int(raw[k]) for k in CAREER_FIELDS if isinstance(raw.get(k), (int, float))}
         verified, uncertain, callsign = list(snapshot.keys()), [], raw.get("callsign") or None
     else:
+        # The second read is a cross-check, not a dependency: if one read fails
+        # (rate limit, timeout, unparseable reply) we keep the other with every field
+        # marked unverified. Only when BOTH fail does the read fail.
+        reads, errors = [], []
         with ThreadPoolExecutor(max_workers=2) as ex:
-            fa, fb = ex.submit(_read_once, images), ex.submit(_read_once, images)
-            a, b = fa.result(), fb.result()
-        snapshot, verified, uncertain, callsign = _reconcile(a, b)
+            for f in (ex.submit(_read_once, images), ex.submit(_read_once, images)):
+                try:
+                    reads.append(f.result())
+                except Exception as e:  # noqa: BLE001 — any single-read failure is survivable
+                    errors.append(e)
+        if not reads:
+            raise errors[0]
+        snapshot, verified, uncertain, callsign = _reconcile(reads[0], reads[1] if len(reads) > 1 else {})
     problems = stats.validate(snapshot)
     play_style, note = stats.classify(snapshot)
     return {

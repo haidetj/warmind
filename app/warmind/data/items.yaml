@@ -47,7 +47,7 @@ grenades:
   - {name: "G-6 Frag",              coverage: [ch],     tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-16 Impact",           coverage: [ch, st], tags: [],           grade: {terminids: A, automatons: A, illuminate: A}}
   - {name: "G-123 Thermite", warbond: "Democratic Detonation",        coverage: [at, st], tags: [heavy_pen],  grade: {terminids: A, automatons: A, illuminate: B}}
-  - {name: "G-3 Smoke",             coverage: [bc],     tags: [],           grade: {terminids: C, automatons: B, illuminate: B}}
+  - {name: "G-3 Smoke",             coverage: [bc],     tags: [stealth],           grade: {terminids: C, automatons: B, illuminate: B}}
   - {name: "G-13 Incendiary Impact", warbond: "Polar Patriots",coverage: [ch, bc], tags: [fire_kit],   grade: {terminids: A, automatons: C, illuminate: B}}
   - {name: "G-12 High Explosive",   coverage: [ch, st], tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-23 Stun", warbond: "Cutting Edge",             coverage: [bc],     tags: [],           grade: {terminids: A, automatons: A, illuminate: A}}
@@ -100,9 +100,9 @@ stratagems:
 # Armor: weight is fixed by role; the set is a substitute the player may own.
 # tags map the passive into the kit space; coverage bc for Scout (stealth breaks contact).
 armor:
-  - {name: "SC-34 Infiltrator",            weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster]}
-  - {name: "SC-30 Trailblazer Scout",      weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster]}
-  - {name: "SC-37 Legionnaire", warbond: "Superstore",            weight: Medium, passive: "Scout",              coverage: [bc], tags: [mobility, radar_booster]}
+  - {name: "SC-34 Infiltrator",            weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster, stealth]}
+  - {name: "SC-30 Trailblazer Scout",      weight: Light,  passive: "Scout",              coverage: [bc], tags: [light_armor, mobility, radar_booster, stealth]}
+  - {name: "SC-37 Legionnaire", warbond: "Superstore",            weight: Medium, passive: "Scout",              coverage: [bc], tags: [mobility, radar_booster, stealth]}
   - {name: "FS-23 Battle Master",          weight: Heavy,  passive: "Fortified",          coverage: [],   tags: [static_position]}
   - {name: "FS-55 Devastator", warbond: "Democratic Detonation",             weight: Heavy,  passive: "Fortified",          coverage: [],   tags: [static_position]}
   - {name: "CE-35 Trench Engineer",        weight: Medium, passive: "Engineering Kit",    coverage: [],   tags: []}

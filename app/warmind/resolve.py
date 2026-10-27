@@ -76,6 +76,7 @@ class Directive:
     reactive_role: str | None
     notes: list
     swaps: list = field(default_factory=list)
+    doctrine: dict | None = None  # mission-type doctrine card (e.g. Commando), or None
 
 
 # ---------------------------------------------------------------- kit filling
@@ -108,15 +109,27 @@ def session_excluded(session) -> set:
     return getattr(session, "_excluded", set())
 
 
-def _fill_stratagems(role, pool, session, pstyle, history, squad_used):
+# Commando Operations: stratagems only in two 60s Super Destroyer windows, so every
+# role carries the research-backed commando kit — one support weapon (called once,
+# carried all mission), one backpack, and two one-shot strikes (one per window).
+# No statics: they can't be re-called and they're loud. Pressure still picks which.
+COMMANDO_SLOTS = ({"support"}, {"backpack"}, {"orbital", "eagle"}, {"orbital", "eagle"})
+_STATIC = {"sentry", "emplacement", "relay", "mine"}
+
+
+def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=None, no_static=False):
     picks, taken, used_backpack = [], set(), False
-    for slot in role.slots:
+    for slot in (slots or role.slots):
         cands = [s for s in pool.stratagems_in(slot) if s.name not in taken]
         if used_backpack:
             cands = [s for s in cands if not s.backpack]
         choice = _pick(cands, session, pstyle, history, squad_used=squad_used)
         if choice is None:  # slot categories exhausted — widen to any stratagem
-            wide = [s for s in pool.stratagems if s.name not in taken and not (used_backpack and s.backpack)]
+            have_support = any(x.category == "support" for x in picks)
+            wide = [s for s in pool.stratagems if s.name not in taken and not (used_backpack and s.backpack)
+                    and not (no_static and s.category in _STATIC)
+                    # commando: you carry one weapon — a second support call is wasted window time
+                    and not (no_static and have_support and s.category == "support")]
             choice = _pick(wide, session, pstyle, history, squad_used=squad_used)
         picks.append(choice)
         taken.add(choice.name)
@@ -286,6 +299,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         p.vector = {k: round(v * modes.D100_PRESSURE, 4) for k, v in p.vector.items()}
     session._pressure = p
     session._excluded = set()
+    doctrine = _doctrine(session)
+    commando = bool(doctrine and doctrine.get("kind") == "commando")
 
     poor_intel = OP_POOR_INTEL in session.operation_modifiers
     # Stats-first: each diver gets the role that fits them. Mission coverage becomes
@@ -327,12 +342,15 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         hist = set(history.get(pl.id, []))
         session._excluded = _diver_excluded(pl)
 
-        armor = _pick(pool.armor_of_weight(role.armor_weight), session, pstyle, hist)
+        # commando: no Heavy armor on a stealth op — cap at Medium
+        weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight
+        armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist)
         primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref)
         secondary = _pick(pool.secondaries, session, pstyle, hist)
         grenade = _pick(pool.grenades, session, pstyle, hist,
                         pref_cover=role.grenade_cover, cover_weight=0.9)
-        strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used)
+        strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
+                                 slots=COMMANDO_SLOTS if commando else None, no_static=commando)
 
         # armor counts toward coverage (Scout armour is a break-contact answer)
         kit = [primary, secondary, grenade, armor] + strat
@@ -349,6 +367,9 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         thin = coverage.thin_axes(kit)
         growth = _growth_pick(strat, pstyle, session)
         rationale = _rationale(role, pstyle, session, growth, thin, matrix)
+        if commando:
+            rationale += (" Commando op: no statics — carry your support weapon, keep one strike "
+                          "for each Super Destroyer window.")
         final.append(Assignment(
             player_id=pl.id, callsign=pl.callsign, role=role.name,
             primary=primary.name, secondary=secondary.name, grenade=grenade.name,
@@ -366,7 +387,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         session=session, pressure=p, assignments=final,
         capability_matrix=matrix, loop=_loop(list(kits_by_role.keys())),
         cadence=_cadence(list(kits_by_role.keys())), reactive_role=reactive, notes=notes,
-        swaps=swaps,
+        swaps=swaps, doctrine=doctrine,
     )
 
 
@@ -383,6 +404,24 @@ def _rationale(role, pstyle, session, growth, thin, matrix):
         if owner:
             parts.append(f"{coverage.AXIS_LABEL[a].capitalize()} is thin — {owner} is deep there and covers it.")
     return " ".join(parts)
+
+
+COMMANDO_ORDERS = (
+    "Two Super Destroyer windows, 60 seconds each — plan every call before the first one. "
+    "Window one: the kit you'll carry all mission. Window two: the main objective or extraction.",
+    "Persistent kit first (support weapons, backpacks). A dead diver drops theirs — recover it; "
+    "there is no re-call until the next window.",
+    "Threat rises for good with every bot drop. Kill flares and callers first, go around patrols, "
+    "and don't fight for samples.",
+    "Reinforcement is from the 4 pods (3 lives each) — 12 for the whole squad. Mark them on drop.",
+)
+
+
+def _doctrine(session) -> dict | None:
+    tags = (loader_mod.missions().get(session.mission_id) or {}).get("tags") or []
+    if "commando_op" in tags:
+        return {"kind": "commando", "title": "Commando doctrine", "orders": list(COMMANDO_ORDERS)}
+    return None
 
 
 D100_ORDERS = (
