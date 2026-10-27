@@ -262,25 +262,22 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(ordered_roles, pool, excluded=frozenset()):
-    """excluded: booster names no diver in the squad owns (skipped unless nothing
-    else is left, so a slot never strands)."""
-    avail = [b for b in pool.boosters if b["name"] not in excluded] or pool.boosters
+def _assign_boosters(divers, pool):
+    """divers: [(role_name, excluded_names)] in role order. In the game every diver
+    brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
+    diver gets a unique booster they own, preferring the strong picks and their role's
+    bias. Base boosters are always owned, so a slot never strands."""
     chosen, used = {}, set()
-    for role_name in ordered_roles:
+    for role_name, excluded in divers:
+        avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
         bias = _ROLE_BIAS.get(role_name, "any")
         pick = None
         for want_strong in (True, False):
-            for b in avail:
-                if b["name"] in used:
-                    continue
-                if b["role_bias"] in (bias, "any") and bool(b.get("strong")) == want_strong:
-                    pick = b
-                    break
+            pick = next((b for b in avail if b["role_bias"] in (bias, "any")
+                         and bool(b.get("strong")) == want_strong), None)
             if pick:
                 break
-        if not pick:  # nothing matched bias — take any unused
-            pick = next((b for b in avail if b["name"] not in used), None)
+        pick = pick or (avail[0] if avail else None)  # nothing matched bias — any unused one they own
         if pick:
             chosen[role_name] = pick["name"]
             used.add(pick["name"])
@@ -342,7 +339,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
 
     # Ownership: a diver's own equip slots are limited to the gear they own; boosters
-    # (one per squad, carried by whoever owns it) are limited to what someone owns.
+    # are limited to what the diver carrying them owns.
     wb_of = loader_mod.warbond_catalog()["map"]
     gated = {n for n, wb in wb_of.items() if not items_mod.is_base_warbond(wb)}
 
@@ -351,16 +348,9 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
             return set(pl.excluded_items or [])
         return set(pl.excluded_items or []) | (gated - set(pl.owned_items))
 
-    squad_owns_all = any(pl.owned_items is None for pl in players)
-    if squad_owns_all:
-        excluded_boosters = frozenset()
-    else:
-        squad_owned = set().union(*[set(pl.owned_items or []) for pl in players]) if players else set()
-        excluded_boosters = {n for n in gated if n not in squad_owned and
-                             any(b["name"] == n for b in pool.boosters)}
-
-    present_role_names = [roles_mod.ROLES[k].name for k in role_map.values()]
-    boosters = _assign_boosters(present_role_names, pool, excluded_boosters)
+    # boosters: each diver from their own unlocks (not "someone in the squad owns it")
+    order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
+    boosters = _assign_boosters(order, pool)
 
     assignments, kits_by_role = [], {}
     squad_used = Counter()
