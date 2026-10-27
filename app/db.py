@@ -72,6 +72,9 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN squad_size INTEGER")
         if "briefed" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN briefed INTEGER DEFAULT 0")
+        rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
+        if "verdict_json" not in rcols:
+            c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
 
 
 def set_owned(pid, owned):
@@ -147,10 +150,11 @@ def remove_player(pid):
         c.execute("DELETE FROM player WHERE id=?", (pid,))
 
 
-def save_result(rid, lobby_id, player_id, result: dict, aar_text: str):
+def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None):
     with _lock, _conn() as c:
-        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,created_at)"
-                  " VALUES(?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text, time.time()))
+        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at)"
+                  " VALUES(?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
+                                             json.dumps(verdict) if verdict else None, time.time()))
 
 
 def latest_result(player_id):

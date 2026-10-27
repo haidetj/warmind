@@ -60,12 +60,14 @@ CAREER_PROMPT = (
 
 RESULT_FIELDS = ["kills", "accuracy_pct", "shots_fired", "shots_hit", "deaths", "stims_used",
                  "accidentals", "samples_extracted", "stratagems_used", "melee_kills",
-                 "times_reinforcing", "friendly_fire_dmg", "distance_km"]
+                 "times_reinforcing", "friendly_fire_dmg", "distance_km",
+                 "objectives_completed", "objectives_total"]
 
 RESULT_PROMPT = (
-    "This is a Helldivers 2 end-of-mission scoreboard for one player. Return ONE JSON object, "
-    "no prose, with these fields where visible (omit any you cannot read): " + ", ".join(RESULT_FIELDS) +
-    ". Return only the JSON object."
+    "This is a Helldivers 2 end-of-mission screen (a player scoreboard and/or the mission "
+    "summary). Return ONE JSON object, no prose, with these fields where visible (omit any you "
+    "cannot read): " + ", ".join(RESULT_FIELDS) + ". objectives_completed / objectives_total "
+    "count main + optional objectives only if the screen lists them. Return only the JSON object."
 )
 
 
@@ -201,22 +203,60 @@ def parse_mission(image_bytes: bytes, media_type: str, mission_ids: list[str]) -
 
 
 # ---------------------------------------------------------------- after-action review
-def review_results(image_bytes: bytes, media_type: str, context: dict) -> dict:
-    """Read a results scoreboard, then grade the ADVICE against the player's role and
-    career baseline. Stoic. Grades the coach's call, never the player."""
+MOCK_RESULT = {"kills": 180, "accuracy_pct": 78.0, "deaths": 3, "accidentals": 0,
+               "times_reinforcing": 2, "friendly_fire_dmg": 0}
+
+
+def read_result(image_bytes: bytes, media_type: str) -> dict:
+    """Read the end-of-mission screen into numbers. The oath verdict is computed from
+    these in code (warmind.oaths) before the review is written."""
     if MOCK:
-        result = {"kills": 180, "accuracy_pct": 78.0, "deaths": 3, "accidentals": 0,
-                  "times_reinforcing": 2, "friendly_fire_dmg": 0}
-        aar = ("Mock review. Accuracy held above the career baseline and the discipline rule was "
-               "kept (zero accidentals). The role's signature metric moved the right way.")
-        return {"result": result, "aar_text": aar}
-    result = _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
+        return dict(MOCK_RESULT)
+    return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
+
+
+def _oath_brief(verdict: dict | None) -> str:
+    if not verdict:
+        return ""
+    head = f"The squad swore the oath \"{verdict['name']}\" ({verdict['rule']}). "
+    if verdict.get("passed") is True:
+        return (head + f"This diver KEPT it ({verdict['reason']}) and earns the medal "
+                f"\"{(verdict.get('medal') or {}).get('name', '')}\". Open with one line in the voice of "
+                "a medal citation, then the review.\n")
+    if verdict.get("passed") is False:
+        return (head + f"This diver BROKE it ({verdict['reason']}). Open with a cutting, in-character "
+                "dressing-down for breaking the oath: dry, stoic contempt aimed at the performance and "
+                "the numbers. Harsh but never abusive — no profanity, no slurs, nothing about the "
+                "person's identity, intelligence or worth. Mock the play, not the player. Then the review.\n")
+    return head + f"It could not be verified from this screenshot ({verdict['reason']}). Say so in one line — no medal, no judgement.\n"
+
+
+def _mock_oath_line(verdict: dict | None) -> str:
+    if not verdict:
+        return ""
+    if verdict.get("passed") is True:
+        return f"Oath kept — {verdict['name']}. {verdict['reason']} Citation entered into the record. "
+    if verdict.get("passed") is False:
+        return (f"Oath broken — {verdict['name']}. {verdict['reason']} Super Earth notes both your "
+                "enthusiasm and your result, and finds only one of them adequate. ")
+    return f"Oath unverified — {verdict['reason']} "
+
+
+def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
+              verdict: dict | None = None) -> str:
+    """Grade the ADVICE against the player's role and career baseline (stoic), with the
+    oath verdict — already decided in code — woven in as citation or dressing-down."""
+    if MOCK:
+        return (_mock_oath_line(verdict) + "Mock review. Accuracy held above the career baseline and "
+                "the discipline rule was kept (zero accidentals). The role's signature metric moved the right way.")
     prompt = (
         "You are WARMIND, a Helldivers 2 squad coach. Grade the ADVICE you gave, not the player. "
         "Tone: stoic, state the finding then the evidence, never moralise about K/D or friendly fire. "
         "Report rates against the career baseline, not raw totals. Two or three sentences.\n\n"
+        + _oath_brief(verdict) +
         f"Role assigned: {context.get('role')}\n"
         f"Play-style: {context.get('play_style')}\n"
+        f"Mode: {context.get('mode')}\n"
         f"Kit: {json.dumps(context.get('kit', {}))}\n"
         f"Career baseline (rates): {json.dumps(context.get('baseline', {}))}\n"
         f"This mission's result: {json.dumps(result)}\n\n"
@@ -224,8 +264,7 @@ def review_results(image_bytes: bytes, media_type: str, context: dict) -> dict:
         "If the result was poor, check whether a thin capability with no deep partner caused it — "
         "that is a design error to own, not a player error. Return only the review text."
     )
-    aar = _call([(image_bytes, media_type)], prompt, max_tokens=400).strip()
-    return {"result": result, "aar_text": aar}
+    return _call([(image_bytes, media_type)], prompt, max_tokens=500).strip()
 
 
 def status() -> dict:

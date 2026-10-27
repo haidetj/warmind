@@ -282,6 +282,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         for k, v in urban.items():
             p.vector[k] = round(p.vector.get(k, 0.0) + v, 4)
             p.contributors.setdefault(k, []).append(("city terrain", v))
+    if session.mode == "d100":  # the map's demands, turned up past the difficulty dial
+        p.vector = {k: round(v * modes.D100_PRESSURE, 4) for k, v in p.vector.items()}
     session._pressure = p
     session._excluded = set()
 
@@ -383,8 +385,17 @@ def _rationale(role, pstyle, session, growth, thin, matrix):
     return " ".join(parts)
 
 
+D100_ORDERS = (
+    "D100 standing order: no resupply calls until the primary objective is complete.",
+    "D100 standing order: reinforce only from extraction range — every death costs the squad ground.",
+    "D100 standing order: no S-tier crutches. The kit is off-meta on purpose; make it work.",
+)
+
+
 def _notes(session, p):
     notes = []
+    if session.mode == "d100":
+        notes.extend(D100_ORDERS)
     if OP_PLOTTING in session.operation_modifiers:
         notes.append("Complex Stratagem Plotting: every call is 2–4s standing still. Only the "
                      "reactive diver calls under fire; everyone else plots from inside the relay.")

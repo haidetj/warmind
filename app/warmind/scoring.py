@@ -21,8 +21,9 @@ def pressure_dot(item, pressure) -> float:
 
 
 def score(item, pressure, faction: str, play_style, history: set[str], mode: str) -> float:
+    w_base = modes.D100_META_W if mode == "d100" else W_BASE  # d100 inverts the meta prior
     return (
-        W_BASE * item.base_grade(faction)
+        w_base * item.base_grade(faction)
         + pressure_dot(item, pressure)
         + modes.item_term(item, play_style, history, mode)
     )
