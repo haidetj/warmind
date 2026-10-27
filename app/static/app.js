@@ -139,6 +139,13 @@
 
   // ======================================================================= boot
   initLang();
+  // device handoff: a "use on another device" link carries #me=<pid>.<token>
+  (function claimFromHash() {
+    const m = location.hash.match(/^#me=([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+    if (!m || !LID) return;
+    store.setMe(LID, { id: m[1], token: m[2] });
+    history.replaceState(null, "", location.pathname + location.search);   // don't leave the token in the address bar
+  })();
   (async function boot() {
     META = await api("/api/meta");
     if (!LID) return renderHome();
@@ -436,7 +443,17 @@
       const row = el("div", { class: "mrow" + (mine ? " me" : "") }, [
         el("div", { class: "stripe" }),
         el("div", { style: "min-width:0" }, [el("div", { class: "nm" }, [p.callsign]), el("div", { class: "sub" }, [sub])]),
-        el("div", { class: "pips" }, [mine ? tag("amber", t("common.you")) : null, stats, gear, medal]),
+        el("div", { class: "pips" }, [mine ? tag("amber", t("common.you")) : null, stats, gear, medal,
+          isCreator() && !mine ? (() => {
+            const rm = el("button", { class: "btn sm red rm", type: "button", title: t("man.remove"), "aria-label": t("man.remove") }, ["×"]);
+            rm.onclick = async () => {
+              if (busy || !confirm(t("man.remove.confirm", { callsign: p.callsign }))) return;
+              busy = true;
+              try { await api("/api/lobby/" + LID + "/player/" + p.id, { method: "DELETE", headers: { "x-token": store.creator(LID) } }); busy = false; await refresh(); }
+              catch (e) { toast(e.message); } finally { busy = false; }
+            };
+            return rm;
+          })() : null]),
       ]);
       row.style.setProperty("--acc", p.accent);
       rows.appendChild(row);
@@ -507,6 +524,9 @@
       el("div", { class: "field" }, [reread]),
     ]));
     kids.push(status);
+    const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
+    dev.onclick = () => copy(location.origin + "/?l=" + LID + "#me=" + p.id + "." + meRec().token, t("me.device.copied"));
+    kids.push(el("div", { class: "btnrow" }, [dev]));
     if (gear && p.gear_confirmed) kids.push(gear);
     const pn = panel(t("me.pid"), t("me.title"), { tone: "amber", status: p.callsign, statusKind: "warn" }, kids);
     return pn;
@@ -534,10 +554,14 @@
     return wrap;
   }
 
+  // Gear checklist, laid out like the in-game loadout menu: tabs per slot, stratagems under their
+  // permit colour (Offensive / Supply / Defensive) with their in-game icons. A quick-fill row ticks
+  // or clears a whole warbond. Only gear you have to unlock is listed — base gear is always owned.
+  let gearTab = {};   // pid -> active tab, kept across re-renders
   function gearFold(p) {
-    const wbs = META.warbonds || [];
-    if (!wbs.length) return null;
-    const allNames = []; wbs.forEach(w => w.items.forEach(i => allNames.push(i.name)));
+    const tabs = META.armory || [], wbs = META.warbonds || [];
+    if (!tabs.length) return null;
+    const allNames = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allNames.push(i.name))));
     const owned = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
     const unset = !p.gear_confirmed;
     const d = el("details", { class: "fold" + (unset ? " attn" : "") });
@@ -546,37 +570,90 @@
     d.appendChild(el("summary", {}, [unset ? t("gear.step") : t("gear.title")]));
     const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear.hint")])]);
     d.appendChild(body);
-    async function save() {
-      if (busy) return; busy = true;
-      try {
-        const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
-        await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
-        await refresh(); toast(t("gear.saved"));
-      } catch (e) { toast(e.message); } finally { busy = false; }
+
+    // debounced, queued save: rapid ticks all land (a save in flight no longer drops the next one)
+    let saveT = null;
+    function save(now) {
+      clearTimeout(saveT);
+      saveT = setTimeout(async function go() {
+        if (busy) { saveT = setTimeout(go, 300); return; }
+        busy = true;
+        try {
+          const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
+          await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
+          busy = false; await refresh(); toast(t("gear.saved"));
+        } catch (e) { toast(e.message); } finally { busy = false; }
+      }, now ? 0 : 700);
     }
+    const refreshers = [];
+    const sync = () => refreshers.forEach(f => f());
+
+    // quick fill by warbond
+    const chips = el("div", { class: "chips wbchips" });
     wbs.forEach(w => {
       const names = w.items.map(i => i.name);
-      const haveN = names.filter(n => owned.has(n)).length;
-      const state = haveN === names.length ? "all" : haveN === 0 ? "none" : "some";
-      const seg = el("div", { class: "gseg", role: "group", "aria-label": w.name });
-      const btns = {};
-      ["all", "some", "none"].forEach(v => { const b = el("button", { type: "button", class: state === v ? "on" : "", "aria-pressed": String(state === v) }, [t("gear." + v)]); btns[v] = b; seg.appendChild(b); });
-      const items = el("div", { class: "gearitems" }); items.style.display = state === "some" ? "grid" : "none";
-      w.items.forEach(i => {
-        const cb = el("input", { type: "checkbox" }); cb.checked = owned.has(i.name);
-        cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); save(); };
-        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [wk(i.name)]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
-      });
-      const setSeg = v => { ["all", "some", "none"].forEach(k => { btns[k].classList.toggle("on", k === v); btns[k].setAttribute("aria-pressed", String(k === v)); }); items.style.display = v === "some" ? "grid" : "none"; };
-      btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
-      btns.none.onclick = () => { names.forEach(n => owned.delete(n)); setSeg("none"); save(); };
-      btns.some.onclick = () => setSeg("some");
-      const cnt = el("span", { class: "gs" }, [haveN + "/" + names.length]);
-      items.addEventListener("change", () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; });
-      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.kind === "special" ? t("gear.special") : w.name, " ", cnt]), seg]), items]));
+      const c = el("button", { type: "button", class: "chip" }, [w.kind === "special" ? t("gear.special") : w.name]);
+      const paint = () => { const n = names.filter(x => owned.has(x)).length; c.setAttribute("aria-pressed", String(n === names.length)); c.classList.toggle("part", n > 0 && n < names.length); };
+      c.onclick = () => { const all = names.every(x => owned.has(x)); names.forEach(x => all ? owned.delete(x) : owned.add(x)); sync(); save(); };
+      paint(); refreshers.push(paint); chips.appendChild(c);
     });
+    body.appendChild(el("div", { class: "sub-h", style: "margin-top:2px" }, [t("gear.quick")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 6px" }, [t("gear.quick.hint")]));
+    body.appendChild(chips);
+
+    // in-game tabs
+    const order = ["Stratagem", "Primary", "Secondary", "Grenade", "Armor", "Booster"];
+    const sorted = order.map(k => tabs.find(tb => tb.slot === k)).filter(Boolean);
+    const cur = gearTab[p.id] && sorted.some(tb => tb.slot === gearTab[p.id]) ? gearTab[p.id] : sorted[0].slot;
+    const tabbar = el("div", { class: "seg geartabs", role: "tablist" });
+    const pane = el("div", { class: "gearpane" });
+    const gkey = g => "grp." + String(g).replace(/[^A-Za-z0-9]+/g, "_");
+    function showTab(slot) {
+      gearTab[p.id] = slot;
+      tabbar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.slot === slot)));
+      pane.innerHTML = "";
+      const tb = sorted.find(x => x.slot === slot);
+      let lastPermit = null;
+      tb.groups.forEach(g => {
+        if (g.permit && g.permit !== lastPermit) {
+          pane.appendChild(el("div", { class: "permit " + g.permit.toLowerCase() }, [has("perm." + g.permit) ? t("perm." + g.permit) : g.permit]));
+          lastPermit = g.permit;
+        }
+        const names = g.items.map(i => i.name);
+        const cnt = el("span", { class: "gs" });
+        const paintCnt = () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; };
+        const allB = el("button", { type: "button", class: "btn sm" }, [t("gear.all")]);
+        const noneB = el("button", { type: "button", class: "btn sm" }, [t("gear.none")]);
+        allB.onclick = () => { names.forEach(n => owned.add(n)); sync(); save(); };
+        noneB.onclick = () => { names.forEach(n => owned.delete(n)); sync(); save(); };
+        const grid = el("div", { class: "tiles" });
+        g.items.forEach(i => {
+          const cb = el("input", { type: "checkbox" });
+          const paint = () => { cb.checked = owned.has(i.name); };
+          cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); sync(); save(); };
+          const icon = i.icon ? el("img", { src: i.icon, alt: "", loading: "lazy", width: "32", height: "32" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
+          if (i.icon) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
+          grid.appendChild(el("label", { class: "tile" }, [cb, icon, el("span", { class: "tn" }, [wk(i.name), el("small", {}, [i.warbond === "Superstore" ? "Superstore" : i.warbond])])]));
+          paint(); refreshers.push(paint);
+        });
+        paintCnt(); refreshers.push(paintCnt);
+        pane.appendChild(el("div", { class: "ggroup" }, [
+          el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [has(gkey(g.group)) ? t(gkey(g.group)) : g.group, " ", cnt]), el("span", { class: "btnrow", style: "margin:0" }, [allB, noneB])]),
+          grid]));
+      });
+    }
+    sorted.forEach(tb => {
+      const b = el("button", { type: "button", role: "tab", "data-slot": tb.slot }, [has("slot." + tb.slot) ? t("slot." + tb.slot) : tb.slot]);
+      b.onclick = () => showTab(tb.slot);
+      tabbar.appendChild(b);
+    });
+    body.appendChild(el("div", { class: "sub-h" }, [t("gear.items")]));
+    body.appendChild(tabbar);
+    body.appendChild(pane);
+    showTab(cur);
+
     const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
-    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
+    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; sync(); save(true); };
     body.appendChild(el("div", { class: "btnrow" }, [confirm]));
     return d;
   }
@@ -888,30 +965,44 @@
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
     if (m.oath) kids.push(el("div", { class: "readout-q", style: "margin:0 0 12px;font-style:normal" }, [t("deb.oath", { name: t("oath." + m.oath + ".name"), rule: t("oath." + m.oath + ".rule") })]));
-    if (me && me.assignment) {
+    // result upload: the diver for themself, or the creator for any diver (a diver on another device)
+    function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-      const up = fileBtn("primary", t("deb.submit"), false);
+      const up = fileBtn(primary ? "primary" : "sm", label, false);
       up.querySelector("input").onchange = async ev => {
         const f = ev.target.files[0]; if (!f || busy) return;
         busy = true; lockControls([up], true);
         const stop = workTicker(status, lines("tick.review.", 5));
         try {
           const fd = new FormData(); fd.append("image", f); fd.append("lang", LANG);
-          const rr = await fdpost("/api/lobby/" + LID + "/player/" + me.id + "/result", fd, meRec().token);
-          stop(); await refresh();
+          const token = me && me.id === target.id ? meRec().token : store.creator(LID);
+          const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
+          stop(); busy = false; await refresh();
           const v = rr.verdict;
           toast(v && v.passed === true && v.medal ? t("toast.medal", { name: v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal") })
             : v && v.passed === false ? t("toast.broken") : t("toast.aar"));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
+      return [up, status];
+    }
+    if (me) {
+      const [up, status] = uploader(me, t("deb.submit"), true);
       kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
+    } else if (!isCreator()) {
+      kids.push(el("div", { class: "alert" }, [el("b", {}, ["!"]), t("deb.nodevice")]));
     }
     kids.push(el("div", { class: "sub-h" }, [t("deb.honors")]));
     const honors = el("div", { class: "honors" });
     STATE.players.forEach(p => {
       const aar = p.aar, inner = [el("div", { class: "nm" }, [p.callsign + (p.assignment ? "  ·  " + p.assignment.role : "")])];
-      if (!aar) inner.push(el("div", { class: "st" }, [t("deb.pending")]));
+      if (!aar) {
+        inner.push(el("div", { class: "st" }, [t("deb.pending")]));
+        if (isCreator() && !(me && me.id === p.id)) {
+          const [up, status] = uploader(p, t("deb.upload_for", { callsign: p.callsign }), false);
+          inner.push(el("div", { class: "btnrow", style: "margin:6px 0 0" }, [up]), status);
+        }
+      }
       else {
         const vb = verdictBlock(aar.verdict); if (vb) inner.push(vb);
         const r = aar.result || {};
@@ -955,7 +1046,7 @@
         el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? " · " : "") + "[" + (i + 1) + "]"])))]));
     });
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.sources")]));
-    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d"), " ", t("gl.icons")]));
     body.appendChild(src);
     return el("details", { class: "fold panel", style: "padding:0" }, [el("summary", {}, [t("gl.title")]), body]);
   }

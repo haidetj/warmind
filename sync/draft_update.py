@@ -214,7 +214,7 @@ def _flow(v):
     return json.dumps(s, ensure_ascii=False)     # JSON strings are valid YAML
 
 
-ITEM_ORDER = ["name", "warbond", "slot", "category", "weight", "passive", "effect", "role_bias",
+ITEM_ORDER = ["name", "novelty", "warbond", "slot", "category", "weight", "passive", "effect", "role_bias",
               "strong", "coverage", "tags", "backpack", "expendable", "grade"]
 
 

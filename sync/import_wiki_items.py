@@ -130,6 +130,12 @@ def stratagem(row):
     return cat, cov, tags, backpack, "expendable" in tr
 
 
+def novelty(row) -> bool:
+    """Celebration stratagems (Orbital Confetti, Eagle Fly By): a strike with no damage trait at all."""
+    tr = _traits(row) - {"hellpod", "eagle", "orbital"}
+    return row.get("stratagem_type") in ("Eagle", "Orbital") and not tr
+
+
 ARMOR_TAGS = {"Scout": {"stealth", "radar_booster", "mobility"}, "Stationary Shroud": {"stealth"},
               "Reduced Signature": {"stealth"}, "Servo-Assisted": {"mobility"}, "Peak Physique": {"mobility"},
               "Fortified": {"static_position"}, "Siege-Ready": {"sustain_fire"}, "Inflammable": {"fire_resist_armor"}}
@@ -150,6 +156,8 @@ def entry(row):
         if not r:
             return None, None
         cat, cov, tags, backpack, expendable = r
+        if novelty(row):
+            base["novelty"] = True
         base.update(category=cat)
         if expendable:
             base["expendable"] = True

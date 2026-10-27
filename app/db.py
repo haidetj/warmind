@@ -84,6 +84,8 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN briefed INTEGER DEFAULT 0")
         if "reroll" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
+        if "roster_json" not in lcols:
+            c.execute("ALTER TABLE lobby ADD COLUMN roster_json TEXT")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
         if "verdict_json" not in rcols:
             c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
@@ -137,6 +139,14 @@ def set_briefed(lobby_id, briefed: bool):
     with _lock, _conn() as c:
         c.execute("UPDATE lobby SET briefed=?, updated_at=? WHERE id=?",
                   (1 if briefed else 0, time.time(), lobby_id))
+
+
+def lock_roster(lobby_id, player_ids):
+    """The divers whose loadouts were generated together. Late joiners are fitted
+    around them instead of reshuffling everyone (see server._resolve)."""
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET roster_json=?, briefed=1, updated_at=? WHERE id=?",
+                  (json.dumps(list(player_ids)), time.time(), lobby_id))
 
 
 def bump_reroll(lobby_id) -> int:

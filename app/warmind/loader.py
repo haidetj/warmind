@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import json
 import pathlib
 
 import yaml
@@ -120,3 +121,59 @@ def wiki_url(rec: dict) -> str:
 def wiki_map() -> dict:
     raw = items()
     return {r["name"]: wiki_url(r) for s in GATED_SLOTS for r in raw.get(s, [])}
+
+
+# ---------------------------------------------------------------- armory: the in-game loadout menu layout
+# data/armory.json (built from the wiki by sync/verify_wiki.py --armory) gives each item's
+# menu group, stratagem permit colour and icon. This arranges the ownership checklist the
+# way the game's loadout menu does. Only gated gear is listed — base gear is always owned.
+WEAPON_ORDER = ["Assault Rifles", "Marksman Rifles", "Sniper Rifles", "Submachine Guns", "Shotguns",
+                "Explosives", "Energy-Based", "Pistols", "Melee", "Standard", "Special", "Other"]
+PERMITS = [("Offensive", ["Orbital", "Eagle"]), ("Supply", ["Support Weapons", "Backpacks", "Vehicles"]),
+           ("Defensive", ["Sentries", "Emplacements"])]
+
+
+def armory_meta() -> dict:
+    p = DATA / "armory.json"
+    return json.loads(p.read_text()) if p.exists() else {}
+
+
+def armory() -> list:
+    meta, raw, wb = armory_meta(), items(), warbond_catalog()["map"]
+
+    def entry(rec):
+        m = meta.get(rec["name"], {})
+        return {"name": rec["name"], "warbond": wb.get(rec["name"], ""), "icon": m.get("icon")}
+
+    out = []
+    for slot in GATED_SLOTS:
+        gated = [r for r in raw.get(slot, []) if (wb.get(r["name"]) or "") not in _BASE and not r.get("novelty")]
+        groups: dict = {}
+        for r in gated:
+            m = meta.get(r["name"], {})
+            if slot == "stratagems":
+                pm = (m.get("permit") or "Supply").strip().title()
+                pm = "Offensive" if pm.startswith("Offens") else "Defensive" if pm.startswith("Defens") else pm
+                key = (pm, m.get("group") or "Other")
+            elif slot == "armor":
+                key = (None, r.get("weight") or "Other")
+            elif slot == "boosters":
+                key = (None, "Boosters")
+            else:
+                key = (None, m.get("group") or "Other")
+            groups.setdefault(key, []).append(entry(r))
+
+        def order(k):
+            permit, g = k
+            if slot == "stratagems":
+                for i, (pm, subs) in enumerate(PERMITS):
+                    if pm == permit:
+                        return (i, subs.index(g) if g in subs else 9)
+                return (9, 9)
+            if slot == "armor":
+                return (["Light", "Medium", "Heavy"].index(g) if g in ("Light", "Medium", "Heavy") else 9, 0)
+            return (WEAPON_ORDER.index(g) if g in WEAPON_ORDER else 99, 0)
+        out.append({"slot": _SLOT_LABEL[slot], "groups": [
+            {"permit": k[0], "group": k[1], "items": sorted(groups[k], key=lambda x: x["name"])}
+            for k in sorted(groups, key=order)]})
+    return out
