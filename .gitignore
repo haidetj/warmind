@@ -3,3 +3,4 @@ __pycache__/
 *.db
 *.db-*
 .venv/
+sync/.draft_summary.md

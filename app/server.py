@@ -17,6 +17,7 @@ from fastapi import FastAPI, Form, Header, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
+from starlette.middleware.gzip import GZipMiddleware
 import pathlib
 
 import db
@@ -28,6 +29,7 @@ HERE = pathlib.Path(__file__).parent
 ACCENTS = ["#d7a53a", "#4c9be0", "#2f9e6f", "#c084e8", "#e0574e"]
 
 app = FastAPI(title="WARMIND")
+app.add_middleware(GZipMiddleware, minimum_size=1024)  # i18n.js is ~240KB raw, ~60KB gzipped
 db.init()  # idempotent; also covered by the startup hook for reloads
 
 
