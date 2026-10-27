@@ -1,0 +1,49 @@
+name: data-sync-pr
+
+# The daily Claude data-sync task drafts the seed update and PUSHES it to a
+# data-sync/* branch (git is all it needs). This workflow turns that push into a
+# draft PR, so the task doesn't depend on having GitHub API tools. The PR body is
+# the commit message body (the task writes its per-file summary + review
+# checklist there), plus "Closes #N" for every open data-sync issue, so merging
+# the PR closes the patch issues it handled.
+#
+# If the repo setting "Allow GitHub Actions to create and approve pull requests"
+# is off, PR creation fails — we then leave a one-click compare link on the
+# data-sync issue instead, so the update is never silently stranded.
+
+on:
+  push:
+    branches: ["data-sync/**"]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - name: Open a draft PR for the data-sync branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          OPEN=$(gh pr list --head "$BRANCH" --state open --json number --jq length)
+          if [ "$OPEN" != "0" ]; then echo "PR already open for $BRANCH — nothing to do."; exit 0; fi
+          TITLE=$(git log -1 --format=%s)
+          git log -1 --format=%b > /tmp/body.md
+          ISSUES=$(gh issue list --label data-sync --state open --json number --jq '.[].number')
+          {
+            echo; echo "---"
+            echo "Opened automatically from \`$BRANCH\` by the data-sync-pr workflow. Review the checklist above before merging."
+            for n in $ISSUES; do echo "Closes #$n"; done
+          } >> /tmp/body.md
+          if gh pr create --draft --base main --head "$BRANCH" --title "$TITLE" --body-file /tmp/body.md; then exit 0; fi
+          URL="https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          MSG="Data-sync branch \`$BRANCH\` is ready, but GitHub Actions isn't allowed to open PRs in this repo (Settings → Actions → General → Workflow permissions → *Allow GitHub Actions to create and approve pull requests*). Open the PR in one click: $URL"
+          FIRST=$(echo "$ISSUES" | head -1)
+          if [ -n "$FIRST" ]; then gh issue comment "$FIRST" --body "$MSG"
+          else gh issue create --label data-sync --title "Data-sync branch ready: $BRANCH" --body "$MSG"; fi

@@ -41,11 +41,12 @@ def items() -> dict:
     return _load("items.yaml")
 
 
-#: slots whose items a player either owns or doesn't (stratagems are requisition,
-#: never warbond-gated, so they are excluded here).
-GATED_SLOTS = ("primaries", "secondaries", "grenades", "armor", "boosters")
+#: slots whose items a player either owns or doesn't. Classic stratagems are
+#: requisition unlocks (no `warbond` field → base, always owned), but modern
+#: warbonds also ship stratagems (e.g. AMW-20 Apex), and those are gated.
+GATED_SLOTS = ("primaries", "secondaries", "grenades", "stratagems", "armor", "boosters")
 _SLOT_LABEL = {"primaries": "Primary", "secondaries": "Secondary", "grenades": "Grenade",
-               "armor": "Armor", "boosters": "Booster"}
+               "stratagems": "Stratagem", "armor": "Armor", "boosters": "Booster"}
 _BASE = {"", "Helldivers Mobilize", "Standard"}
 
 

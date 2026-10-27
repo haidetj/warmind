@@ -2,6 +2,7 @@
   "last_seen_gid": "1846018067943957",
   "last_seen_title": "Line Up the Perfect Shot with the Scope of Authority Premium Warbond!",
   "last_seen_date": 1791896839,
-  "processed_gid": null,
-  "_note": "last_seen_* is advanced by patch_watch.py when HD2 posts a new patch. processed_gid is advanced when the data-update PR for that patch merges."
+  "processed_gid": "1846018067943957",
+  "pending": [],
+  "_note": "patch_watch.py appends every newly seen patch gid to `pending` and writes its notes to sync/patches/. The data-sync PR for those patches removes them from `pending` and sets processed_gid to the newest one handled."
 }
