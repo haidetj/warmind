@@ -18,7 +18,7 @@ import pathlib
 
 import db
 import vision
-from warmind import loader, stats
+from warmind import loader, oaths, stats
 from warmind.resolve import Player, Session, resolve_squad
 
 HERE = pathlib.Path(__file__).parent
@@ -113,7 +113,9 @@ def _resolve(lobby) -> dict:
             "owned": _owned_of(p),           # None = owns everything; else owned non-base gear
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "assignment": _assignment_dict(a) if a else None,
-            "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"])} if res else None),
+            "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
+                     "verdict": json.loads(res["verdict_json"]) if res.get("verdict_json") else None}
+                    if res else None),
         })
     all_snaps = [json.loads(p["snapshot_json"]) for p in players_rows if p["snapshot_json"]]
     return {
@@ -204,6 +206,7 @@ def meta():
             "tacticals": sorted(tacticals, key=lambda x: x["name"]),
             "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
             "warbonds": loader.warbond_catalog()["warbonds"],
+            "oaths": oaths.catalog(),
             "vision": vision.status()}
 
 
@@ -271,7 +274,13 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
-    db.set_mission(lid, payload.get("mission") or {})
+    m = dict(payload.get("mission") or {})
+    from warmind.modes import MODES
+    if m.get("mode") not in MODES:
+        m["mode"] = "improvement"
+    if m.get("oath") not in oaths.OATHS:
+        m["oath"] = None
+    db.set_mission(lid, m)
     return _resolve(db.get_lobby(lid))
 
 
@@ -379,18 +388,29 @@ async def submit_result(lid: str, pid: str, image: UploadFile = File(...), x_tok
     p = _require_player(pid, x_token)
     lobby = db.get_lobby(lid)
     state = _resolve(lobby)
+    mission = _mission_from(lobby) or {}
     me = next((x for x in state["players"] if x["id"] == pid), None)
     a = me and me["assignment"]
     baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
-    ctx = {"role": a and a["role"], "play_style": p["play_style"],
+    ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
-    data = await image.read()
+    data, mt = await image.read(), _media_type(image)
     try:
-        rev = vision.review_results(data, _media_type(image), ctx)
+        result = vision.read_result(data, mt)
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
-    db.save_result(_id(5), lid, pid, rev["result"], rev["aar_text"])
-    return {"ok": True, "aar": rev["aar_text"], "result": rev["result"]}
+    # the oath verdict is decided in code from the numbers, before any prose is written
+    verdict = oaths.evaluate(mission.get("oath"), result)
+    if verdict:
+        verdict["medal"] = oaths.medal(verdict, lobby_id=lid, player_id=pid, result=result,
+                                       mode=mission.get("mode"))
+    try:
+        aar = vision.write_aar(data, mt, result, ctx, verdict)
+    except Exception:
+        # the numbers and verdict already stand; don't lose them over the prose call
+        aar = vision._mock_oath_line(verdict) + "Review text unavailable — the scoreboard was read and recorded."
+    db.save_result(_id(5), lid, pid, result, aar, verdict)
+    return {"ok": True, "aar": aar, "result": result, "verdict": verdict}
 
 
 @app.delete("/api/lobby/{lid}/player/{pid}")

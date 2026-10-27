@@ -189,8 +189,12 @@
   function startPolling() { tick(); pollT = setInterval(tick, 3500); }
   async function tick() {
     if (busy) return;
-    try { STATE = await api("/api/lobby/" + LID); liveEl ? renderLive() : render(); }
-    catch (e) { if (String(e.message).match(/not found/i)) { clearInterval(pollT); app.innerHTML = ""; app.appendChild(el("div", { class: "card center" }, ["Lobby not found. It may have expired.", el("div", { style: "margin-top:12px" }, [el("a", { href: "/", class: "btn" }, ["Start a new one"])])])); } }
+    let s;
+    try { s = await api("/api/lobby/" + LID); }
+    catch (e) { if (String(e.message).match(/not found/i)) { clearInterval(pollT); app.innerHTML = ""; app.appendChild(el("div", { class: "card center" }, ["Lobby not found. It may have expired.", el("div", { style: "margin-top:12px" }, [el("a", { href: "/", class: "btn" }, ["Start a new one"])])])); } return; }
+    STATE = s;
+    // render errors must not be swallowed — a half-built page with no error is the worst failure
+    try { liveEl ? renderLive() : render(); } catch (e) { console.error("WARMIND render failed:", e); }
   }
 
   // ---------- render lobby ----------
@@ -263,17 +267,33 @@
 
   // ---------- mission (creator) ----------
   function missionCard() {
-    const m = STATE.mission || { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false };
+    // merge over defaults: a mission saved without every field (API, older lobby) must not break the card
+    const m = Object.assign({ mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null }, STATE.mission || {});
     const draft = JSON.parse(JSON.stringify(m));
+    ["operation_modifiers", "planet_hazards", "tactical_objectives"].forEach(k => { if (!Array.isArray(draft[k])) draft[k] = []; });
     const wrap = el("section", { class: "card" }, [el("div", { class: "section-title" }, ["Mission"])]);
 
     const modes = el("div", { class: "modes" });
-    [["fun", "Fun", "new tools"], ["challenge", "Challenge", "out of comfort"], ["improvement", "Improve", "one stretch"]].forEach(([k, lbl, sub]) => {
-      const b = el("button", { "aria-pressed": draft.mode === k ? "true" : "false" }, [el("span", { class: "k stencil" }, [lbl]), el("span", { class: "sub" }, [sub])]);
+    [["fun", "Fun", "new tools"], ["challenge", "Challenge", "out of comfort"], ["improvement", "Improve", "one stretch"], ["d100", "D100", "Helldive∞ — brutal"]].forEach(([k, lbl, sub]) => {
+      const b = el("button", { class: k === "d100" ? "d100" : "", "aria-pressed": draft.mode === k ? "true" : "false" }, [el("span", { class: "k stencil" }, [lbl]), el("span", { class: "sub" }, [sub])]);
       b.onclick = () => { draft.mode = k; modes.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false")); b.setAttribute("aria-pressed", "true"); };
       modes.appendChild(b);
     });
     wrap.appendChild(modes);
+    wrap.appendChild(el("div", { class: "hint", style: "margin-top:6px" }, ["D100 ignores the difficulty dial: stretch roles, off-meta kit, amplified mission pressure, and standing orders."]));
+
+    // optional oath — checked against each diver's scoreboard when they submit results
+    const oathRow = el("div", { class: "chips", style: "margin-top:12px" });
+    const oathHint = el("div", { class: "hint" });
+    const setOathHint = () => { const o = (META.oaths || []).find(x => x.key === draft.oath); oathHint.textContent = o ? "Oath: " + o.rule + " Keep it → " + o.medal + ". Break it → WARMIND has words." : "No oath — swear one for a shot at a medal (or a dressing-down)."; };
+    [{ key: null, name: "No oath" }].concat(META.oaths || []).forEach(o => {
+      const c = el("span", { class: "chip", "aria-pressed": (draft.oath || null) === o.key ? "true" : "false" }, [o.name]);
+      c.onclick = () => { draft.oath = o.key; oathRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", "false")); c.setAttribute("aria-pressed", "true"); setOathHint(); };
+      oathRow.appendChild(c);
+    });
+    setOathHint();
+    wrap.appendChild(el("span", { class: "label", style: "display:block;margin-top:12px" }, ["Oath (optional)"]));
+    wrap.appendChild(oathRow); wrap.appendChild(oathHint);
 
     const facSel = el("select", {}, ["automatons", "terminids", "illuminate"].map(f => el("option", { value: f }, [f[0].toUpperCase() + f.slice(1)])));
     facSel.value = draft.faction;
@@ -373,8 +393,12 @@
     const r = STATE.readiness; if (!r) return null;
     const isCreator = !!store.creator(LID);
     const item = (ok, txt) => el("div", { class: "rdy" + (ok ? " ok" : "") }, [el("span", { class: "rdot" }, [ok ? "✓" : "·"]), txt]);
+    const mi = STATE.mission || {};
+    const oath = mi.oath && (META.oaths || []).find(x => x.key === mi.oath);
     const card = el("section", { class: "card readiness" + (r.final ? " final" : "") }, [
-      el("div", { class: "section-title" }, [r.final ? "Squad briefed" : "Briefing readiness"]),
+      el("div", { class: "section-title" }, [r.final ? "Squad briefed" : "Briefing readiness",
+        mi.mode === "d100" ? el("span", { class: "d100tag" }, ["D100 · Helldive∞"]) : null]),
+      oath ? el("div", { class: "oathline" }, ["Oath sworn: ", el("b", {}, [oath.name]), " — " + oath.rule]) : null,
       el("div", { class: "rdylist" }, [
         item(r.mission_set, "Mission set"),
         item(r.joined >= r.expected, "Divers " + r.joined + " / " + r.expected),
@@ -432,6 +456,7 @@
       el("div", { class: "role stencil" }, [a ? a.role : "AWAITING MISSION", provisional ? el("span", { class: "provtag" }, ["provisional"]) : null]),
       el("div", { class: "who", html: '<span class="cs">' + esc(p.callsign) + "</span> · " + label(p.play_style) }),
       badge, mine ? el("span", { class: "badge" }, ["you"]) : null,
+      p.aar && p.aar.verdict && p.aar.verdict.medal ? el("span", { class: "badge medalbadge", title: p.aar.verdict.medal.name + " · " + p.aar.verdict.medal.id }, ["🎖 " + p.aar.verdict.medal.id]) : null,
     ]));
     if (p.style_note) card.appendChild(el("div", { class: "hint", style: "padding:2px 20px 0" }, [p.style_note]));
     // gear-first: until a diver has told us what they own, the checklist sits above
@@ -511,8 +536,25 @@
     return d;
   }
 
+  function verdictBlock(v) {
+    if (!v) return null;
+    if (v.passed === true && v.medal) {
+      return el("div", { class: "medal" }, [
+        el("div", { class: "medal-icon", "aria-hidden": "true" }, ["🎖"]),
+        el("div", {}, [
+          el("div", { class: "medal-name" }, [v.medal.name]),
+          el("div", { class: "medal-id mono" }, ["Medal ID " + v.medal.id]),
+          el("div", { class: "medal-why" }, ["Oath kept — " + v.name + ": " + v.reason]),
+        ]),
+      ]);
+    }
+    if (v.passed === false) return el("div", { class: "oathbroken" }, [el("b", {}, ["OATH BROKEN — " + v.name]), el("div", {}, [v.reason])]);
+    return el("div", { class: "oathunv" }, ["Oath unverified — " + v.reason]);
+  }
+
   function aarBlock(p) {
     const box = el("div", { class: "aar" }, [el("div", { class: "h" }, ["After-action"])]);
+    const vb = verdictBlock(p.aar.verdict); if (vb) box.appendChild(vb);
     const r = p.aar.result || {};
     const chips = [["Kills", r.kills], ["Accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null],
       ["Deaths", r.deaths], ["Accidentals", r.accidentals], ["Reinforces", r.times_reinforcing],
@@ -550,7 +592,12 @@
     result.querySelector("input").onchange = async ev => {
       const f = ev.target.files[0]; if (!f || busy) return; busy = true;
       setStatus(actstatus, "working", "Reviewing your drop… this takes a few seconds.");
-      try { await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image"); STATE = await api("/api/lobby/" + LID); renderLive(); toast("After-action ready"); }
+      try {
+        const rr = await fpost("/api/lobby/" + LID + "/player/" + p.id + "/result", f, store.me(LID).token, "image");
+        STATE = await api("/api/lobby/" + LID); renderLive();
+        const v = rr.verdict;
+        toast(v && v.passed === true && v.medal ? "🎖 Medal earned — " + v.medal.name : v && v.passed === false ? "Oath broken. WARMIND has notes." : "After-action ready");
+      }
       catch (e) { setStatus(actstatus, "err", "Review failed: " + e.message + " — try again."); } finally { busy = false; }
     };
     box.appendChild(restat); box.appendChild(styleSel);

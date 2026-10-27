@@ -104,7 +104,7 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
 .btn.wide{width:100%}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 
-.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:7px}
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:7px}
 .modes button{border:1px solid transparent;background:none;color:var(--ink-2);border-radius:9px;padding:13px 8px;cursor:pointer;font-weight:700;display:flex;flex-direction:column;gap:3px;align-items:center;min-height:56px;justify-content:center}
 .modes button .sub{font-size:10.5px;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}
 .modes button[aria-pressed="true"]{background:var(--surface);border-color:color-mix(in srgb,var(--gold) 55%,var(--line));color:var(--ink);box-shadow:var(--shadow)}
@@ -199,6 +199,23 @@ select:focus,input:focus{outline:2px solid color-mix(in srgb,var(--gold) 60%,tra
   border:1px dashed var(--warn);color:var(--warn);vertical-align:middle;font-family:var(--mono)}
 .gearcard.unset{border-color:color-mix(in srgb,var(--gold) 55%,var(--line));background:color-mix(in srgb,var(--gold) 7%,var(--surface-2))}
 .gearcard.unset>summary{color:var(--gold)}
+@media (max-width:560px){.modes{grid-template-columns:repeat(2,1fr)}}
+.modes button.d100[aria-pressed="true"]{border-color:var(--thin);background:color-mix(in srgb,var(--thin) 10%,var(--surface))}
+.modes button.d100[aria-pressed="true"] .k{color:var(--thin)}
+.d100tag{margin-left:10px;font-size:10.5px;letter-spacing:1px;padding:2px 7px;border-radius:5px;background:var(--thin);color:#fff;font-family:var(--mono);vertical-align:middle}
+.oathline{font-size:13px;color:var(--ink-2);margin:2px 0 8px}
+.oathline b{color:var(--gold)}
+.medal{display:flex;gap:12px;align-items:center;padding:12px 14px;margin:8px 0 10px;border-radius:10px;
+  border:1px solid color-mix(in srgb,var(--gold) 60%,var(--line));background:color-mix(in srgb,var(--gold) 12%,var(--surface))}
+.medal-icon{font-size:30px;line-height:1}
+.medal-name{font-weight:800;color:var(--gold);letter-spacing:.3px}
+.medal-id{font-size:12px;color:var(--ink-2);margin-top:2px}
+.medal-why{font-size:12.5px;color:var(--muted);margin-top:3px}
+.oathbroken{padding:10px 13px;margin:8px 0 10px;border-radius:10px;border:1px solid color-mix(in srgb,var(--thin) 55%,var(--line));
+  background:color-mix(in srgb,var(--thin) 9%,var(--surface));color:var(--thin);font-size:13px}
+.oathbroken div{color:var(--ink-2);margin-top:3px}
+.oathunv{padding:9px 12px;margin:8px 0 10px;border-radius:9px;border:1px dashed var(--line);color:var(--muted);font-size:12.5px}
+.medalbadge{border-color:color-mix(in srgb,var(--gold) 55%,var(--line));color:var(--gold)}
 .cmark.ok{color:var(--favored)}
 .cmark.warn{color:var(--thin)}
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--muted);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
