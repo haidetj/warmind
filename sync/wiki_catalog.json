@@ -9,7 +9,8 @@
    "passive": "Feet First",
    "source": "Halo: ODST Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "A-9 Helljumper",
@@ -18,7 +19,8 @@
    "passive": "Feet First",
    "source": "Halo: ODST Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AC-1 Dutiful",
@@ -27,7 +29,8 @@
    "passive": "Acclimated",
    "source": "Righteous Revenants Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AC-2 Obedient",
@@ -36,7 +39,8 @@
    "passive": "Acclimated",
    "source": "Righteous Revenants Page 2",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AD-11 Livewire",
@@ -45,7 +49,8 @@
    "passive": "Adreno-Defibrillator",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AD-26 Bleeding Edge",
@@ -54,7 +59,8 @@
    "passive": "Adreno-Defibrillator",
    "source": "Control Group Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AD-49 Apollonian",
@@ -63,7 +69,8 @@
    "passive": "Adreno-Defibrillator",
    "source": "Control Group Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AF-02 Haz-Master",
@@ -72,7 +79,8 @@
    "passive": "Advanced Filtration",
    "source": "Chemical Agents Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AF-50 Noxious Ranger",
@@ -81,7 +89,8 @@
    "passive": "Advanced Filtration",
    "source": "Chemical Agents Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AF-52 Lockdown",
@@ -90,7 +99,8 @@
    "passive": "Advanced Filtration",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "AF-91 Field Chemist",
@@ -99,7 +109,8 @@
    "passive": "Advanced Filtration",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "B-01 Tactical",
@@ -108,7 +119,8 @@
    "passive": "Extra Padding",
    "source": "Starter Equipment",
    "armor": "150",
-   "speed": "500"
+   "speed": "500",
+   "image": "B-01 Tactical v1 Armor Render.png"
   },
   {
    "title": "B-08 Light Gunner",
@@ -117,7 +129,8 @@
    "passive": "Extra Padding",
    "source": "Superstore",
    "armor": "100",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "B-22 Model Citizen",
@@ -126,7 +139,8 @@
    "passive": "Democracy Protects",
    "source": "Anniversary Gift",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "B-24 Enforcer",
@@ -135,7 +149,8 @@
    "passive": "Fortified",
    "source": "Superstore",
    "armor": "129",
-   "speed": "471"
+   "speed": "471",
+   "image": "{{PAGENAME}} Body Icon.png"
   },
   {
    "title": "B-27 Fortified Commando",
@@ -144,7 +159,8 @@
    "passive": "Extra Padding",
    "source": "Superstore",
    "armor": "200",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "BFM-16 Tanker",
@@ -153,7 +169,8 @@
    "passive": "Blunt-Force Mitigation",
    "source": "Ironclad Democracy Page 1",
    "armor": "75",
-   "speed": "550"
+   "speed": "550",
+   "image": "BFM-16 Tanker Armor Render.png"
   },
   {
    "title": "BFM-220 Ironclad",
@@ -162,7 +179,8 @@
    "passive": "Blunt-Force Mitigation",
    "source": "Ironclad Democracy Page 2",
    "armor": "175",
-   "speed": "450"
+   "speed": "450",
+   "image": "BFM-220 Ironclad Armor Render.png"
   },
   {
    "title": "BFM-77 Reformer",
@@ -171,7 +189,8 @@
    "passive": "Blunt-Force Mitigation",
    "source": "Superstore",
    "armor": "125",
-   "speed": "500"
+   "speed": "500",
+   "image": "BFM-77 Reformer Armor Render.png"
   },
   {
    "title": "BP-20 Correct Officer",
@@ -180,7 +199,8 @@
    "passive": "Ballistic Padding",
    "source": "Force of Law Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "BP-32 Jackboot",
@@ -189,7 +209,8 @@
    "passive": "Ballistic Padding",
    "source": "Force of Law Page 2",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "BP-77 Grand Juror",
@@ -198,7 +219,8 @@
    "passive": "Ballistic Padding",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-07 Demolition Specialist",
@@ -207,7 +229,8 @@
    "passive": "Engineering Kit",
    "source": "Democratic Detonation Page 2",
    "armor": "64",
-   "speed": "536"
+   "speed": "536",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-101 Guerilla Gorilla",
@@ -216,7 +239,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-27 Ground Breaker",
@@ -225,7 +249,8 @@
    "passive": "Engineering Kit",
    "source": "Democratic Detonation Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-35 Trench Engineer",
@@ -234,7 +259,8 @@
    "passive": "Engineering Kit",
    "source": "Helldivers Mobilize! Page 3",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-64 Grenadier",
@@ -243,7 +269,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-67 Titan",
@@ -252,7 +279,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "79",
-   "speed": "521"
+   "speed": "521",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-74 Breaker",
@@ -261,7 +289,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CE-81 Juggernaut",
@@ -270,7 +299,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CM-09 Bonesnapper",
@@ -279,7 +309,8 @@
    "passive": "Med-Kit",
    "source": "Helldivers Mobilize! Page 4",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "CM-09 Bonesnapper Armor Render.png"
   },
   {
    "title": "CM-10 Clinician",
@@ -288,7 +319,8 @@
    "passive": "Med-Kit",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CM-14 Physician",
@@ -297,7 +329,8 @@
    "passive": "Med-Kit",
    "source": "Helldivers Mobilize! Page 9",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CM-17 Butcher",
@@ -306,7 +339,8 @@
    "passive": "Med-Kit",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Body Icon.png"
   },
   {
    "title": "CM-21 Trench Paramedic",
@@ -315,7 +349,8 @@
    "passive": "Med-Kit",
    "source": "Superstore",
    "armor": "64",
-   "speed": "536"
+   "speed": "536",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CPG-48 Sapper",
@@ -324,7 +359,8 @@
    "passive": "Concussive Padding, Grenadier",
    "source": "Entrenched Division Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CPH-26 Commandant",
@@ -333,7 +369,8 @@
    "passive": "Concussive Padding, Hazmat",
    "source": "Entrenched Division Page 2",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CPR-80 Bulwark",
@@ -342,7 +379,8 @@
    "passive": "Concussive Padding, Reinforced",
    "source": "Superstore",
    "armor": "180",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CW-22 Kodiak",
@@ -351,7 +389,8 @@
    "passive": "Fortified",
    "source": "Polar Patriots Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CW-36 Winter Warrior",
@@ -360,7 +399,8 @@
    "passive": "Servo-Assisted",
    "source": "Polar Patriots Page 1",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CW-4 Arctic Ranger",
@@ -369,7 +409,8 @@
    "passive": "Scout",
    "source": "Polar Patriots Page 3",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "CW-9 White Wolf",
@@ -378,7 +419,8 @@
    "passive": "Extra Padding",
    "source": "Superstore",
    "armor": "150",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DP-00 Tactical",
@@ -387,7 +429,8 @@
    "passive": "Democracy Protects",
    "source": "Liberty Day",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DP-11 Champion of the People",
@@ -396,7 +439,8 @@
    "passive": "Democracy Protects",
    "source": "Helldivers Mobilize! Page 10",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DP-40 Hero of the Federation",
@@ -405,7 +449,8 @@
    "passive": "Democracy Protects",
    "source": "Helldivers Mobilize! Page 5",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DP-53 Savior of the Free",
@@ -414,7 +459,8 @@
    "passive": "Democracy Protects",
    "source": "Super Citizen Edition",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DP-8 Mountain-Scaled",
@@ -423,7 +469,8 @@
    "passive": "Siege-Ready",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DS-10 Big Game Hunter",
@@ -432,7 +479,8 @@
    "passive": "Desert Stormer",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DS-191 Scorpion",
@@ -441,7 +489,8 @@
    "passive": "Desert Stormer",
    "source": "Dust Devils Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "DS-42 Federation's Blade",
@@ -450,7 +499,8 @@
    "passive": "Desert Stormer",
    "source": "Dust Devils Page 1",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "DS-42 Federation's Blade Armor Render.png"
   },
   {
    "title": "EX-00 Prototype X",
@@ -459,7 +509,8 @@
    "passive": "Electrical Conduit",
    "source": "Cutting Edge Page 3",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "EX-03 Prototype 3",
@@ -468,7 +519,8 @@
    "passive": "Electrical Conduit",
    "source": "Cutting Edge Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "EX-16 Prototype 16",
@@ -477,7 +529,8 @@
    "passive": "Electrical Conduit",
    "source": "Cutting Edge Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-05 Marksman",
@@ -486,7 +539,8 @@
    "passive": "Fortified",
    "source": "Helldivers Mobilize! Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Body Icon.png"
   },
   {
    "title": "FS-11 Executioner",
@@ -495,7 +549,8 @@
    "passive": "Fortified",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-23 Battle Master",
@@ -504,7 +559,8 @@
    "passive": "Fortified",
    "source": "Helldivers Mobilize! Page 6",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-34 Exterminator",
@@ -513,7 +569,8 @@
    "passive": "Fortified",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-37 Ravager",
@@ -522,7 +579,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-38 Eradicator",
@@ -531,7 +589,8 @@
    "passive": "Fortified",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-55 Devastator",
@@ -540,7 +599,8 @@
    "passive": "Fortified",
    "source": "Democratic Detonation Page 3",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "FS-61 Dreadnought",
@@ -549,7 +609,8 @@
    "passive": "Servo-Assisted",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "GS-11 Democracy's Deputy",
@@ -558,7 +619,8 @@
    "passive": "Gunslinger",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "GS-11 Democracy's Deputy Armor Render.png"
   },
   {
    "title": "GS-17 Frontier Marshal",
@@ -567,7 +629,8 @@
    "passive": "Gunslinger",
    "source": "Borderline Justice Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "GS-17 Frontier Marshal Armor Render.png"
   },
   {
    "title": "GS-66 Lawmaker",
@@ -576,7 +639,8 @@
    "passive": "Gunslinger",
    "source": "Borderline Justice Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "GS-66 Lawmaker Armor Render.png"
   },
   {
    "title": "I-09 Heatseeker",
@@ -585,7 +649,8 @@
    "passive": "Inflammable",
    "source": "Freedom's Flame Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "I-102 Draconaught",
@@ -594,7 +659,8 @@
    "passive": "Inflammable",
    "source": "Freedom's Flame Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "I-44 Salamander",
@@ -603,7 +669,8 @@
    "passive": "Inflammable",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "I-92 Fire Fighter",
@@ -612,7 +679,8 @@
    "passive": "Inflammable",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "IE-12 Righteous",
@@ -621,7 +689,8 @@
    "passive": "Integrated Explosives",
    "source": "Servants of Freedom Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "IE-3 Martyr",
@@ -630,7 +699,8 @@
    "passive": "Integrated Explosives",
    "source": "Servants of Freedom Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "IE-57 Hell-Bent",
@@ -639,7 +709,8 @@
    "passive": "Integrated Explosives",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "IX-Voidwalker",
@@ -652,7 +723,8 @@
    "passive": "Kinetic Displacement Mitigation",
    "source": "Permanent Enclosure",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "O-2 Heavy Operator",
@@ -661,7 +733,8 @@
    "passive": "Oxygenator",
    "source": "Exo Experts Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "O-3 Free Spirit",
@@ -670,7 +743,8 @@
    "passive": "Oxygenator",
    "source": "Exo Experts Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "O-44 Bonded Pilot",
@@ -679,7 +753,8 @@
    "passive": "Oxygenator",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "PH-202 Twigsnapper",
@@ -688,7 +763,8 @@
    "passive": "Peak Physique",
    "source": "Viper Commandos Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "PH-56 Jaguar",
@@ -697,7 +773,8 @@
    "passive": "Peak Physique",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "PH-9 Predator",
@@ -706,7 +783,8 @@
    "passive": "Peak Physique",
    "source": "Viper Commandos Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RE-1861 Parade Commander",
@@ -715,7 +793,8 @@
    "passive": "Reinforced Epaulettes",
    "source": "Masters of Ceremony Page 2",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RE-2310 Honorary Guard",
@@ -724,7 +803,8 @@
    "passive": "Reinforced Epaulettes",
    "source": "Masters of Ceremony Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RE-824 Bearer of the Standard",
@@ -733,7 +813,8 @@
    "passive": "Reinforced Epaulettes",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-100 Sanctioner",
@@ -742,7 +823,8 @@
    "passive": "Reduced Signature",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-20 Constrictor",
@@ -751,7 +833,8 @@
    "passive": "Rock Solid",
    "source": "Python Commandos Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-40 Beast of Prey",
@@ -760,7 +843,8 @@
    "passive": "Rock Solid",
    "source": "Python Commandos Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-6 Fiend Destroyer",
@@ -769,7 +853,8 @@
    "passive": "Rock Solid",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-67 Null Cipher",
@@ -778,7 +863,8 @@
    "passive": "Reduced Signature",
    "source": "Redacted Regiment Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "RS-89 Shadow Paragon",
@@ -787,7 +873,8 @@
    "passive": "Reduced Signature",
    "source": "Redacted Regiment Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "RS-89 Shadow Paragon Armor Render.png"
   },
   {
    "title": "SA-04 Combat Technician",
@@ -796,7 +883,8 @@
    "passive": "Scout",
    "source": "Helldivers Mobilize! Page 8",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SA-12 Servo Assisted",
@@ -805,7 +893,8 @@
    "passive": "Servo-Assisted",
    "source": "Steeled Veterans Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SA-25 Steel Trooper",
@@ -814,7 +903,8 @@
    "passive": "Servo-Assisted",
    "source": "Steeled Veterans Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SA-32 Dynamo",
@@ -823,7 +913,8 @@
    "passive": "Servo-Assisted",
    "source": "Steeled Veterans Page 3",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SA-7 Headfirst",
@@ -832,7 +923,8 @@
    "passive": "Supplemental Adrenaline",
    "source": "Siege Breakers Page 1",
    "armor": "125",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SA-8 Ram",
@@ -841,7 +933,8 @@
    "passive": "Supplemental Adrenaline",
    "source": "Siege Breakers Page 2",
    "armor": "175",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SC-15 Drone Master",
@@ -850,7 +943,8 @@
    "passive": "Engineering Kit",
    "source": "Superstore",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SC-30 Trailblazer Scout",
@@ -859,7 +953,8 @@
    "passive": "Scout",
    "source": "Helldivers Mobilize! Page 7",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SC-34 Infiltrator",
@@ -868,7 +963,8 @@
    "passive": "Scout",
    "source": "Helldivers Mobilize! Page 1",
    "armor": "70",
-   "speed": "530"
+   "speed": "530",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SC-37 Legionnaire",
@@ -877,7 +973,8 @@
    "passive": "Servo-Assisted",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SR-18 Roadblock",
@@ -886,7 +983,8 @@
    "passive": "Siege-Ready",
    "source": "Urban Legends Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SR-24 Street Scout",
@@ -895,7 +993,8 @@
    "passive": "Siege-Ready",
    "source": "Urban Legends Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SR-64 Cinderblock",
@@ -904,7 +1003,8 @@
    "passive": "Siege-Ready",
    "source": "Superstore",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "SS-15 Focal Point",
@@ -913,7 +1013,8 @@
    "passive": "Stationary Shroud",
    "source": "Scope of Authority Page 2",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "SS-15 Focal Point Armor Render.png"
   },
   {
    "title": "SS-33 Mimetic Marshal",
@@ -922,7 +1023,8 @@
    "passive": "Stationary Shroud",
    "source": "Scope of Authority Page 1",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "SS-33 Mimetic Marshal Armor Render.png"
   },
   {
    "title": "SS-500 Pale Prosecutor",
@@ -931,7 +1033,8 @@
    "passive": "Stationary Shroud",
    "source": "Superstore",
    "armor": "50",
-   "speed": "550"
+   "speed": "550",
+   "image": "SS-500 Pale Prosecutor Armor Render.png"
   },
   {
    "title": "TG-122 Demo-Trooper",
@@ -940,7 +1043,8 @@
    "passive": "True Grit",
    "source": "Castellan's Creed Page 2",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TG-8 Sharpshooter",
@@ -949,7 +1053,8 @@
    "passive": "True Grit",
    "source": "Castellan's Creed Page 1",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TR-117 Alpha Commander",
@@ -958,7 +1063,8 @@
    "passive": "Med-Kit",
    "source": "Downloadable Content",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TR-40 Gold Eagle",
@@ -967,7 +1073,8 @@
    "passive": "Extra Padding",
    "source": "Escalation of Freedom",
    "armor": "150",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TR-62 Knight",
@@ -976,7 +1083,8 @@
    "passive": "Servo-Assisted",
    "source": "Pre-Order Bonus",
    "armor": "150",
-   "speed": "450"
+   "speed": "450",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TR-7 Ambassador of the Brand",
@@ -985,7 +1093,8 @@
    "passive": "Extra Padding",
    "source": "Pre-Order Bonus",
    "armor": "150",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "TR-9 Cavalier of Democracy",
@@ -994,7 +1103,8 @@
    "passive": "Democracy Protects",
    "source": "Pre-Order Bonus",
    "armor": "100",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "UF-16 Inspector",
@@ -1003,7 +1113,8 @@
    "passive": "Unflinching",
    "source": "Truth Enforcers Page 3",
    "armor": "75",
-   "speed": "550"
+   "speed": "550",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "UF-50 Bloodhound",
@@ -1012,7 +1123,8 @@
    "passive": "Unflinching",
    "source": "Truth Enforcers Page 2",
    "armor": "125",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "UF-84 Doubt Killer",
@@ -1021,127 +1133,148 @@
    "passive": "Unflinching",
    "source": "Superstore",
    "armor": "125",
-   "speed": "500"
+   "speed": "500",
+   "image": "{{PAGENAME}} Armor Render.png"
   },
   {
    "title": "Armed Resupply Pods",
    "template": "Infobox Booster",
    "source": "Urban Legends Page 2",
-   "description": "Mounts a modified AR-23 Liberator to all resupply pods, allowing them to double as automatic turrets."
+   "description": "Mounts a modified AR-23 Liberator to all resupply pods, allowing them to double as automatic turrets.",
+   "image": "Armed Resupply Pods Booster Icon.svg"
   },
   {
    "title": "Concealed Insertion",
    "template": "Infobox Booster",
    "source": "Redacted Regiment Page 3",
-   "description": "Equips Hellpods to deploy smokescreens on impact, obscuring Helldiver deployment."
+   "description": "Equips Hellpods to deploy smokescreens on impact, obscuring Helldiver deployment.",
+   "image": "Concealed Insertion Booster Icon.svg"
   },
   {
    "title": "Dead Sprint",
    "template": "Infobox Booster",
    "source": "Truth Enforcers Page 1",
-   "description": "Allows Helldivers to keep sprinting even when they are out of stamina, draining their health instead."
+   "description": "Allows Helldivers to keep sprinting even when they are out of stamina, draining their health instead.",
+   "image": "Dead Sprint Booster Icon.svg"
   },
   {
    "title": "Experimental Infusion",
    "template": "Infobox Booster",
    "source": "Viper Commandos Page 3",
-   "description": "In addition to restoring health, stims temporarily increase movement speed and damage reduction."
+   "description": "In addition to restoring health, stims temporarily increase movement speed and damage reduction.",
+   "image": "Experimental Infusion Booster Icon.svg"
   },
   {
    "title": "Expert Extraction Pilot",
    "template": "Infobox Booster",
    "source": "Democratic Detonation Page 2",
-   "description": "Lowers the time it takes for the extraction shuttle to reach the extraction beacon."
+   "description": "Lowers the time it takes for the extraction shuttle to reach the extraction beacon.",
+   "image": "Expert Extraction Pilot Booster Icon.svg"
   },
   {
    "title": "Firebomb Hellpods",
    "template": "Infobox Booster",
    "source": "Freedom's Flame Page 3",
-   "description": "Lines all Hellpods with volatile incendiaries that detonate upon impact, igniting any units in vicinity of the drop site."
+   "description": "Lines all Hellpods with volatile incendiaries that detonate upon impact, igniting any units in vicinity of the drop site.",
+   "image": "Firebomb Hellpods Booster Icon.svg"
   },
   {
    "title": "Flexible Reinforcement Budget",
    "template": "Infobox Booster",
    "source": "Steeled Veterans Page 3",
-   "description": "Reduce time until new reinforcements are granted once they've been depleted."
+   "description": "Reduce time until new reinforcements are granted once they've been depleted.",
+   "image": "Flexible Reinforcement Budget Booster Icon.svg"
   },
   {
    "title": "Hellpod Space Optimization",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 3",
-   "description": "Helldivers come out of the Hellpod fully stocked on Ammo, Grenades, and Stims."
+   "description": "Helldivers come out of the Hellpod fully stocked on Ammo, Grenades, and Stims.",
+   "image": "Hellpod Space Optimization Booster Icon.svg"
   },
   {
    "title": "Increased Reinforcement Budget",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 10",
-   "description": "Increases the number of available reinforcements."
+   "description": "Increases the number of available reinforcements.",
+   "image": "Increased Reinforcement Budget Booster Icon.svg"
   },
   {
    "title": "Integrated Extinguishers",
    "template": "Infobox Booster",
    "source": "Ironclad Democracy Page 3",
-   "description": "Equips Helldiver uniforms with form-fitting, automated, rapid-response fire suppression systems. Significantly reduces the time it takes to naturally extinguish flames without conducting ground-aided smothering manuevers."
+   "description": "Equips Helldiver uniforms with form-fitting, automated, rapid-response fire suppression systems. Significantly reduces the time it takes to naturally extinguish flames without conducting ground-aided smothering manuevers.",
+   "image": "Integrated Extinguishers Booster Icon.svg"
   },
   {
    "title": "Localization Confusion",
    "template": "Infobox Booster",
    "source": "Cutting Edge Page 1",
-   "description": "Increases the time between enemy encounters."
+   "description": "Increases the time between enemy encounters.",
+   "image": "Localization Confusion Booster Icon.svg"
   },
   {
    "title": "Motivational Shocks",
    "template": "Infobox Booster",
    "source": "Polar Patriots Page 1",
-   "description": "Allows all Helldivers to recover faster after being slowed by an attack, such as acid. Does not mitigate “area effects,” such as EMS strikes."
+   "description": "Allows all Helldivers to recover faster after being slowed by an attack, such as acid. Does not mitigate “area effects,” such as EMS strikes.",
+   "image": "Motivational Shocks Booster Icon.svg"
   },
   {
    "title": "Muscle Enhancement",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 9",
-   "description": "Allows Helldivers to traverse difficult terrain with ease."
+   "description": "Allows Helldivers to traverse difficult terrain with ease.",
+   "image": "Muscle Enhancement Booster Icon.svg"
   },
   {
    "title": "Sample Extricator",
    "template": "Infobox Booster",
    "source": "Borderline Justice Page 3",
-   "description": "Large enemies now have a chance of dropping Samples on death. Capped at 10 drops per mission."
+   "description": "Large enemies now have a chance of dropping Samples on death. Capped at 10 drops per mission.",
+   "image": "Sample Extricator Booster Icon.svg"
   },
   {
    "title": "Sample Scanner",
    "template": "Infobox Booster",
    "source": "Masters of Ceremony Page 3",
-   "description": "The Sample scanner gives you a 15% chance to receive twice the Samples on sample pick up."
+   "description": "The Sample scanner gives you a 15% chance to receive twice the Samples on sample pick up.",
+   "image": "Sample Scanner Booster Icon.svg"
   },
   {
    "title": "Stamina Enhancement",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 7",
-   "description": "Increases all Helldivers' stamina capacity and recovery."
+   "description": "Increases all Helldivers' stamina capacity and recovery.",
+   "image": "Stamina Enhancement Booster Icon.svg"
   },
   {
    "title": "Stun Pods",
    "template": "Infobox Booster",
    "source": "Force of Law Page 2",
-   "description": "Exposes Hellpod wiring upon surface contact, stunning any units in the vicinity of the drop site."
+   "description": "Exposes Hellpod wiring upon surface contact, stunning any units in the vicinity of the drop site.",
+   "image": "Stun Pods Booster Icon.svg"
   },
   {
    "title": "Surplus EAT Allocation",
    "template": "Infobox Booster",
    "source": "Ironclad Democracy Page 2",
-   "description": "Grants two free uses of the Expendable Anti-Tank (EAT) Stratagem per mission; enough to grant a full squad one single-use rocket launcher each, provided squad members employ the proper equipment distribution protocol."
+   "description": "Grants two free uses of the Expendable Anti-Tank (EAT) Stratagem per mission; enough to grant a full squad one single-use rocket launcher each, provided squad members employ the proper equipment distribution protocol.",
+   "image": "Surplus EAT Allocation Booster Icon.svg"
   },
   {
    "title": "UAV Recon Booster",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 6",
-   "description": "Increases all Helldivers' effective radar range."
+   "description": "Increases all Helldivers' effective radar range.",
+   "image": "UAV Recon Booster Booster Icon.svg"
   },
   {
    "title": "Vitality Enhancement",
    "template": "Infobox Booster",
    "source": "Helldivers Mobilize! Page 4",
-   "description": "Provides minor damage reduction from all sources for all Helldivers."
+   "description": "Provides minor damage reduction from all sources for all Helldivers.",
+   "image": "Vitality Enhancement Booster Icon.svg"
   },
   {
    "title": "Rapid Acquisition",
@@ -1170,7 +1303,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Sentry {{*}} Anti-Tank",
    "base_cooldown": "150s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Autocannon Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/ARC-3 Tesla Tower",
@@ -1179,7 +1313,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Sentry {{*}} Arc",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Tesla Tower Stratagem Icon Background.svg"
   },
   {
    "title": "A/FLAM-40 Flame Sentry",
@@ -1188,7 +1323,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Incendiary {{*}} Sentry",
    "base_cooldown": "100s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Flame Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/G-16 Gatling Sentry",
@@ -1197,7 +1333,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Sentry {{*}} Medium Armor Penetrating",
    "base_cooldown": "150s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Gatling Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/GM-17 Gas Mortar Sentry",
@@ -1206,7 +1343,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Caustic {{*}} Sentry",
    "base_cooldown": "180s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Gas Mortar Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/LAS-98 Laser Sentry",
@@ -1215,7 +1353,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Sentry {{*}} Heavy Armor Penetrating {{*}} Heat {{*}} Beam",
    "base_cooldown": "150s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Laser Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/M-12 Mortar Sentry",
@@ -1224,7 +1363,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Medium Armor Penetrating",
    "base_cooldown": "180s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Mortar Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/M-23 EMS Mortar Sentry",
@@ -1233,7 +1373,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Stun",
    "base_cooldown": "180s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "EMS Mortar Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/MG-43 Machine Gun Sentry",
@@ -1242,7 +1383,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Sentry {{*}} Medium Armor Penetrating",
    "base_cooldown": "90s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Machine Gun Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "A/MLS-4X Rocket Sentry",
@@ -1251,7 +1393,8 @@
    "stratagem_type": "Sentry",
    "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Anti-Tank",
    "base_cooldown": "150s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Rocket Sentry Stratagem Icon Background.svg"
   },
   {
    "title": "AX/AR-23 Guard Dog",
@@ -1260,7 +1403,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack {{*}} Medium Armor Penetrating",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Guard Dog Stratagem Icon Background.svg"
   },
   {
    "title": "AX/ARC-3 K-9",
@@ -1269,7 +1413,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack {{*}} Anti-Tank {{*}} Arc",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "K-9 Stratagem Icon Background.svg"
   },
   {
    "title": "AX/FLAM-75 Hot Dog",
@@ -1278,7 +1423,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack {{*}} Incendiary",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Hot Dog Stratagem Icon Background.svg"
   },
   {
    "title": "AX/LAS-5 Rover",
@@ -1287,7 +1433,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack {{*}} Light Armor Penetrating {{*}} Beam",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Rover Stratagem Icon Background.svg"
   },
   {
    "title": "AX/TX-13 Dog Breath",
@@ -1296,20 +1443,23 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack {{*}} Caustic",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Dog Breath Stratagem Icon Background.svg"
   },
   {
    "title": "Activate E-711 Extraction Drill",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
    "base_cooldown": "0s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Drill Stratagem Icon Background.svg"
   },
   {
    "title": "Aquifer Drill",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "0s"
+   "base_cooldown": "0s",
+   "image": "Drill Stratagem Icon Background.svg"
   },
   {
    "title": "B-1 Supply Pack",
@@ -1318,7 +1468,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Supply Pack Stratagem Icon Background.svg"
   },
   {
    "title": "B-100 Portable Hellbomb",
@@ -1327,19 +1478,22 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Explosive {{*}} Backpack {{*}} Anti-Tank",
    "base_cooldown": "300s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Portable Hellbomb Stratagem Icon Background.svg"
   },
   {
    "title": "Call In Super Destroyer",
    "template": "Infobox Stratagem",
    "stratagem_type": "Ship",
-   "base_cooldown": "N/A"
+   "base_cooldown": "N/A",
+   "image": "Call In Super Destroyer Stratagem Icon Background.svg"
   },
   {
    "title": "Cargo Container",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "0s"
+   "base_cooldown": "0s",
+   "image": "Cargo Container Stratagem Icon Background.svg"
   },
   {
    "title": "Dark Fluid Vessel",
@@ -1347,7 +1501,8 @@
    "stratagem_type": "Objective",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "30s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Dark_Fluid_Vessel Stratagem Icon Background.svg"
   },
   {
    "title": "E/AT-12 Anti-Tank Emplacement",
@@ -1356,7 +1511,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Anti-Tank",
    "base_cooldown": "180s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Anti-Tank Emplacement Stratagem Icon Background.svg"
   },
   {
    "title": "E/GL-21 Grenadier Battlement",
@@ -1365,7 +1521,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Explosive {{*}} Medium Armor Penetrating",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Grenadier Battlement Stratagem Icon Background.svg"
   },
   {
    "title": "E/MG-101 HMG Emplacement",
@@ -1374,7 +1531,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Heavy Armor Penetrating",
    "base_cooldown": "180s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "HMG Emplacement Stratagem Icon Background.svg"
   },
   {
    "title": "EXO-45 Patriot Exosuit",
@@ -1383,7 +1541,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Explosive {{*}} Vehicle {{*}} Anti-Tank {{*}} Medium Armor Penetrating",
    "base_cooldown": "420s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Patriot Exosuit Stratagem Icon Background.svg"
   },
   {
    "title": "EXO-49 Emancipator Exosuit",
@@ -1392,7 +1551,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Explosive {{*}} Vehicle {{*}} Anti-Tank",
    "base_cooldown": "420s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Emancipator Exosuit Stratagem Icon Background.svg"
   },
   {
    "title": "EXO-51 Lumberer Exosuit",
@@ -1401,7 +1561,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Explosive {{*}} Vehicle {{*}} Incendiary {{*}} Anti-Tank",
    "base_cooldown": "420s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Lumberer Exosuit Stratagem Icon Background.svg"
   },
   {
    "title": "EXO-55 Breakthrough Exosuit",
@@ -1410,7 +1571,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Heavy Armor Penetrating",
    "base_cooldown": "420s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Breakthrough Exosuit Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle 110mm Rocket Pods",
@@ -1419,7 +1581,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle 110mm Rocket Pods Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle 500kg Bomb",
@@ -1428,7 +1591,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
    "base_cooldown": "15s",
-   "permit_type": "Offense"
+   "permit_type": "Offense",
+   "image": "Eagle 500kg Bomb Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Airstrike",
@@ -1437,7 +1601,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Airstrike Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Cluster Bomb",
@@ -1446,7 +1611,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Medium Armor Penetrating",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Cluster Bomb Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Fly By",
@@ -1454,7 +1620,8 @@
    "source": "Liberty Day 2026",
    "stratagem_type": "Eagle",
    "traits": "Eagle",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Stratagem Fallback Icon Background.svg"
   },
   {
    "title": "Eagle Gas Airstrike",
@@ -1463,7 +1630,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Caustic",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Gas Airstrike Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Napalm Airstrike",
@@ -1472,13 +1640,15 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle {{*}} Incendiary",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Napalm Airstrike Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Rearm",
    "template": "Infobox Stratagem",
    "stratagem_type": "Ship",
-   "base_cooldown": "0s"
+   "base_cooldown": "0s",
+   "image": "Eagle Rearm Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Smoke Strike",
@@ -1487,7 +1657,8 @@
    "stratagem_type": "Eagle",
    "traits": "Explosive {{*}} Eagle",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Smoke Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Eagle Strafing Run",
@@ -1496,7 +1667,8 @@
    "stratagem_type": "Eagle",
    "traits": "Eagle {{*}} Anti-Tank",
    "base_cooldown": "15s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Eagle Strafing Run Stratagem Icon Background.svg"
   },
   {
    "title": "FX-12 Shield Generator Relay",
@@ -1505,13 +1677,15 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod",
    "base_cooldown": "90s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Shield Generator Relay Stratagem Icon Background.svg"
   },
   {
    "title": "Hive Breaker Drill",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "119s"
+   "base_cooldown": "119s",
+   "image": "Drill Stratagem Icon Background.svg"
   },
   {
    "title": "LIFT-182 Warp Pack",
@@ -1520,7 +1694,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Warp Pack Stratagem Icon Background.svg"
   },
   {
    "title": "LIFT-850 Jump Pack",
@@ -1529,7 +1704,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Jump Pack Stratagem Icon Background.svg"
   },
   {
    "title": "LIFT-860 Hover Pack",
@@ -1538,7 +1714,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Hover Pack Stratagem Icon Background.svg"
   },
   {
    "title": "M-102 Gunner FRV",
@@ -1547,7 +1724,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Heavy Armor Penetrating",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Fast Recon Vehicle Stratagem Icon Background.svg"
   },
   {
    "title": "M-103 Supply FRV",
@@ -1556,7 +1734,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Medium Armor Penetrating",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Supply FRV Stratagem Icon Background.svg"
   },
   {
    "title": "M-104 Incinerator FRV",
@@ -1565,7 +1744,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Incendiary",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Incinerator FRV Stratagem Icon Background.svg"
   },
   {
    "title": "MD-17 Anti-Tank Mines",
@@ -1574,7 +1754,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Explosive {{*}} Anti-Tank",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Anti-Tank Mines Stratagem Icon Background.svg"
   },
   {
    "title": "MD-6 Anti-Personnel Minefield",
@@ -1583,7 +1764,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Explosive {{*}} Medium Armor Penetrating",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Anti-Personnel Minefield Stratagem Icon Background.svg"
   },
   {
    "title": "MD-8 Gas Mines",
@@ -1592,7 +1774,8 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Explosive {{*}} Caustic",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Gas Mines Stratagem Icon Background.svg"
   },
   {
    "title": "MD-I4 Incendiary Mines",
@@ -1601,13 +1784,15 @@
    "stratagem_type": "Emplacement",
    "traits": "Hellpod {{*}} Explosive {{*}} Incendiary",
    "base_cooldown": "120s",
-   "permit_type": "Defensive"
+   "permit_type": "Defensive",
+   "image": "Incendiary Mines Stratagem Icon Background.svg"
   },
   {
    "title": "NUX-223 Hellbomb",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "30s"
+   "base_cooldown": "30s",
+   "image": "Hellbomb Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital 120mm HE Barrage",
@@ -1616,7 +1801,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
    "base_cooldown": "180s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital 120mm HE Barrage Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital 380mm HE Barrage",
@@ -1625,7 +1811,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
    "base_cooldown": "240s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital 380mm HE Barrage Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Airburst Strike",
@@ -1634,7 +1821,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Medium Armor Penetrating",
    "base_cooldown": "90s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Airburst Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Confetti",
@@ -1643,7 +1831,8 @@
    "stratagem_type": "Orbital",
    "traits": "Orbital",
    "base_cooldown": "80s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Strike Stratagem Fallback Icon Background.svg"
   },
   {
    "title": "Orbital EMS Strike",
@@ -1652,7 +1841,8 @@
    "stratagem_type": "Orbital",
    "traits": "Orbital {{*}} Anti-Tank {{*}} Stun",
    "base_cooldown": "75s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital EMS Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Gas Strike",
@@ -1661,7 +1851,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Caustic",
    "base_cooldown": "75s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Gas Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Gatling Barrage",
@@ -1670,13 +1861,15 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Heavy Armor Penetrating",
    "base_cooldown": "70s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Gatling Barrage Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Illumination Flare",
    "template": "Infobox Stratagem",
    "stratagem_type": "Other",
-   "base_cooldown": "N/A"
+   "base_cooldown": "N/A",
+   "image": "Orbital Illumination Flare Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Laser",
@@ -1685,7 +1878,8 @@
    "stratagem_type": "Orbital",
    "traits": "Orbital {{*}} Anti-Tank {{*}} Beam",
    "base_cooldown": "300s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Laser Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Napalm Barrage",
@@ -1694,7 +1888,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Incendiary",
    "base_cooldown": "240s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Napalm Barrage Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Precision Strike",
@@ -1703,7 +1898,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
    "base_cooldown": "80s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Precision Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Railcannon Strike",
@@ -1712,7 +1908,8 @@
    "stratagem_type": "Orbital",
    "traits": "Orbital {{*}} Anti-Tank",
    "base_cooldown": "180s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Railcannon Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Smoke Strike",
@@ -1721,7 +1918,8 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital",
    "base_cooldown": "75s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Smoke Strike Stratagem Icon Background.svg"
   },
   {
    "title": "Orbital Walking Barrage",
@@ -1730,31 +1928,36 @@
    "stratagem_type": "Orbital",
    "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
    "base_cooldown": "240s",
-   "permit_type": "Offensive"
+   "permit_type": "Offensive",
+   "image": "Orbital Walking Barrage Stratagem Icon Background.svg"
   },
   {
    "title": "Portable Comms Relay",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "N/A"
+   "base_cooldown": "N/A",
+   "image": "Cargo Container Stratagem Icon Background.svg"
   },
   {
    "title": "Prospecting Drill",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "0s"
+   "base_cooldown": "0s",
+   "image": "Drill Stratagem Icon Background.svg"
   },
   {
    "title": "Reinforce",
    "template": "Infobox Stratagem",
    "stratagem_type": "Ship",
-   "base_cooldown": "0s"
+   "base_cooldown": "0s",
+   "image": "Reinforce Stratagem Icon Background.svg"
   },
   {
    "title": "Resupply",
    "template": "Infobox Stratagem",
    "stratagem_type": "Ship",
-   "base_cooldown": "180s"
+   "base_cooldown": "180s",
+   "image": "Resupply Stratagem Icon Background.svg"
   },
   {
    "title": "SH-20 Ballistic Shield Backpack",
@@ -1763,7 +1966,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "240s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Ballistic Shield Backpack Stratagem Icon Background.svg"
   },
   {
    "title": "SH-32 Shield Generator Pack",
@@ -1772,7 +1976,8 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "480s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Shield Generator Pack Stratagem Icon Background.svg"
   },
   {
    "title": "SH-51 Directional Shield",
@@ -1781,32 +1986,37 @@
    "stratagem_type": "Backpack",
    "traits": "Hellpod {{*}} Backpack",
    "base_cooldown": "300s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Directional Shield Stratagem Icon Background.svg"
   },
   {
    "title": "SSSD Delivery",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "8s"
+   "base_cooldown": "8s",
+   "image": "Upload Data Stratagem Icon Background.svg"
   },
   {
    "title": "Seismic Probe",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "27.5"
+   "base_cooldown": "27.5",
+   "image": "Seismic Probe Stratagem Icon Background.svg"
   },
   {
    "title": "SoS Beacon",
    "template": "Infobox Stratagem",
    "stratagem_type": "Ship",
    "base_cooldown": "0s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "SOS Beacon Stratagem Icon Background.svg"
   },
   {
    "title": "Super Earth Flag",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "N/A"
+   "base_cooldown": "N/A",
+   "image": "Super Earth Flag Stratagem Icon Background.svg"
   },
   {
    "title": "TD-110 Maelstrom",
@@ -1815,7 +2025,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Heavy Armor Penetrating {{*}} Anti-Tank",
    "base_cooldown": "780s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Maelstrom Stratagem Icon Background.svg"
   },
   {
    "title": "TD-220 Bastion MK XVI",
@@ -1824,7 +2035,8 @@
    "stratagem_type": "Vehicle",
    "traits": "Vehicle {{*}} Explosive {{*}} Anti-Tank {{*}} Heavy Armor Penetrating",
    "base_cooldown": "780s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Bastion MK XVI Stratagem Icon Background.svg"
   },
   {
    "title": "Tactical Video Camera",
@@ -1832,20 +2044,23 @@
    "stratagem_type": "Objective",
    "traits": "Hellpod",
    "base_cooldown": "N/A",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Tactical Video Camera Stratagem Icon Background.svg"
   },
   {
    "title": "Tectonic Drill",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
    "base_cooldown": "0s",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "image": "Drill Stratagem Icon Background.svg"
   },
   {
    "title": "Upload Data",
    "template": "Infobox Stratagem",
    "stratagem_type": "Objective",
-   "base_cooldown": "N/A"
+   "base_cooldown": "N/A",
+   "image": "Upload Data Stratagem Icon Background.svg"
   },
   {
    "title": "40-K Meltagun",
@@ -2308,7 +2523,8 @@
    "source": "Steeled Veterans Page 2",
    "weapon_type": "Standard",
    "throwable_traits": "Incendiary {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-10 Incendiary Throwable Render.png"
   },
   {
    "title": "G-109 Urchin",
@@ -2316,7 +2532,8 @@
    "source": "Force of Law Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Sticky {{*}} Stun",
-   "penetration": "6"
+   "penetration": "6",
+   "image": "G-109_Urchin_Throwable_Render.png"
   },
   {
    "title": "G-11 Caltrops",
@@ -2324,7 +2541,8 @@
    "source": "Scope of Authority Page 1",
    "weapon_type": "Special",
    "throwable_traits": "Stun {{*}} Sticky",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-11 Caltrops Throwable Render.png"
   },
   {
    "title": "G-12 High Explosive",
@@ -2332,7 +2550,8 @@
    "source": "Starter Equipment",
    "weapon_type": "Standard",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-12 High Explosive Throwable Render.png"
   },
   {
    "title": "G-123 Thermite",
@@ -2340,7 +2559,8 @@
    "source": "Democratic Detonation Page 1",
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Sticky",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "G-123 Thermite Throwable Render.png"
   },
   {
    "title": "G-13 Incendiary Impact",
@@ -2348,7 +2568,8 @@
    "source": "Polar Patriots Page 2",
    "weapon_type": "Special",
    "throwable_traits": "Incendiary {{*}} Explosive",
-   "penetration": "3"
+   "penetration": "3",
+   "image": "{{PAGENAME}} Throwable Render.png"
   },
   {
    "title": "G-142 Pyrotech",
@@ -2356,7 +2577,8 @@
    "source": "Masters of Ceremony Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Incendiary {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-142_Pyrotech_Throwable_Render.png"
   },
   {
    "title": "G-16 Impact",
@@ -2364,7 +2586,8 @@
    "source": "Helldivers Mobilize! Page 5",
    "weapon_type": "Special",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "G-16 Impact Throwable Render.png"
   },
   {
    "title": "G-23 Stun",
@@ -2372,7 +2595,8 @@
    "source": "Cutting Edge Page 2",
    "weapon_type": "Special",
    "throwable_traits": "Explosive {{*}} Stun",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "G-23 Stun Throwable Render.png"
   },
   {
    "title": "G-3 Smoke",
@@ -2380,7 +2604,8 @@
    "source": "Helldivers Mobilize! Page 8",
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-3 Smoke Throwable Render.png"
   },
   {
    "title": "G-31 Arc",
@@ -2388,7 +2613,8 @@
    "source": "Control Group Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Explosive {{*}} Arc",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-31_ARC_Throwable_Render.png"
   },
   {
    "title": "G-4 Gas",
@@ -2396,7 +2622,8 @@
    "source": "Chemical Agents Page 1",
    "weapon_type": "Special",
    "throwable_traits": "Caustic {{*}} Explosive",
-   "penetration": "6"
+   "penetration": "6",
+   "image": "G-4 Gas Throwable Render.png"
   },
   {
    "title": "G-48 Giga Grenade",
@@ -2404,7 +2631,8 @@
    "source": "Entrenched Division Page 2",
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-48 Giga Grenade Throwable Render.png"
   },
   {
    "title": "G-50 Seeker",
@@ -2412,7 +2640,8 @@
    "source": "Servants of Freedom Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} Guided",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "{{PAGENAME}} Throwable Render.png"
   },
   {
    "title": "G-6 Frag",
@@ -2420,7 +2649,8 @@
    "source": "Helldivers Mobilize! Page 1",
    "weapon_type": "Standard",
    "throwable_traits": "Medium Armor Penetrating {{*}} Explosive",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "G-6 Frag Throwable Render.png"
   },
   {
    "title": "G-60 Anti-Tank Seeker",
@@ -2428,7 +2658,8 @@
    "source": "Ironclad Democracy Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Explosive {{*}} Guided",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Throwable Render.png"
   },
   {
    "title": "G-7 Pineapple",
@@ -2436,7 +2667,8 @@
    "source": "Dust Devils Page 3",
    "weapon_type": "Standard",
    "throwable_traits": "Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-7 Pineapple Throwable Render.png"
   },
   {
    "title": "G-8 Immolation",
@@ -2444,7 +2676,8 @@
    "source": "Ironclad Democracy Page 1",
    "weapon_type": "Special",
    "throwable_traits": "Incendiary",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Throwable Render.png"
   },
   {
    "title": "G-89 Smokescreen",
@@ -2452,7 +2685,8 @@
    "source": "Superstore",
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-89_Smokescreen_Throwable_Render.png"
   },
   {
    "title": "G/40-K Melta Mine",
@@ -2460,7 +2694,8 @@
    "source": "Castellan’s Creed",
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-40-K Melta Mine Throwable Render.png"
   },
   {
    "title": "G/SH-39 Shield",
@@ -2468,7 +2703,8 @@
    "source": "Siege Breakers Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Sticky",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "G-SH-39 Shield Throwable Render.png"
   },
   {
    "title": "K-2 Throwing Knife",
@@ -2476,7 +2712,8 @@
    "source": "Viper Commandos Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Medium Armor Penetrating",
-   "penetration": "AV"
+   "penetration": "AV",
+   "image": "K-2 Throwing Knife Throwable Render.png"
   },
   {
    "title": "TED-63 Dynamite",
@@ -2484,7 +2721,8 @@
    "source": "Borderline Justice Page 3",
    "weapon_type": "Standard",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Throwable Render.png"
   },
   {
    "title": "TM-1 Lure Mine",
@@ -2492,7 +2730,8 @@
    "source": "Redacted Regiment Page 3",
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Sticky {{*}} Explosive",
-   "penetration": "AP (Explosion) AP (Shrapnel)"
+   "penetration": "AP (Explosion) AP (Shrapnel)",
+   "image": "TM-1 Lure Mine Throwable Render.png"
   },
   {
    "title": "AR-11 Arbitrator",
@@ -2501,7 +2740,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP (4mm) AP (10g)"
+   "penetration": "AP (4mm) AP (10g)",
+   "image": "AR-11 Arbitrator Primary Render.png"
   },
   {
    "title": "AR-23 Liberator",
@@ -2510,7 +2750,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Primary Render.png"
   },
   {
    "title": "AR-23A Liberator Carbine",
@@ -2519,7 +2760,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-23A Liberator Carbine Primary Render.png"
   },
   {
    "title": "AR-23C Liberator Concussive",
@@ -2528,7 +2770,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-23C Liberator Concussive Primary Render.png"
   },
   {
    "title": "AR-23L Liberator Legacy",
@@ -2537,7 +2780,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-23L Liberator Primary Render.png"
   },
   {
    "title": "AR-23P Liberator Penetrator",
@@ -2546,7 +2790,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-23P Liberator Penetrator Primary Render.png"
   },
   {
    "title": "AR-59 Suppressor",
@@ -2555,7 +2800,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-59 Suppressor Primary Render.png"
   },
   {
    "title": "AR-61 Tenderizer",
@@ -2564,7 +2810,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "AR-61 Tenderizer Primary Render.png"
   },
   {
    "title": "ARC-12 Blitzer",
@@ -2573,7 +2820,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating {{*}} Arc",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "ARC-12 Blitzer Primary Render.png"
   },
   {
    "title": "BR-14 Adjudicator",
@@ -2582,7 +2830,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "BR-14 Adjudicator Primary Render.png"
   },
   {
    "title": "CB-9 Exploding Crossbow",
@@ -2591,7 +2840,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Explosives",
    "weapon_traits": "Explosive {{*}} One Handed",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "CB-9 Exploding Crossbow Primary Render.png"
   },
   {
    "title": "CQC-19 Stun Lance",
@@ -2600,7 +2850,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "CQC-19 Stun Lance Secondary Render.png"
   },
   {
    "title": "CQC-2 Saber",
@@ -2609,7 +2860,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "CQC-2 Saber Secondary Render.png"
   },
   {
    "title": "CQC-30 Stun Baton",
@@ -2618,7 +2870,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "CQC-30 Stun Baton Secondary Render.png"
   },
   {
    "title": "CQC-42 Machete",
@@ -2627,7 +2880,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "CQC-42 Machete Secondary Render.png"
   },
   {
    "title": "CQC-5 Combat Hatchet",
@@ -2636,7 +2890,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "CQC-5 Combat Hatchet Secondary Render.png"
   },
   {
    "title": "CQC-72 Entrenchment Tool",
@@ -2644,7 +2899,8 @@
    "weapon_category": "Support Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Support Weapon {{*}} Melee {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "CQC-72 Entrenchment Tool Support Render.png"
   },
   {
    "title": "CQC-73 Entrenchment Tool",
@@ -2652,7 +2908,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Melee",
    "weapon_traits": "Melee {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "CQC-73 Entrenchment Tool Secondary Render.png"
   },
   {
    "title": "DBS-2 Double Freedom",
@@ -2661,7 +2918,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "DBS-2_Shotgun_Primary_Render.png"
   },
   {
    "title": "FLAM-66 Torcher",
@@ -2670,7 +2928,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Incendiary",
-   "penetration": "4"
+   "penetration": "4",
+   "image": "FLAM-66 Torcher Primary Render.png"
   },
   {
    "title": "GL-15 Evictor",
@@ -2679,7 +2938,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Explosives",
    "weapon_traits": "Medium Armor Penetrating {{*}} Explosive {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "GL-15 Evictor Primary Render.png"
   },
   {
    "title": "GP-20 Ultimatum",
@@ -2688,7 +2948,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "GP-20 Ultimatum Secondary Render.png"
   },
   {
    "title": "GP-31 Grenade Pistol",
@@ -2697,7 +2958,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "GP-31 Grenade Pistol Secondary Render.png"
   },
   {
    "title": "JAR-5 Dominator",
@@ -2706,7 +2968,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "JAR-5 Dominator Primary Render.png"
   },
   {
    "title": "LAS-12 Sai",
@@ -2715,7 +2978,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Heat",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "LAS-12 Sai Primary Render.png"
   },
   {
    "title": "LAS-13 Trident",
@@ -2724,7 +2988,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Heat",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "LAS-13 Trident Primary Render.png"
   },
   {
    "title": "LAS-16 Sickle",
@@ -2733,7 +2998,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Heat",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "LAS-16 Sickle Primary Render.png"
   },
   {
    "title": "LAS-17 Double-Edge Sickle",
@@ -2742,7 +3008,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Medium Armor Penetrating {{*}} Heavy Armor Penetrating {{*}} Heat",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "LAS-17 Double-Edge Sickle Primary Render.png"
   },
   {
    "title": "LAS-5 Scythe",
@@ -2751,7 +3018,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Beam {{*}} Heat",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "LAS-5 Scythe Primary Render.png"
   },
   {
    "title": "LAS-58 Talon",
@@ -2760,7 +3028,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "{{*}}One Handed {{*}}Heat {{*}} Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Secondary Render.png"
   },
   {
    "title": "LAS-7 Dagger",
@@ -2769,7 +3038,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "{{*}}Light Armor Penetrating {{*}}One Handed {{*}} Beam {{*}}Heat",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "LAS-7 Dagger Secondary Render.png"
   },
   {
    "title": "M6C/SOCOM Pistol",
@@ -2778,7 +3048,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "M6C-SOCOM Pistol Secondary Render.png"
   },
   {
    "title": "M7S SMG",
@@ -2787,7 +3058,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "M7S_SMG_Primary_Render.png"
   },
   {
    "title": "M90A Shotgun",
@@ -2796,7 +3068,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "M90A_Shotgun_Primary_Render.png"
   },
   {
    "title": "MA5C Assault Rifle",
@@ -2805,7 +3078,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "MA5C_Assault_Rifle_Primary_Render.png"
   },
   {
    "title": "MP-98 Knight",
@@ -2814,7 +3088,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "MP-98 Knight Primary Render.png"
   },
   {
    "title": "P-11 Stim Pistol",
@@ -2823,7 +3098,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Rounds Reload {{*}} Stimulative",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-11 Stim Pistol Secondary Render.png"
   },
   {
    "title": "P-113 Verdict",
@@ -2832,7 +3108,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "{{*}} Medium Armor Penetrating {{*}} One Handed",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "P-113 Verdict Secondary Render.png"
   },
   {
    "title": "P-19 Redeemer",
@@ -2841,7 +3118,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-19 Redeemer Secondary Render.png"
   },
   {
    "title": "P-2 Peacemaker",
@@ -2850,7 +3128,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-2 Peacemaker Secondary Render.png"
   },
   {
    "title": "P-33 Missile Pistol",
@@ -2859,7 +3138,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating {{*}} Anti-Tank {{*}} One Handed {{*}} Guided {{*}} Explosive",
-   "penetration": "AP (Projectile) AP (Explosion)"
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "image": "P-33 Missile Pistol Secondary Render.png"
   },
   {
    "title": "P-34 Breacher",
@@ -2868,7 +3148,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Anti-Tank {{*}} Sticky {{*}} Explosive",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-34 Breacher Secondary Render.png"
   },
   {
    "title": "P-35 Re-Educator",
@@ -2877,7 +3158,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Caustic {{*}} Heavy Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-35 Re-Educator Secondary Render.png"
   },
   {
    "title": "P-4 Senator",
@@ -2886,7 +3168,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Heavy Armor Penetrating {{*}}One Handed {{*}}Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-4 Senator Secondary Render.png"
   },
   {
    "title": "P-44 Mist",
@@ -2895,7 +3178,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "One Handed {{*}} Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-44 Mist Secondary Render.png"
   },
   {
    "title": "P-69 Veto",
@@ -2904,7 +3188,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Secondary Icon.png"
   },
   {
    "title": "P-72 Crisper",
@@ -2913,7 +3198,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Incendiary {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "P-72 Crisper Secondary Render.png"
   },
   {
    "title": "P-92 Warrant",
@@ -2922,7 +3208,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Pistols",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Guided",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "P-92_Warrant_Secondary_Render.png"
   },
   {
    "title": "P/40-K Bolt Pistol",
@@ -2931,7 +3218,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} One Handed",
-   "penetration": "AP (Projectile) AP (Explosion)"
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "image": "P-40-K Bolt Pistol Secondary Render.png"
   },
   {
    "title": "PLAS-1 Scorcher",
@@ -2940,7 +3228,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Explosive",
-   "penetration": "AP (Projectile) AP (Explosion)"
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "image": "PLAS-1 Scorcher Primary Render.png"
   },
   {
    "title": "PLAS-101 Purifier",
@@ -2949,7 +3238,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Chargeup {{*}} Explosive {{*}} Medium Armor Penetrating",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "PLAS-101 Purifier Primary Render.png"
   },
   {
    "title": "PLAS-15 Loyalist",
@@ -2958,7 +3248,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating{{*}} One Handed{{*}} Explosive{{*}} Chargeup",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "PLAS-15 Loyalist Secondary Render.png"
   },
   {
    "title": "PLAS-39 Accelerator Rifle",
@@ -2967,7 +3258,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Explosive {{*}} Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "PLAS-39 Accelerator Rifle Primary Render.png"
   },
   {
    "title": "R-2 Amendment",
@@ -2976,7 +3268,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-2 Amendment Primary Render.png"
   },
   {
    "title": "R-2124 Constitution",
@@ -2985,7 +3278,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-2124 Constitution Primary Render.png"
   },
   {
    "title": "R-36 Eruptor",
@@ -2994,7 +3288,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Explosives",
    "weapon_traits": "Explosive {{*}} Heavy Armor Penetrating",
-   "penetration": "AP (Projectile) AP (Explosion)"
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "image": "R-36 Eruptor Primary Render.png"
   },
   {
    "title": "R-4 Hyena",
@@ -3003,7 +3298,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating {{*}} Incendiary",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-4 Hyena Primary Render.png"
   },
   {
    "title": "R-40 Sightliner",
@@ -3012,7 +3308,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Sniper Rifles",
    "weapon_traits": "Heavy Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-40 Sightliner Primary Render.png"
   },
   {
    "title": "R-6 Deadeye",
@@ -3021,7 +3318,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Rounds Reload {{*}} Medium Armor Penetrating",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "R-6 Deadeye Primary Render.png"
   },
   {
    "title": "R-63 Diligence",
@@ -3030,7 +3328,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-63 Diligence Primary Render.png"
   },
   {
    "title": "R-63CS Diligence Counter Sniper",
@@ -3039,7 +3338,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "R-63CS Diligence Counter Sniper Primary Render.png"
   },
   {
    "title": "R-72 Censor",
@@ -3048,7 +3348,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-72 Censor Primary Render.png"
   },
   {
    "title": "R/40-K Hot-Shot Marksman Rifle",
@@ -3057,7 +3358,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "R-40-K Hot-Shot Primary Render.png"
   },
   {
    "title": "SG-20 Halt",
@@ -3066,7 +3368,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "{{*}}Light Armor Penetrating {{*}}Medium Armor Penetrating {{*}}Rounds Reload",
-   "penetration": "ap (Flechette) ap (Stun)"
+   "penetration": "ap (Flechette) ap (Stun)",
+   "image": "SG-20 Halt Primary Render.png"
   },
   {
    "title": "SG-22 Bushwhacker",
@@ -3075,7 +3378,8 @@
    "weapon_category": "Secondary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SG-22 Bushwhacker Secondary Render.png"
   },
   {
    "title": "SG-225 Breaker",
@@ -3084,7 +3388,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SG-225 Breaker Primary Render.png"
   },
   {
    "title": "SG-225IE Breaker Incendiary",
@@ -3093,7 +3398,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Incendiary",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SG-225IE Breaker Incendiary Primary Render.png"
   },
   {
    "title": "SG-225SP Breaker Spray&Pray",
@@ -3102,7 +3408,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SG-225SP Breaker Spray&Pray Primary Render.png"
   },
   {
    "title": "SG-451 Cookout",
@@ -3111,7 +3418,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload {{*}} Incendiary",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SG-451 Cookout Primary Render.png"
   },
   {
    "title": "SG-8 Punisher",
@@ -3120,7 +3428,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating{{*}}Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SG-8 Punisher Primary Render.png"
   },
   {
    "title": "SG-88 Break-Action Shotgun",
@@ -3128,7 +3437,8 @@
    "weapon_category": "Support Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Support Weapon {{*}} Light Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SG-88 Break-Action Shotgun Support Render.png"
   },
   {
    "title": "SG-8P Punisher Plasma",
@@ -3137,7 +3447,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Energy-Based",
    "weapon_traits": "Explosive",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SG-8P Punisher Plasma Primary Render.png"
   },
   {
    "title": "SG-8S Slugger",
@@ -3146,7 +3457,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SG-8S Slugger Primary Render.png"
   },
   {
    "title": "SG-97 Sweeper",
@@ -3155,7 +3467,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SG-97_Shotgun_Primary_Render.png"
   },
   {
    "title": "SMG-203 Gallant",
@@ -3164,7 +3477,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SMG-203 Gallant Primary Render.png"
   },
   {
    "title": "SMG-32 Reprimand",
@@ -3173,7 +3487,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Medium Armor Penetrating",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SMG-32 Reprimand Primary Render.png"
   },
   {
    "title": "SMG-37 Defender",
@@ -3182,7 +3497,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "SMG-37 Defender Primary Render.png"
   },
   {
    "title": "SMG-72 Pummeler",
@@ -3191,7 +3507,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
-   "penetration": "ap"
+   "penetration": "ap",
+   "image": "SMG-72 Pummeler Primary Render.png"
   },
   {
    "title": "SMG/FLAM-34 Stoker",
@@ -3200,7 +3517,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Incendiary",
-   "penetration": "AP (12mm) AP (Flamethrower)"
+   "penetration": "AP (12mm) AP (Flamethrower)",
+   "image": "SMGFLAM-34 Stoker Primary Icon.png"
   },
   {
    "title": "StA-11 SMG",
@@ -3209,7 +3527,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating{{*}}One Handed",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "StA-11 SMG Primary Render.png"
   },
   {
    "title": "StA-52 Assault Rifle",
@@ -3218,7 +3537,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "{{PAGENAME}} Primary Render.png"
   },
   {
    "title": "VG-70 Variable",
@@ -3227,7 +3547,8 @@
    "weapon_category": "Primary Weapons",
    "weapon_type": "Special",
    "weapon_traits": "Light Armor Penetrating",
-   "penetration": "AP"
+   "penetration": "AP",
+   "image": "VG-70_Variable_Primary_Render.png"
   }
  ]
 }
