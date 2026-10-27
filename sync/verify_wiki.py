@@ -113,7 +113,8 @@ TEMPLATES = ["Infobox Weapon", "Infobox Throwable", "Infobox Armor", "Infobox Bo
              "Infobox Orbital", "Infobox Sentry", "Infobox Emplacement", "Infobox Mine",
              "Infobox Vehicle", "Infobox Exosuit", "Infobox Defensive"]
 KEEP = ("type", "passive", "source", "weapon_category", "weapon_type", "weapon_traits", "throwable_traits",
-        "stratagem_type", "traits", "base_cooldown", "penetration", "permit_type", "description", "armor", "speed")
+        "stratagem_type", "traits", "base_cooldown", "penetration", "permit_type", "description", "armor", "speed",
+        "stratagem_image")
 
 
 def embedded_in(template: str) -> list[str]:
@@ -262,6 +263,73 @@ def passives() -> dict:
     return out
 
 
+# ---------------------------------------------------------------- armory (in-game menu layout + icons)
+SUB = {"Support Weapon": "Support Weapons", "Backpack": "Backpacks", "Vehicle": "Vehicles", "Eagle": "Eagle",
+       "Orbital": "Orbital", "Sentry": "Sentries", "Emplacement": "Emplacements"}
+ICONS = ROOT / "app" / "static" / "icons"
+
+
+def slug(name: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+
+
+def armory() -> dict:
+    """For each of our items: its group in the in-game loadout menu, and for stratagems the
+    permit colour (Offensive/Supply/Defensive) and a 64px icon downloaded from the wiki."""
+    cat = json.loads((ROOT / "sync" / "wiki_catalog.json").read_text())
+    by_title = {norm(r["title"]): r for r in cat["items"]}
+    raw = loader.items()
+    out, want_icons = {}, {}
+    for sec in SECTIONS:
+        for rec in raw.get(sec, []):
+            row = by_title.get(norm(page_title(rec))) or {}
+            e = {}
+            if sec in ("primaries", "secondaries", "grenades"):
+                e["group"] = row.get("weapon_type") or "Other"
+            elif sec == "armor":
+                e["group"] = rec.get("weight", "Other")
+            elif sec == "stratagems":
+                e["permit"] = row.get("permit_type") or "Supply"
+                e["group"] = SUB.get(row.get("stratagem_type", ""), "Other")
+                img = row.get("stratagem_image", "").strip()
+                if img:
+                    want_icons[rec["name"]] = img
+            out[rec["name"]] = e
+    # resolve icon thumbnails (SVG -> 64px PNG) in batches, then download them
+    ICONS.mkdir(parents=True, exist_ok=True)
+    files = sorted(set(want_icons.values()))
+    urls = {}
+    for i in range(0, len(files), 40):
+        d = api(action="query", prop="imageinfo", iiprop="url", iiurlwidth=64,
+                titles="|".join("File:" + f for f in files[i:i + 40]))
+        norm_map = {n["to"]: n["from"] for n in d.get("query", {}).get("normalized", [])}
+        for pg in d.get("query", {}).get("pages", {}).values():
+            ii = (pg.get("imageinfo") or [{}])[0]
+            src = norm_map.get(pg["title"], pg["title"]).split(":", 1)[-1]
+            if ii.get("thumburl") or ii.get("url"):
+                urls[src] = ii.get("thumburl") or ii.get("url")
+        time.sleep(0.5)
+    got = 0
+    for name, f in want_icons.items():
+        u = urls.get(f) or urls.get(f.replace("_", " "))
+        if not u:
+            continue
+        dest = ICONS / (slug(name) + ".png")
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+            if data[:4] == b"\x89PNG":
+                dest.write_bytes(data)
+                out[name]["icon"] = "/icons/" + dest.name
+                got += 1
+        except Exception as e:  # noqa: BLE001 — a missing icon just falls back to text
+            print(f"icon failed for {name}: {e}")
+        time.sleep(0.2)
+    print(f"armory: {len(out)} items, {got}/{len(want_icons)} stratagem icons")
+    return out
+
+
 def discover(n: int) -> int:
     raw = loader.items()
     picks = []
@@ -286,6 +354,10 @@ if __name__ == "__main__":
     if "--discover" in sys.argv:
         i = sys.argv.index("--discover")
         sys.exit(discover(int(sys.argv[i + 1]) if len(sys.argv) > i + 1 else 8))
+    if "--armory" in sys.argv:
+        out = ROOT / "app" / "warmind" / "data" / "armory.json"
+        out.write_text(json.dumps(armory(), indent=1, ensure_ascii=False, sort_keys=True) + "\n")
+        sys.exit(0)
     if "--passives" in sys.argv:
         out = ROOT / "sync" / "passives_wiki.json"
         data = passives()
