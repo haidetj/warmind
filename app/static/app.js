@@ -66,11 +66,18 @@
   function renderHome() {
     app.innerHTML = "";
     const name = el("input", { type: "text", placeholder: "SQUAD DESIGNATION", "aria-label": "Squad name" });
+    let size = 4;
+    const sizeSeg = el("div", { class: "sizeseg", role: "radiogroup", "aria-label": "Divers in squad" });
+    [1, 2, 3, 4].forEach(n => {
+      const b = el("button", { class: "sizebtn" + (n === size ? " on" : ""), type: "button", "aria-pressed": String(n === size) }, [String(n)]);
+      b.onclick = () => { size = n; sizeSeg.querySelectorAll(".sizebtn").forEach(x => { const on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); }); };
+      sizeSeg.appendChild(b);
+    });
     const create = el("button", { class: "deploy" }, ["▶ Brief Squad"]);
     create.onclick = async () => {
       create.disabled = true; create.textContent = "▶ Establishing link…";
       try {
-        const fd = new FormData(); fd.append("name", name.value || "Squad");
+        const fd = new FormData(); fd.append("name", name.value || "Squad"); fd.append("squad_size", String(size));
         const r = await api("/api/lobby", { method: "POST", body: fd });
         store.setCreator(r.lobby_id, r.creator_token);
         location.search = "?l=" + r.lobby_id;
@@ -89,7 +96,10 @@
         term,
         el("div", { class: "console" }, [
           el("div", { class: "prompt" }, ["> DESIGNATE SQUAD"]),
-          name, create,
+          name,
+          el("div", { class: "prompt", style: "margin-top:14px" }, ["> DIVERS DEPLOYING"]),
+          sizeSeg,
+          create,
         ]),
         el("div", { class: "foot" }, ["Create a war table, then share the link. Divers upload a career screenshot and receive a loadout — with a reason."]),
       ]),
@@ -359,8 +369,41 @@
   // ---------- roster ----------
   function label(k) { return ({ siege_anchor: "Siege Anchor", danger_close: "Danger Close", fire_for_effect: "Fire for Effect", forward_eye: "Forward Eye", by_the_book: "By the Book" })[k] || k; }
 
+  function readinessCard() {
+    const r = STATE.readiness; if (!r) return null;
+    const isCreator = !!store.creator(LID);
+    const item = (ok, txt) => el("div", { class: "rdy" + (ok ? " ok" : "") }, [el("span", { class: "rdot" }, [ok ? "✓" : "·"]), txt]);
+    const card = el("section", { class: "card readiness" + (r.final ? " final" : "") }, [
+      el("div", { class: "section-title" }, [r.final ? "Squad briefed" : "Briefing readiness"]),
+      el("div", { class: "rdylist" }, [
+        item(r.mission_set, "Mission set"),
+        item(r.joined >= r.expected, "Divers " + r.joined + " / " + r.expected),
+        item(r.joined > 0 && r.read >= r.joined, "Stat reads " + r.read + " / " + r.joined),
+        item(r.joined > 0 && r.gear >= r.joined, "Gear set " + r.gear + " / " + r.joined),
+      ]),
+    ]);
+    if (r.final) {
+      card.appendChild(el("div", { class: "hint" }, [r.ready
+        ? "Everyone's in with a read and gear — the loadouts below are the holistic call for this squad and mission."
+        : "Briefed early by the creator — loadouts below are final for the divers present."]));
+    } else {
+      card.appendChild(el("div", { class: "hint" }, ["Loadouts are provisional — they rebalance as divers join, read their stats, and set their gear."]));
+      if (isCreator && r.mission_set && r.joined > 0) {
+        const b = el("button", { class: "btn" }, ["Brief squad now"]);
+        b.onclick = async () => {
+          if (busy) return; busy = true;
+          try { STATE = await jpost("/api/lobby/" + LID + "/brief", {}, store.creator(LID)); renderLive(); toast("Squad briefed"); }
+          catch (e) { toast(e.message); } finally { busy = false; }
+        };
+        card.appendChild(el("div", { style: "margin-top:10px" }, [b]));
+      }
+    }
+    return card;
+  }
+
   function rosterSection(me) {
     const wrap = el("section", { class: "stack" });
+    const rdy = readinessCard(); if (rdy) wrap.appendChild(rdy);
     if (STATE.directive) {
       const d = STATE.directive, top = d.pressure.top || [];
       const read = el("div", { class: "read" });
@@ -384,12 +427,17 @@
     const card = el("div", { class: "dcard" }); card.style.setProperty("--acc", p.accent);
     const a = p.assignment;
     const badge = p.has_stats ? el("span", { class: "badge stats" }, ["stats read"]) : el("span", { class: "badge pending" }, ["no stats"]);
+    const provisional = a && STATE.readiness && !STATE.readiness.final;
     card.appendChild(el("div", { class: "top" }, [
-      el("div", { class: "role stencil" }, [a ? a.role : "AWAITING MISSION"]),
+      el("div", { class: "role stencil" }, [a ? a.role : "AWAITING MISSION", provisional ? el("span", { class: "provtag" }, ["provisional"]) : null]),
       el("div", { class: "who", html: '<span class="cs">' + esc(p.callsign) + "</span> · " + label(p.play_style) }),
       badge, mine ? el("span", { class: "badge" }, ["you"]) : null,
     ]));
     if (p.style_note) card.appendChild(el("div", { class: "hint", style: "padding:2px 20px 0" }, [p.style_note]));
+    // gear-first: until a diver has told us what they own, the checklist sits above
+    // the loadout (open) so the build is based on gear they can actually equip
+    const gearFirst = mine && !p.gear_confirmed;
+    if (gearFirst) { const g = gearCard(p); if (g) card.appendChild(g); }
     if (p.stats) card.appendChild(statRead(p));
     if (a) {
       const kit = el("ul", { class: "kit" });
@@ -409,7 +457,7 @@
     }
     if (p.aar) card.appendChild(aarBlock(p));
     if (mine) card.appendChild(myActions(p));
-    if (mine) { const g = gearCard(p); if (g) card.appendChild(g); }
+    if (mine && !gearFirst) { const g = gearCard(p); if (g) card.appendChild(g); }
     return card;
   }
 
@@ -559,10 +607,11 @@
     // p.owned null/undefined means "owns everything"; seed the local set accordingly
     const owned = new Set(p.owned == null ? allNames : p.owned);
 
-    const wrap = el("details", { class: "gearcard" });
-    wrap.open = !!gearOpen[p.id];
+    const unset = !p.gear_confirmed;
+    const wrap = el("details", { class: "gearcard" + (unset ? " unset" : "") });
+    wrap.open = gearOpen[p.id] !== undefined ? gearOpen[p.id] : unset;
     wrap.ontoggle = () => { gearOpen[p.id] = wrap.open; };
-    wrap.appendChild(el("summary", {}, ["My gear — warbonds I own"]));
+    wrap.appendChild(el("summary", {}, [unset ? "Step 1 — set your gear (warbonds you own)" : "My gear — warbonds I own"]));
     const body = el("div", { class: "gearbody" });
     body.appendChild(el("div", { class: "hint", style: "margin-bottom:10px" }, ["Tell WARMIND which warbonds you own and it only builds loadouts you can actually equip. Stratagems aren't warbond gear — always available."]));
     wrap.appendChild(body);
@@ -600,6 +649,10 @@
         el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name]), seg]), items,
       ]));
     });
+    // one-tap confirm for divers who own it all (or as-shown)
+    const confirm = el("button", { class: "btn primary" }, [unset ? "Confirm — this is my gear" : "I own everything"]);
+    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
+    body.appendChild(el("div", { style: "margin-top:12px" }, [confirm]));
     return wrap;
   }
 
