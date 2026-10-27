@@ -9,17 +9,19 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import time
 
 from fastapi import FastAPI, Form, Header, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 import pathlib
 
 import db
 import vision
-from warmind import loader, oaths, stats
+from warmind import coverage, loader, oaths, stats
 from warmind.resolve import Player, Session, resolve_squad
 
 HERE = pathlib.Path(__file__).parent
@@ -48,6 +50,22 @@ def _owned_of(p) -> list | None:
         return v if isinstance(v, list) else None
     except Exception:
         return None
+
+
+def _style_phrase(p, snap) -> dict:
+    """The diver's style note as a translation key + params (the stored English
+    style_note stays as the fallback)."""
+    src, note = p.get("style_source") or "pending", p.get("style_note") or ""
+    if src == "screenshot" and snap:
+        return stats.classify_phrase(snap)
+    if src == "remembered":
+        m = re.search(r"\(([^)]+)\)", note)
+        return {"k": "note.restored", "p": {"when": m.group(1) if m else ""}}
+    if src == "manual":
+        return {"k": "note.chosen", "p": {}}
+    if note.startswith("Couldn't read"):
+        return {"k": "note.couldnt_read", "p": {}}
+    return {"k": "note.pick_style", "p": {}}
 
 
 def _conf_of(p) -> dict | None:
@@ -95,7 +113,7 @@ def _resolve(lobby) -> dict:
                          "vector": d.pressure.vector},
             "matrix": d.capability_matrix,
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
-            "swaps": d.swaps, "doctrine": d.doctrine,
+            "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
         }
 
     players_out = []
@@ -107,7 +125,7 @@ def _resolve(lobby) -> dict:
         players_out.append({
             "id": p["id"], "callsign": p["callsign"], "accent": ACCENTS[i % len(ACCENTS)],
             "play_style": p["play_style"], "style_source": p["style_source"],
-            "style_note": p["style_note"], "has_stats": bool(snap),
+            "style_note": p["style_note"], "style_note_i18n": _style_phrase(p, snap), "has_stats": bool(snap),
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
             "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
             "confidence": _conf_of(p),       # which read fields were double-read-verified
@@ -123,6 +141,7 @@ def _resolve(lobby) -> dict:
         "id": lobby["id"], "name": lobby["name"], "mission": mission,
         "players": players_out, "directive": directive,
         "squad_readout": stats.squad_readout(all_snaps),
+        "squad_readout_keys": stats.squad_readout_keys(all_snaps),
         "readiness": _readiness(lobby, players_rows, mission),
     }
 
@@ -152,8 +171,12 @@ def _assignment_dict(a):
         "role": a.role, "primary": a.primary, "secondary": a.secondary, "grenade": a.grenade,
         "armor": a.armor, "armor_weight": a.armor_weight, "armor_passive": a.armor_passive,
         "booster": a.booster, "stratagems": a.stratagems, "growth_slot": a.growth_slot,
-        "thin": a.thin, "rationale": a.rationale,
+        "thin": a.thin, "thin_axes": [_AXIS_CODE.get(t, t) for t in a.thin],
+        "rationale": a.rationale, "rationale_parts": a.rationale_parts,
     }
+
+
+_AXIS_CODE = {v: k for k, v in coverage.AXIS_LABEL.items()}  # "heavy armour" -> "at", for the client
 
 
 def _media_type(upload: UploadFile) -> str:
@@ -293,7 +316,8 @@ async def mission_prefill(lid: str, image: UploadFile = File(...), x_token: str 
     _require_creator(lobby, x_token)
     data = await image.read()
     try:
-        suggestion = vision.parse_mission(data, _media_type(image), [m["id"] for m in loader.missions().values()])
+        suggestion = await run_in_threadpool(vision.parse_mission, data, _media_type(image),
+                                             [m["id"] for m in loader.missions().values()])
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     return {"suggestion": suggestion}
@@ -313,7 +337,7 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
     vision_error, confidence = None, None
     if imgs:
         try:
-            parsed = vision.parse_career(imgs, mock_index=n_existing)
+            parsed = await run_in_threadpool(vision.parse_career, imgs, mock_index=n_existing)
             snapshot = parsed["snapshot"]
             play_style, note, source = parsed["play_style"], parsed["style_note"], "screenshot"
             parsed_call = parsed_call or parsed.get("callsign") or ""
@@ -387,7 +411,7 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
     if not imgs:
         raise HTTPException(400, "no screenshot provided")
     try:
-        parsed = vision.parse_career(imgs, mock_index=len(db.list_players(lid)))
+        parsed = await run_in_threadpool(vision.parse_career, imgs, mock_index=len(db.list_players(lid)))
     except Exception as e:
         # Player already has a spot; a failed re-read just reports back, no crash.
         return {"ok": False, "vision_error": str(e)}
@@ -402,7 +426,8 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/result")
-async def submit_result(lid: str, pid: str, image: UploadFile = File(...), x_token: str = Header(None)):
+async def submit_result(lid: str, pid: str, image: UploadFile = File(...), lang: str = Form("en"),
+                        x_token: str = Header(None)):
     p = _require_player(pid, x_token)
     lobby = db.get_lobby(lid)
     state = _resolve(lobby)
@@ -414,7 +439,7 @@ async def submit_result(lid: str, pid: str, image: UploadFile = File(...), x_tok
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
     data, mt = await image.read(), _media_type(image)
     try:
-        result = vision.read_result(data, mt)
+        result = await run_in_threadpool(vision.read_result, data, mt)
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     # the oath verdict is decided in code from the numbers, before any prose is written
@@ -423,7 +448,7 @@ async def submit_result(lid: str, pid: str, image: UploadFile = File(...), x_tok
         verdict["medal"] = oaths.medal(verdict, lobby_id=lid, player_id=pid, result=result,
                                        mode=mission.get("mode"))
     try:
-        aar = vision.write_aar(data, mt, result, ctx, verdict)
+        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdict, lang=lang)
     except Exception:
         # the numbers and verdict already stand; don't lose them over the prose call
         aar = vision._mock_oath_line(verdict) + "Review text unavailable — the scoreboard was read and recorded."
@@ -448,6 +473,12 @@ def index():
 def appjs():
     from fastapi.responses import Response
     return Response((HERE / "static" / "app.js").read_text(), media_type="application/javascript")
+
+
+@app.get("/i18n.js")
+def i18njs():
+    from fastapi.responses import Response
+    return Response((HERE / "static" / "i18n.js").read_text(), media_type="application/javascript")
 
 
 @app.get("/health")

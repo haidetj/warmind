@@ -85,6 +85,10 @@ def _normalize(images):
     for (b, mt) in images:
         try:
             im = Image.open(io.BytesIO(b))
+            if im.format == "JPEG" and max(im.size) <= MAX_EDGE:
+                out.append((b, "image/jpeg"))  # already small enough: don't re-encode
+                continue
+            im.draft("RGB", (MAX_EDGE, MAX_EDGE))  # JPEG: decode at reduced size, less memory
             im.load()
             if im.mode not in ("RGB", "L"):
                 im = im.convert("RGB")
@@ -172,6 +176,7 @@ def parse_career(images, mock_index: int = 0) -> dict:
         # (rate limit, timeout, unparseable reply) we keep the other with every field
         # marked unverified. Only when BOTH fail does the read fail.
         reads, errors = [], []
+        images = _normalize(images)  # once, not once per read
         with ThreadPoolExecutor(max_workers=2) as ex:
             for f in (ex.submit(_read_once, images), ex.submit(_read_once, images)):
                 try:
@@ -251,14 +256,23 @@ def _mock_oath_line(verdict: dict | None) -> str:
     return f"Oath unverified — {verdict['reason']} "
 
 
+LANG_NAMES = {"en": "English", "es": "Spanish", "pt": "Brazilian Portuguese", "fr": "French",
+              "de": "German", "it": "Italian", "pl": "Polish", "ru": "Russian", "ja": "Japanese",
+              "ko": "Korean", "zh": "Simplified Chinese"}
+
+
 def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
-              verdict: dict | None = None) -> str:
+              verdict: dict | None = None, lang: str = "en") -> str:
     """Grade the ADVICE against the player's role and career baseline (stoic), with the
-    oath verdict — already decided in code — woven in as citation or dressing-down."""
+    oath verdict — already decided in code — woven in as citation or dressing-down.
+    Written in the diver's chosen language; official item/stratagem names stay English."""
     if MOCK:
         return (_mock_oath_line(verdict) + "Mock review. Accuracy held above the career baseline and "
                 "the discipline rule was kept (zero accidentals). The role's signature metric moved the right way.")
+    language = LANG_NAMES.get(lang, "English")
     prompt = (
+        f"Write your entire reply in {language}. Keep official Helldivers 2 item, stratagem and "
+        "role names exactly as given (in English).\n\n"
         "You are WARMIND, a Helldivers 2 squad coach. Grade the ADVICE you gave, not the player. "
         "Tone: stoic, state the finding then the evidence, never moralise about K/D or friendly fire. "
         "Report rates against the career baseline, not raw totals. Two or three sentences.\n\n"
