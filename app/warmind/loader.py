@@ -65,9 +65,24 @@ def warbond_catalog() -> dict:
             if wb in _BASE:
                 continue
             groups.setdefault(wb, []).append({"name": name, "slot": _SLOT_LABEL[slot]})
-    warbonds = [{"name": wb, "items": sorted(groups[wb], key=lambda x: (x["slot"], x["name"]))}
-                for wb in sorted(groups)]
+    # one-off sources (events, pre-order, DLC, gifts) read better as one group
+    special = {wb for wb, its in groups.items() if wb != "Superstore" and
+               (len(its) <= 2 or any(k in wb for k in SPECIAL_HINTS))}
+    merged: dict[str, list] = {}
+    for wb, its in groups.items():
+        key = SPECIAL_GROUP if wb in special else wb
+        merged.setdefault(key, []).extend(dict(i, source=wb) if key == SPECIAL_GROUP else i for i in its)
+
+    def kind(wb):
+        return "special" if wb == SPECIAL_GROUP else "superstore" if wb == "Superstore" else "warbond"
+    order = {"warbond": 0, "superstore": 1, "special": 2}
+    warbonds = [{"name": wb, "kind": kind(wb), "items": sorted(merged[wb], key=lambda x: (x["slot"], x["name"]))}
+                for wb in sorted(merged, key=lambda w: (order[kind(w)], w))]
     return {"warbonds": warbonds, "map": flat}
+
+
+SPECIAL_GROUP = "Events & special unlocks"
+SPECIAL_HINTS = ("Liberty Day", "Pre-Order", "Super Citizen", "Anniversary", "Downloadable", "Gift")
 
 
 def kit_tag_vocabulary() -> set[str]:

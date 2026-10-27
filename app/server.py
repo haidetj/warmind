@@ -22,7 +22,7 @@ import pathlib
 
 import db
 import vision
-from warmind import coverage, loader, oaths, stats
+from warmind import coverage, kitrules, loader, oaths, stats
 from warmind.resolve import Player, Session, resolve_squad
 
 HERE = pathlib.Path(__file__).parent
@@ -82,6 +82,9 @@ def _conf_of(p) -> dict | None:
         return None
 
 
+_RULES = kitrules.rules()
+
+
 def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
@@ -120,6 +123,8 @@ def _resolve(lobby) -> dict:
             "matrix": d.capability_matrix,
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
             "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
+            # squad redundancy/impact review, each line carrying its research sources
+            "review": [dict(r, sources=_RULES.get(r["rule"], {}).get("sources", [])) for r in d.review],
         }
 
     players_out = []
@@ -237,6 +242,7 @@ def meta():
             "warbonds": loader.warbond_catalog()["warbonds"],
             "oaths": oaths.catalog(),
             "wiki": loader.wiki_map(),
+            "kit_rules": list(_RULES.values()),
             "vision": vision.status()}
 
 

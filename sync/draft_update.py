@@ -215,7 +215,7 @@ def _flow(v):
 
 
 ITEM_ORDER = ["name", "warbond", "slot", "category", "weight", "passive", "effect", "role_bias",
-              "strong", "coverage", "tags", "backpack", "grade"]
+              "strong", "coverage", "tags", "backpack", "expendable", "grade"]
 
 
 def item_line(section, e):

@@ -555,7 +555,7 @@
       btns.some.onclick = () => setSeg("some");
       const cnt = el("span", { class: "gs" }, [haveN + "/" + names.length]);
       items.addEventListener("change", () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; });
-      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name, " ", cnt]), seg]), items]));
+      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.kind === "special" ? t("gear.special") : w.name, " ", cnt]), seg]), items]));
     });
     const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
     confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
@@ -768,6 +768,24 @@
     }
     out.push(panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids));
 
+    // squad review: redundancy + impact, each line with its research sources
+    if (d.review && d.review.length) {
+      const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
+      const lines = el("ul", { class: "review" }, d.review.map(r => el("li", { class: r.status }, [
+        el("span", { class: "st" }, [r.status === "ok" ? "✓" : r.status === "fixed" ? "⟳" : "!"]),
+        el("span", { class: "tx" }, [
+          has(r.k) ? t(r.k, r.p) : r.k,
+          r.status === "fixed" ? tag("amber", t("rev.fixed")) : r.status === "gap" ? tag("red", t("rev.gap")) : null,
+          (r.sources || []).length ? el("span", { class: "src" }, [t("rev.sources") + ": "].concat(
+            r.sources.filter((u, i, a) => a.findIndex(x => host(x) === host(u)) === i)   // one link per site
+              .map((u, i) => el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? ", " : "") + host(u)])))) : null,
+        ]),
+      ])));
+      const fixed = d.review.some(r => r.status === "fixed"), gap = d.review.some(r => r.status === "gap");
+      out.push(panel(t("rev.pid"), t("rev.title"), { status: gap ? t("rev.gap") : fixed ? t("rev.fixed") : "OK", statusKind: gap ? "bad" : fixed ? "warn" : "ok" },
+        [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("rev.hint")]), lines, el("div", { class: "hint" }, [t("rev.rules")])]));
+    }
+
     // coordination
     const mtx = el("div", { class: "matrix" });
     ["at", "st", "ch", "bc"].forEach(ax => {
@@ -906,6 +924,16 @@
     g3.appendChild(el("div", { class: "gk" }, [t("gl.growth")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.growth.d")]));
     g3.appendChild(el("div", { class: "gk" }, [t("gl.thin")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.thin.d")]));
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.card")])); body.appendChild(g3);
+    // research sources behind the kit rules
+    const src = el("div", { class: "gloss" });
+    (META.kit_rules || []).forEach(r => {
+      src.appendChild(el("div", { class: "gk" }, [r.id.replace(/_/g, " ")]));
+      src.appendChild(el("div", { class: "gv" }, [r.rule, " ", el("span", { class: "src" }, (r.sources || []).map((u, i) =>
+        el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? " · " : "") + "[" + (i + 1) + "]"])))]));
+    });
+    body.appendChild(el("div", { class: "sub-h" }, [t("gl.sources")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d")]));
+    body.appendChild(src);
     return el("details", { class: "fold panel", style: "padding:0" }, [el("summary", {}, [t("gl.title")]), body]);
   }
 })();

@@ -16,7 +16,7 @@ import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import coverage, items as items_mod, loader as loader_mod, modes, pressure as pressure_mod, roles as roles_mod, scoring
+from . import coverage, items as items_mod, kitrules, loader as loader_mod, modes, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -81,6 +81,7 @@ class Directive:
     swaps: list = field(default_factory=list)
     doctrine: dict | None = None  # mission-type doctrine card (e.g. Commando), or None
     notes_i18n: list = field(default_factory=list)  # [{"k","p"}] parallel to notes
+    review: list = field(default_factory=list)  # squad redundancy/impact review: [{"k","p","rule","status"}]
 
 
 # ---------------------------------------------------------------- kit filling
@@ -99,7 +100,9 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         s += 0.4 * len(it.tags & pref_tags)
         if pref_cover and pref_cover in it.coverage:
             s += cover_weight
-        s -= 0.25 * squad_used.get(it.name, 0)
+        s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
+        if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
+            s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
         if session.seed:  # reroll: reshuffle near-ties only, never promote a clearly worse pick
             s += _jitter(it.name, session.seed, getattr(session, "_salt", ""))
         if s > fb_s:
@@ -133,22 +136,29 @@ _STATIC = {"sentry", "emplacement", "relay", "mine"}
 
 
 def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=None, no_static=False):
-    picks, taken, used_backpack = [], set(), False
+    """Fill the role's four stratagem slots under the kit rules (kitrules.diver_allows):
+    one held support weapon (+ one expendable beside it), one backpack-slot item, the
+    Eagle cap, a cap on statics. Squad-level redundancy (duplicate support weapons, a
+    second Supply Pack) is excluded outright; other duplicates are penalised in _pick."""
+    picks = []
+    squad_names = {n for n, c in squad_used.items() if c > 0}
+
+    def legal(cands, squad_rule=True):
+        return [c for c in cands if c.name not in {p.name for p in picks}
+                and kitrules.diver_allows(c, picks, role.name, no_static)
+                and not (squad_rule and kitrules.squad_excludes(c, squad_names, session))]
+
     for slot in (slots or role.slots):
-        cands = [s for s in pool.stratagems_in(slot) if s.name not in taken]
-        if used_backpack:
-            cands = [s for s in cands if not s.backpack]
-        choice = _pick(cands, session, pstyle, history, squad_used=squad_used)
-        if choice is None:  # slot categories exhausted — widen to any stratagem
-            have_support = any(x.category == "support" for x in picks)
-            wide = [s for s in pool.stratagems if s.name not in taken and not (used_backpack and s.backpack)
-                    and not (no_static and s.category in _STATIC)
-                    # commando: you carry one weapon — a second support call is wasted window time
-                    and not (no_static and have_support and s.category == "support")]
-            choice = _pick(wide, session, pstyle, history, squad_used=squad_used)
+        choice = _pick(legal(pool.stratagems_in(slot)), session, pstyle, history, squad_used=squad_used)
+        if choice is None:  # slot categories exhausted under the rules — widen to anything legal
+            choice = _pick(legal([s for s in pool.stratagems if s.category != "vehicle"]),
+                           session, pstyle, history, squad_used=squad_used)
+        if choice is None:  # pool exhausted (tiny ownership lists): a duplicate beats an empty slot
+            choice = _pick(legal([s for s in pool.stratagems if s.category != "vehicle"], squad_rule=False),
+                           session, pstyle, history, squad_used=squad_used)
+        if choice is None:
+            continue
         picks.append(choice)
-        taken.add(choice.name)
-        used_backpack = used_backpack or choice.backpack
     return picks
 
 
@@ -348,6 +358,15 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     assignments, kits_by_role = [], {}
     squad_used = Counter()
 
+    session._squad_n = len(players)
+    ctx = {}   # pid -> (pl, role, pstyle, hist, excluded)
+
+    def as_diver(pl):
+        session._excluded = ctx[pl.id][4]
+        session._salt = pl.id
+
+    # phase 1 — armour + stratagems for every diver, under the kit rules
+    phase = []
     for pl in players:
         role_key = role_map.get(pl.id)
         if role_key is None:
@@ -355,24 +374,39 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         role = roles_mod.ROLES[role_key]
         pstyle = roles_mod.play_style(pl.play_style)
         hist = set(history.get(pl.id, []))
-        session._excluded = _diver_excluded(pl)
-        session._salt = pl.id
-
+        ctx[pl.id] = (pl, role, pstyle, hist, _diver_excluded(pl))
+        as_diver(pl)
         # commando: no Heavy armor on a stealth op — cap at Medium
         weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight
         armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist)
-        primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref)
-        secondary = _pick(pool.secondaries, session, pstyle, hist)
-        grenade = _pick(pool.grenades, session, pstyle, hist,
-                        pref_cover=role.grenade_cover, cover_weight=0.9)
         strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
                                  slots=COMMANDO_SLOTS if commando else None, no_static=commando)
-
-        # armor counts toward coverage (Scout armour is a break-contact answer)
-        kit = [primary, secondary, grenade, armor] + strat
         for it in strat:
             squad_used[it.name] += 1
-        kits_by_role[role.name] = kit
+        phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "armor": armor, "strat": strat})
+
+    # phase 2 — squad review: redundancy + coverage floors (anti-tank depth, chaff, structures)
+    def review_pick(kit, cands):
+        pl, role, pstyle, hist, _ = ctx[kit["pid"]]
+        as_diver(pl)
+        return _pick(cands, session, pstyle, hist, squad_used=squad_used)
+    review = kitrules.review_squad(phase, pool, review_pick, session, commando)
+
+    # phase 3 — carried weapons complement the final stratagems: an anti-tank support
+    # weapon wants a chaff primary; no anti-tank support means the grenade brings it
+    for kit in phase:
+        pl, role, pstyle, hist, _ = ctx[kit["pid"]]
+        as_diver(pl)
+        strat, armor = kit["strat"], kit["armor"]
+        main = kitrules.main_support(strat)
+        has_at = bool(main and "at" in main.coverage) or any("at" in s.coverage for s in strat if s.category == "support")
+        primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
+                        pref_cover="ch" if has_at else None, cover_weight=0.4)
+        secondary = _pick(pool.secondaries, session, pstyle, hist)
+        grenade = _pick(pool.grenades, session, pstyle, hist,
+                        pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9)
+        # armor counts toward coverage (Scout armour is a break-contact answer)
+        kits_by_role[role.name] = [primary, secondary, grenade, armor] + strat
         assignments.append((pl, role, pstyle, primary, secondary, grenade, armor, strat))
 
     # coverage pass + rationale
@@ -405,7 +439,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         session=session, pressure=p, assignments=final,
         capability_matrix=matrix, loop=_loop(list(kits_by_role.keys())),
         cadence=_cadence(list(kits_by_role.keys())), reactive_role=reactive, notes=notes,
-        swaps=swaps, doctrine=doctrine,
+        swaps=swaps, doctrine=doctrine, review=review,
         notes_i18n=[{"k": n["k"], "p": n["p"]} for n in note_phrases],
     )
 

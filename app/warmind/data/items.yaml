@@ -36,6 +36,44 @@ primaries:
   - {name: "SG-225IE Breaker Incendiary", warbond: "Steeled Veterans",     coverage: [ch],      tags: [fire_kit, high_rof_ballistic, close_quarters], grade: {terminids: S, automatons: C, illuminate: B}}
   - {name: "R-40 Sightliner",                 warbond: "Scope of Authority", coverage: [],        tags: [marksman, ranged, light_pen],           grade: {terminids: C, automatons: A, illuminate: B}}
   - {name: "R/40-K Hot-Shot Marksman Rifle",  warbond: "Castellan's Creed", coverage: [],        tags: [marksman, ranged],                      grade: {terminids: C, automatons: B, illuminate: B}}
+  - {name: "AR-11 Arbitrator", warbond: "Ironclad Democracy", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-23A Liberator Carbine", warbond: "Viper Commandos", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-23L Liberator Legacy", warbond: "Liberty Day 2186", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-23P Liberator Penetrator", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-59 Suppressor", warbond: "Redacted Regiment", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-61 Tenderizer", warbond: "Polar Patriots", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "ARC-12 Blitzer", warbond: "Cutting Edge", coverage: [], tags: [energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "BR-14 Adjudicator", warbond: "Democratic Detonation", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "DBS-2 Double Freedom", warbond: Superstore, coverage: [ch], tags: [close_quarters, light_pen, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "FLAM-66 Torcher", warbond: "Freedom's Flame", coverage: [ch], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "GL-15 Evictor", warbond: "Ironclad Democracy", coverage: [ch, st], tags: [light_pen, strong_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-12 Sai", warbond: Superstore, coverage: [], tags: [ammo_independent, energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-13 Trident", warbond: "Siege Breakers", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-16 Sickle", warbond: "Cutting Edge", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-17 Double-Edge Sickle", warbond: "Servants of Freedom", coverage: [at], tags: [ammo_independent, energy, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M7S SMG", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M90A Shotgun", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MA5C Assault Rifle", warbond: "Halo: ODST", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MP-98 Knight", warbond: "Super Citizen Edition", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "PLAS-101 Purifier", warbond: "Polar Patriots", coverage: [ch, st], tags: [energy, light_pen, strong_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "PLAS-39 Accelerator Rifle", warbond: "Righteous Revenants", coverage: [ch, st], tags: [energy, light_pen, strong_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "R-2 Amendment", warbond: "Masters of Ceremony", coverage: [], tags: [marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "R-2124 Constitution", warbond: "Liberty Day", coverage: [], tags: [light_pen, marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "R-4 Hyena", warbond: "Celestial Fence", coverage: [ch], tags: [fire_kit, light_pen, marksman, ranged], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "R-6 Deadeye", warbond: "Borderline Justice", coverage: [], tags: [light_pen, marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "R-72 Censor", warbond: "Redacted Regiment", coverage: [], tags: [marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SG-20 Halt", warbond: "Truth Enforcers", coverage: [ch], tags: [close_quarters, light_pen, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SG-225SP Breaker Spray&Pray", coverage: [ch], tags: [close_quarters, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SG-451 Cookout", warbond: "Freedom's Flame", coverage: [ch], tags: [close_quarters, fire_kit, stagger_primary], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "SG-8P Punisher Plasma", warbond: "Cutting Edge", coverage: [ch, st], tags: [energy, strong_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SG-97 Sweeper", warbond: Superstore, coverage: [ch], tags: [close_quarters, light_pen, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SMG-203 Gallant", warbond: "Exo Experts", coverage: [ch], tags: [close_quarters, high_rof_ballistic, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SMG-32 Reprimand", warbond: "Truth Enforcers", coverage: [ch], tags: [close_quarters, high_rof_ballistic, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SMG-72 Pummeler", warbond: "Polar Patriots", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SMG/FLAM-34 Stoker", warbond: "Entrenched Division", coverage: [ch], tags: [close_quarters, fire_kit, high_rof_ballistic], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "StA-11 SMG", warbond: "Righteous Revenants", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "StA-52 Assault Rifle", warbond: "Righteous Revenants", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "VG-70 Variable", warbond: "Control Group", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
 
 secondaries:
   - {name: "P-2 Peacemaker",       coverage: [],   tags: [],                       grade: {terminids: C, automatons: C, illuminate: C}}
@@ -46,6 +84,24 @@ secondaries:
   - {name: "P-11 Stim Pistol", warbond: "Chemical Agents",     coverage: [],   tags: [],                       grade: {terminids: C, automatons: C, illuminate: C}}
   - {name: "P-44 Mist",            warbond: "Scope of Authority", coverage: [],   tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "P/40-K Bolt Pistol",   warbond: "Castellan's Creed", coverage: [],   tags: [],                                  grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-19 Stun Lance", warbond: "Urban Legends", coverage: [bc], tags: [close_quarters, light_pen, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-2 Saber", warbond: "Masters of Ceremony", coverage: [], tags: [close_quarters, light_pen, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-30 Stun Baton", warbond: Superstore, coverage: [bc], tags: [close_quarters, light_pen, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-42 Machete", warbond: Superstore, coverage: [], tags: [close_quarters, light_pen, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-5 Combat Hatchet", warbond: Superstore, coverage: [], tags: [close_quarters, light_pen, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-73 Entrenchment Tool", coverage: [], tags: [close_quarters, melee], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "GP-20 Ultimatum", warbond: "Servants of Freedom", coverage: [ch, st], tags: [explosive_secondary], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LAS-58 Talon", warbond: "Borderline Justice", coverage: [], tags: [ammo_independent, energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M6C/SOCOM Pistol", warbond: "Halo: ODST", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-19 Redeemer", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-33 Missile Pistol", warbond: "Exo Experts", coverage: [at, ch, st], tags: [explosive_secondary, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-34 Breacher", warbond: "Ironclad Democracy", coverage: [at, ch, st], tags: [explosive_secondary, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-35 Re-Educator", warbond: "Redacted Regiment", coverage: [at], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-69 Veto", warbond: "Entrenched Division", coverage: [], tags: [light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "P-72 Crisper", warbond: "Freedom's Flame", coverage: [ch], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "P-92 Warrant", warbond: Superstore, coverage: [], tags: [light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "PLAS-15 Loyalist", warbond: "Truth Enforcers", coverage: [ch, st], tags: [explosive_secondary, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SG-22 Bushwhacker", warbond: "Viper Commandos", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
 
 grenades:
   - {name: "G-6 Frag",              coverage: [ch],     tags: [],           grade: {terminids: B, automatons: B, illuminate: B}}
@@ -57,6 +113,21 @@ grenades:
   - {name: "G-23 Stun", warbond: "Cutting Edge",             coverage: [bc],     tags: [],           grade: {terminids: A, automatons: A, illuminate: A}}
   - {name: "G-11 Caltrops",         warbond: "Scope of Authority", coverage: [ch, bc], tags: [],          grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G/40-K Melta Mine",      warbond: "Castellan's Creed", coverage: [at],     tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-10 Incendiary", warbond: "Steeled Veterans", coverage: [ch, st], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "G-109 Urchin", warbond: "Force of Law", coverage: [bc], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-142 Pyrotech", warbond: "Masters of Ceremony", coverage: [ch, st], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "G-31 Arc", warbond: "Control Group", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-4 Gas", warbond: "Chemical Agents", coverage: [bc, ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-48 Giga Grenade", warbond: "Entrenched Division", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-50 Seeker", warbond: "Servants of Freedom", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-60 Anti-Tank Seeker", warbond: "Ironclad Democracy", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-7 Pineapple", warbond: "Dust Devils", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-8 Immolation", warbond: "Ironclad Democracy", coverage: [ch], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "G-89 Smokescreen", warbond: Superstore, coverage: [bc, ch, st], tags: [stealth], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G/SH-39 Shield", warbond: "Siege Breakers", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "K-2 Throwing Knife", warbond: "Viper Commandos", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "TED-63 Dynamite", warbond: "Borderline Justice", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "TM-1 Lure Mine", warbond: "Redacted Regiment", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
 
 stratagems:
   # --- support weapons ---
@@ -108,6 +179,62 @@ stratagems:
   - {name: "LAS-44 Nova",    warbond: "Scope of Authority", slot: stratagem, category: support, coverage: [],       tags: [support_weapon, energy, ammo_independent, marksman], backpack: false, grade: {terminids: C, automatons: B, illuminate: B}}
   - {name: "AMW-20 Apex",    warbond: "Scope of Authority", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, marksman], backpack: true,  grade: {terminids: B, automatons: A, illuminate: B}}
   - {name: "40-K Meltagun",  warbond: "Castellan's Creed", slot: stratagem, category: support, coverage: [at, st], tags: [support_weapon, heavy_pen, close_quarters], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "A/FLAM-40 Flame Sentry", warbond: "Urban Legends", slot: stratagem, category: sentry, coverage: [ch], tags: [fire_kit, sentry, static_position], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "A/GM-17 Gas Mortar Sentry", warbond: "Entrenched Division", slot: stratagem, category: sentry, coverage: [ch], tags: [sentry, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "A/LAS-98 Laser Sentry", warbond: "Control Group", slot: stratagem, category: sentry, coverage: [at], tags: [heavy_pen, sentry, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "A/M-23 EMS Mortar Sentry", slot: stratagem, category: sentry, coverage: [st], tags: [sentry, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "A/MLS-4X Rocket Sentry", slot: stratagem, category: sentry, coverage: [at, st], tags: [heavy_pen, sentry, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AX/AR-23 Guard Dog", slot: stratagem, category: backpack, coverage: [ch], tags: [guard_dog], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AX/ARC-3 K-9", warbond: "Force of Law", slot: stratagem, category: backpack, coverage: [at, ch], tags: [guard_dog, heavy_pen], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AX/FLAM-75 Hot Dog", warbond: "Python Commandos", slot: stratagem, category: backpack, coverage: [ch], tags: [fire_kit, guard_dog], backpack: true, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "AX/TX-13 Dog Breath", warbond: "Chemical Agents", slot: stratagem, category: backpack, coverage: [ch], tags: [guard_dog], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "B-100 Portable Hellbomb", warbond: "Servants of Freedom", slot: stratagem, category: backpack, coverage: [at, st], tags: [heavy_pen], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "E/AT-12 Anti-Tank Emplacement", warbond: "Urban Legends", slot: stratagem, category: emplacement, coverage: [at], tags: [heavy_pen, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "E/GL-21 Grenadier Battlement", slot: stratagem, category: emplacement, coverage: [ch, st], tags: [light_pen, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "EXO-45 Patriot Exosuit", slot: stratagem, category: vehicle, coverage: [at, st], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "EXO-49 Emancipator Exosuit", slot: stratagem, category: vehicle, coverage: [at, st], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "EXO-51 Lumberer Exosuit", warbond: "Exo Experts", slot: stratagem, category: vehicle, coverage: [at, ch, st], tags: [fire_kit, heavy_pen], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "EXO-55 Breakthrough Exosuit", warbond: "Exo Experts", slot: stratagem, category: vehicle, coverage: [at], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Eagle Fly By", warbond: "Liberty Day 2026", slot: stratagem, category: eagle, coverage: [], tags: [eagle], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Eagle Gas Airstrike", warbond: "Counterdissident Hammer", slot: stratagem, category: eagle, coverage: [ch, st], tags: [eagle], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Eagle Strafing Run", slot: stratagem, category: eagle, coverage: [at], tags: [eagle, heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LIFT-182 Warp Pack", warbond: "Control Group", slot: stratagem, category: backpack, coverage: [bc], tags: [jump_pack, mobility], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "LIFT-860 Hover Pack", warbond: "Borderline Justice", slot: stratagem, category: backpack, coverage: [bc], tags: [jump_pack, mobility], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M-102 Gunner FRV", slot: stratagem, category: vehicle, coverage: [at], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M-103 Supply FRV", slot: stratagem, category: vehicle, coverage: [], tags: [], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M-104 Incinerator FRV", slot: stratagem, category: vehicle, coverage: [ch], tags: [fire_kit], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "MD-17 Anti-Tank Mines", slot: stratagem, category: mine, coverage: [at, ch, st], tags: [heavy_pen, static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MD-8 Gas Mines", slot: stratagem, category: mine, coverage: [ch, st], tags: [static_position], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Orbital 120mm HE Barrage", slot: stratagem, category: orbital, coverage: [at, ch, st], tags: [heavy_pen, orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Orbital 380mm HE Barrage", slot: stratagem, category: orbital, coverage: [at, ch, st], tags: [heavy_pen, orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Orbital Airburst Strike", slot: stratagem, category: orbital, coverage: [ch, st], tags: [orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "Orbital Confetti", warbond: "Liberty Day 2026", slot: stratagem, category: orbital, coverage: [], tags: [orbital], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SH-20 Ballistic Shield Backpack", slot: stratagem, category: backpack, coverage: [bc], tags: [shield_pack], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "SH-51 Directional Shield", warbond: "Urban Legends", slot: stratagem, category: backpack, coverage: [bc], tags: [shield_pack], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "TD-110 Maelstrom", warbond: "Armored Eagle", slot: stratagem, category: vehicle, coverage: [at], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "TD-220 Bastion MK XVI", slot: stratagem, category: vehicle, coverage: [at, st], tags: [heavy_pen], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "APW-1 Anti-Materiel Rifle", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "ARC-3 Arc Thrower", slot: stratagem, category: support, coverage: [at, ch], tags: [energy, heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "B/FLAM-80 Cremator", warbond: "Entrenched Division", slot: stratagem, category: support, coverage: [ch], tags: [fire_kit, support_weapon], backpack: true, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "B/MD C4 Pack", warbond: "Redacted Regiment", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-1 One True Flag", warbond: "Masters of Ceremony", slot: stratagem, category: support, coverage: [ch], tags: [light_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-20 Breaching Hammer", warbond: "Siege Breakers", slot: stratagem, category: support, coverage: [at, st], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "CQC-9 Defoliation Tool", warbond: "Python Commandos", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "EAT-411 Leveller", warbond: "Siege Breakers", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: false, expendable: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "EAT-700 Expendable Napalm", warbond: "Dust Devils", slot: stratagem, category: support, coverage: [ch], tags: [fire_kit, support_weapon], backpack: false, expendable: true, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "FLAM-40 Flamethrower", slot: stratagem, category: support, coverage: [ch], tags: [fire_kit, support_weapon], backpack: false, grade: {terminids: B, automatons: C, illuminate: B}}
+  - {name: "GL-28 Belt-Fed Grenade Launcher", warbond: "Siege Breakers", slot: stratagem, category: support, coverage: [at, st], tags: [heavy_pen, support_weapon], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "GL-52 De-Escalator", warbond: "Force of Law", slot: stratagem, category: support, coverage: [at, ch, st], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M-1000 Maxigun", warbond: "Python Commandos", slot: stratagem, category: support, coverage: [ch], tags: [light_pen, support_weapon], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MG-206 Heavy Machine Gun", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MGX-42 Bullet Storm", warbond: "Exo Experts", slot: stratagem, category: support, coverage: [], tags: [support_weapon], backpack: false, expendable: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "MS-11 Solo Silo", warbond: "Dust Devils", slot: stratagem, category: support, coverage: [at, st], tags: [heavy_pen, support_weapon], backpack: false, expendable: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "PLAS-45 Epoch", warbond: "Control Group", slot: stratagem, category: support, coverage: [at, st], tags: [energy, heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "RL-77 Airburst Rocket Launcher", slot: stratagem, category: support, coverage: [ch], tags: [light_pen, support_weapon], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "RS-422 Railgun", slot: stratagem, category: support, coverage: [at], tags: [energy, heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "S-11 Speargun", warbond: "Dust Devils", slot: stratagem, category: support, coverage: [at, ch], tags: [heavy_pen, support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "StA-X3 W.A.S.P. Launcher", slot: stratagem, category: support, coverage: [at], tags: [heavy_pen, support_weapon], backpack: true, grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "TX-41 Sterilizer", warbond: "Chemical Agents", slot: stratagem, category: support, coverage: [ch], tags: [support_weapon], backpack: false, grade: {terminids: B, automatons: B, illuminate: B}}
 
 # Armor: weight is fixed by role; the set is a substitute the player may own.
 # tags map the passive into the kit space; coverage bc for Scout (stealth breaks contact).
@@ -128,6 +255,103 @@ armor:
   - {name: "SS-15 Focal Point",     warbond: "Scope of Authority", weight: Medium, passive: "Stationary Shroud", coverage: [bc], tags: [stealth]}
   - {name: "TG-8 Sharpshooter",     warbond: "Castellan's Creed", weight: Medium, passive: "True Grit",         coverage: [],   tags: []}
   - {name: "TG-122 Demo-Trooper",   warbond: "Castellan's Creed", weight: Heavy,  passive: "True Grit",         coverage: [],   tags: []}
+  - {name: "A-35 Recon", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [], tags: []}
+  - {name: "A-9 Helljumper", warbond: "Halo: ODST", weight: Medium, passive: "Feet First", coverage: [], tags: []}
+  - {name: "AC-1 Dutiful", warbond: "Righteous Revenants", weight: Medium, passive: Acclimated, coverage: [], tags: []}
+  - {name: "AC-2 Obedient", warbond: "Righteous Revenants", weight: Light, passive: Acclimated, coverage: [], tags: [light_armor]}
+  - {name: "AD-11 Livewire", warbond: Superstore, weight: Light, passive: "Adreno-Defibrillator", coverage: [], tags: [light_armor]}
+  - {name: "AD-26 Bleeding Edge", warbond: "Control Group", weight: Medium, passive: "Adreno-Defibrillator", coverage: [], tags: []}
+  - {name: "AD-49 Apollonian", warbond: "Control Group", weight: Heavy, passive: "Adreno-Defibrillator", coverage: [], tags: []}
+  - {name: "AF-02 Haz-Master", warbond: "Chemical Agents", weight: Medium, passive: "Advanced Filtration", coverage: [], tags: []}
+  - {name: "AF-50 Noxious Ranger", warbond: "Chemical Agents", weight: Light, passive: "Advanced Filtration", coverage: [], tags: [light_armor]}
+  - {name: "AF-52 Lockdown", warbond: Superstore, weight: Heavy, passive: "Advanced Filtration", coverage: [], tags: []}
+  - {name: "AF-91 Field Chemist", warbond: Superstore, weight: Medium, passive: "Advanced Filtration", coverage: [], tags: []}
+  - {name: "B-08 Light Gunner", warbond: Superstore, weight: Light, passive: "Extra Padding", coverage: [], tags: [light_armor]}
+  - {name: "B-22 Model Citizen", warbond: "Anniversary Gift", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
+  - {name: "B-24 Enforcer", warbond: Superstore, weight: Medium, passive: Fortified, coverage: [], tags: [static_position]}
+  - {name: "B-27 Fortified Commando", warbond: Superstore, weight: Heavy, passive: "Extra Padding", coverage: [], tags: []}
+  - {name: "BFM-16 Tanker", warbond: "Ironclad Democracy", weight: Light, passive: "Blunt-Force Mitigation", coverage: [], tags: [light_armor]}
+  - {name: "BFM-220 Ironclad", warbond: "Ironclad Democracy", weight: Heavy, passive: "Blunt-Force Mitigation", coverage: [], tags: []}
+  - {name: "BFM-77 Reformer", warbond: Superstore, weight: Medium, passive: "Blunt-Force Mitigation", coverage: [], tags: []}
+  - {name: "BP-20 Correct Officer", warbond: "Force of Law", weight: Medium, passive: "Ballistic Padding", coverage: [], tags: []}
+  - {name: "BP-32 Jackboot", warbond: "Force of Law", weight: Light, passive: "Ballistic Padding", coverage: [], tags: [light_armor]}
+  - {name: "BP-77 Grand Juror", warbond: Superstore, weight: Heavy, passive: "Ballistic Padding", coverage: [], tags: []}
+  - {name: "CE-07 Demolition Specialist", warbond: "Democratic Detonation", weight: Light, passive: "Engineering Kit", coverage: [], tags: [light_armor]}
+  - {name: "CE-101 Guerilla Gorilla", warbond: Superstore, weight: Heavy, passive: "Engineering Kit", coverage: [], tags: []}
+  - {name: "CE-64 Grenadier", warbond: Superstore, weight: Heavy, passive: "Engineering Kit", coverage: [], tags: []}
+  - {name: "CE-67 Titan", warbond: Superstore, weight: Light, passive: "Engineering Kit", coverage: [], tags: [light_armor]}
+  - {name: "CE-74 Breaker", warbond: Superstore, weight: Light, passive: "Engineering Kit", coverage: [], tags: [light_armor]}
+  - {name: "CE-81 Juggernaut", warbond: Superstore, weight: Medium, passive: "Engineering Kit", coverage: [], tags: []}
+  - {name: "CM-09 Bonesnapper", weight: Medium, passive: "Med-Kit", coverage: [], tags: []}
+  - {name: "CM-10 Clinician", warbond: Superstore, weight: Medium, passive: "Med-Kit", coverage: [], tags: []}
+  - {name: "CM-17 Butcher", warbond: Superstore, weight: Heavy, passive: "Med-Kit", coverage: [], tags: []}
+  - {name: "CM-21 Trench Paramedic", warbond: Superstore, weight: Light, passive: "Med-Kit", coverage: [], tags: [light_armor]}
+  - {name: "CPG-48 Sapper", warbond: "Entrenched Division", weight: Medium, passive: "Concussive Padding, Grenadier", coverage: [], tags: []}
+  - {name: "CPH-26 Commandant", warbond: "Entrenched Division", weight: Light, passive: "Concussive Padding, Hazmat", coverage: [], tags: [light_armor]}
+  - {name: "CPR-80 Bulwark", warbond: Superstore, weight: Heavy, passive: "Concussive Padding, Reinforced", coverage: [], tags: []}
+  - {name: "CW-22 Kodiak", warbond: "Polar Patriots", weight: Heavy, passive: Fortified, coverage: [], tags: [static_position]}
+  - {name: "CW-36 Winter Warrior", warbond: "Polar Patriots", weight: Heavy, passive: "Servo-Assisted", coverage: [], tags: [mobility]}
+  - {name: "CW-4 Arctic Ranger", warbond: "Polar Patriots", weight: Light, passive: Scout, coverage: [bc], tags: [light_armor, mobility, radar_booster, stealth]}
+  - {name: "CW-9 White Wolf", warbond: Superstore, weight: Medium, passive: "Extra Padding", coverage: [], tags: []}
+  - {name: "DP-00 Tactical", warbond: "Liberty Day", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
+  - {name: "DP-11 Champion of the People", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
+  - {name: "DP-53 Savior of the Free", warbond: "Super Citizen Edition", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
+  - {name: "DP-8 Mountain-Scaled", warbond: Superstore, weight: Medium, passive: "Siege-Ready", coverage: [], tags: [sustain_fire]}
+  - {name: "DS-10 Big Game Hunter", warbond: Superstore, weight: Light, passive: "Desert Stormer", coverage: [], tags: [light_armor]}
+  - {name: "DS-191 Scorpion", warbond: "Dust Devils", weight: Medium, passive: "Desert Stormer", coverage: [], tags: []}
+  - {name: "DS-42 Federation's Blade", warbond: "Dust Devils", weight: Heavy, passive: "Desert Stormer", coverage: [], tags: []}
+  - {name: "EX-00 Prototype X", warbond: "Cutting Edge", weight: Light, passive: "Electrical Conduit", coverage: [], tags: [light_armor]}
+  - {name: "EX-03 Prototype 3", warbond: "Cutting Edge", weight: Medium, passive: "Electrical Conduit", coverage: [], tags: []}
+  - {name: "EX-16 Prototype 16", warbond: "Cutting Edge", weight: Medium, passive: "Electrical Conduit", coverage: [], tags: []}
+  - {name: "FS-05 Marksman", weight: Heavy, passive: Fortified, coverage: [], tags: [static_position]}
+  - {name: "FS-11 Executioner", warbond: Superstore, weight: Heavy, passive: Fortified, coverage: [], tags: [static_position]}
+  - {name: "FS-34 Exterminator", warbond: Superstore, weight: Medium, passive: Fortified, coverage: [], tags: [static_position]}
+  - {name: "FS-37 Ravager", warbond: Superstore, weight: Light, passive: "Engineering Kit", coverage: [], tags: [light_armor]}
+  - {name: "FS-38 Eradicator", warbond: Superstore, weight: Light, passive: Fortified, coverage: [], tags: [light_armor, static_position]}
+  - {name: "FS-61 Dreadnought", warbond: Superstore, weight: Heavy, passive: "Servo-Assisted", coverage: [], tags: [mobility]}
+  - {name: "GS-11 Democracy's Deputy", warbond: Superstore, weight: Light, passive: Gunslinger, coverage: [], tags: [light_armor]}
+  - {name: "GS-17 Frontier Marshal", warbond: "Borderline Justice", weight: Medium, passive: Gunslinger, coverage: [], tags: []}
+  - {name: "GS-66 Lawmaker", warbond: "Borderline Justice", weight: Heavy, passive: Gunslinger, coverage: [], tags: []}
+  - {name: "I-09 Heatseeker", warbond: "Freedom's Flame", weight: Light, passive: Inflammable, coverage: [], tags: [fire_resist_armor, light_armor]}
+  - {name: "I-102 Draconaught", warbond: "Freedom's Flame", weight: Medium, passive: Inflammable, coverage: [], tags: [fire_resist_armor]}
+  - {name: "I-44 Salamander", warbond: Superstore, weight: Heavy, passive: Inflammable, coverage: [], tags: [fire_resist_armor]}
+  - {name: "I-92 Fire Fighter", warbond: Superstore, weight: Medium, passive: Inflammable, coverage: [], tags: [fire_resist_armor]}
+  - {name: "IE-12 Righteous", warbond: "Servants of Freedom", weight: Medium, passive: "Integrated Explosives", coverage: [], tags: []}
+  - {name: "IE-3 Martyr", warbond: "Servants of Freedom", weight: Medium, passive: "Integrated Explosives", coverage: [], tags: []}
+  - {name: "IE-57 Hell-Bent", warbond: Superstore, weight: Light, passive: "Integrated Explosives", coverage: [], tags: [light_armor]}
+  - {name: "KDM-500 Outrider", warbond: "Permanent Enclosure", weight: Heavy, passive: "Kinetic Displacement Mitigation", coverage: [], tags: []}
+  - {name: "O-2 Heavy Operator", warbond: "Exo Experts", weight: Heavy, passive: Oxygenator, coverage: [], tags: []}
+  - {name: "O-3 Free Spirit", warbond: "Exo Experts", weight: Light, passive: Oxygenator, coverage: [], tags: [light_armor]}
+  - {name: "O-44 Bonded Pilot", warbond: Superstore, weight: Medium, passive: Oxygenator, coverage: [], tags: []}
+  - {name: "PH-202 Twigsnapper", warbond: "Viper Commandos", weight: Heavy, passive: "Peak Physique", coverage: [], tags: [mobility]}
+  - {name: "PH-56 Jaguar", warbond: Superstore, weight: Medium, passive: "Peak Physique", coverage: [], tags: [mobility]}
+  - {name: "PH-9 Predator", warbond: "Viper Commandos", weight: Light, passive: "Peak Physique", coverage: [], tags: [light_armor, mobility]}
+  - {name: "RE-1861 Parade Commander", warbond: "Masters of Ceremony", weight: Light, passive: "Reinforced Epaulettes", coverage: [], tags: [light_armor]}
+  - {name: "RE-2310 Honorary Guard", warbond: "Masters of Ceremony", weight: Medium, passive: "Reinforced Epaulettes", coverage: [], tags: []}
+  - {name: "RE-824 Bearer of the Standard", warbond: Superstore, weight: Heavy, passive: "Reinforced Epaulettes", coverage: [], tags: []}
+  - {name: "RS-100 Sanctioner", warbond: Superstore, weight: Light, passive: "Reduced Signature", coverage: [bc], tags: [light_armor, stealth]}
+  - {name: "RS-20 Constrictor", warbond: "Python Commandos", weight: Light, passive: "Rock Solid", coverage: [], tags: [light_armor]}
+  - {name: "RS-40 Beast of Prey", warbond: "Python Commandos", weight: Heavy, passive: "Rock Solid", coverage: [], tags: []}
+  - {name: "RS-6 Fiend Destroyer", warbond: Superstore, weight: Medium, passive: "Rock Solid", coverage: [], tags: []}
+  - {name: "RS-67 Null Cipher", warbond: "Redacted Regiment", weight: Medium, passive: "Reduced Signature", coverage: [bc], tags: [stealth]}
+  - {name: "RS-89 Shadow Paragon", warbond: "Redacted Regiment", weight: Light, passive: "Reduced Signature", coverage: [bc], tags: [light_armor, stealth]}
+  - {name: "SA-04 Combat Technician", weight: Medium, passive: Scout, coverage: [bc], tags: [mobility, radar_booster, stealth]}
+  - {name: "SA-32 Dynamo", warbond: "Steeled Veterans", weight: Heavy, passive: "Servo-Assisted", coverage: [], tags: [mobility]}
+  - {name: "SA-7 Headfirst", warbond: "Siege Breakers", weight: Medium, passive: "Supplemental Adrenaline", coverage: [], tags: []}
+  - {name: "SA-8 Ram", warbond: "Siege Breakers", weight: Heavy, passive: "Supplemental Adrenaline", coverage: [], tags: []}
+  - {name: "SC-15 Drone Master", warbond: Superstore, weight: Medium, passive: "Engineering Kit", coverage: [], tags: []}
+  - {name: "SR-18 Roadblock", warbond: "Urban Legends", weight: Heavy, passive: "Siege-Ready", coverage: [], tags: [sustain_fire]}
+  - {name: "SR-24 Street Scout", warbond: "Urban Legends", weight: Light, passive: "Siege-Ready", coverage: [], tags: [light_armor, sustain_fire]}
+  - {name: "SR-64 Cinderblock", warbond: Superstore, weight: Heavy, passive: "Siege-Ready", coverage: [], tags: [sustain_fire]}
+  - {name: "SS-500 Pale Prosecutor", warbond: Superstore, weight: Light, passive: "Stationary Shroud", coverage: [bc], tags: [light_armor, stealth]}
+  - {name: "TR-117 Alpha Commander", warbond: "Downloadable Content", weight: Medium, passive: "Med-Kit", coverage: [], tags: []}
+  - {name: "TR-40 Gold Eagle", warbond: "Escalation of Freedom", weight: Medium, passive: "Extra Padding", coverage: [], tags: []}
+  - {name: "TR-62 Knight", warbond: "Pre-Order Bonus", weight: Heavy, passive: "Servo-Assisted", coverage: [], tags: [mobility]}
+  - {name: "TR-7 Ambassador of the Brand", warbond: "Pre-Order Bonus", weight: Medium, passive: "Extra Padding", coverage: [], tags: []}
+  - {name: "TR-9 Cavalier of Democracy", warbond: "Pre-Order Bonus", weight: Medium, passive: "Democracy Protects", coverage: [], tags: []}
+  - {name: "UF-16 Inspector", warbond: "Truth Enforcers", weight: Light, passive: Unflinching, coverage: [], tags: [light_armor]}
+  - {name: "UF-50 Bloodhound", warbond: "Truth Enforcers", weight: Medium, passive: Unflinching, coverage: [], tags: []}
+  - {name: "UF-84 Doubt Killer", warbond: Superstore, weight: Medium, passive: Unflinching, coverage: [], tags: []}
 
 # Boosters: chosen for four-unique-per-squad. role_bias steers who carries which.
 boosters:
@@ -145,3 +369,9 @@ boosters:
   - {name: "Dead Sprint", warbond: "Truth Enforcers",                effect: "Sprint at the cost of health",                role_bias: forward,   strong: false}
   - {name: "Sample Scanner", warbond: "Masters of Ceremony",             effect: "Marks nearby samples on the map",             role_bias: forward,   strong: false}
   - {name: "Stun Pods", warbond: "Force of Law",                  effect: "Reinforce pods stun on landing",              role_bias: hammer,    strong: false}
+  - {name: "Armed Resupply Pods", warbond: "Urban Legends", effect: "Mounts a modified AR-23 Liberator to all resupply pods, allowing them ", role_bias: any, strong: false}
+  - {name: "Concealed Insertion", warbond: "Redacted Regiment", effect: "Equips Hellpods to deploy smokescreens on impact, obscuring Helldiver ", role_bias: any, strong: false}
+  - {name: "Expert Extraction Pilot", warbond: "Democratic Detonation", effect: "Lowers the time it takes for the extraction shuttle to reach the extra", role_bias: any, strong: false}
+  - {name: "Integrated Extinguishers", warbond: "Ironclad Democracy", effect: "Equips Helldiver uniforms with form-fitting, automated, rapid-response", role_bias: any, strong: false}
+  - {name: "Sample Extricator", warbond: "Borderline Justice", effect: "Large enemies now have a chance of dropping Samples on death", role_bias: any, strong: false}
+  - {name: "Surplus EAT Allocation", warbond: "Ironclad Democracy", effect: "Grants two free uses of the Expendable Anti-Tank (EAT) Stratagem per m", role_bias: any, strong: false}

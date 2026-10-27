@@ -1,0 +1,150 @@
+# Generated from the 2026-10-27 strategy research (sync/research notes). Edit freely; ids are referenced in code.
+_about: Loadout rules the resolver enforces (hard) or scores (soft), with the research behind each. Researched 2026-10-27
+  against patch 7.2.0 guides and the wiki; re-check after balance patches.
+rules:
+- id: max_one_support_held
+  scope: diver
+  rule: A diver can hold only one support weapon; picking up another (incl. an expendable) drops the current one.
+    Never give a diver two non-expendable support-category stratagems.
+  sources:
+  - https://github.com/Th3chef/Expendable-Carry
+  - https://ayakamods.com/mods/expendable-carry.5092/
+  - https://game8.co/games/Helldivers-2/archives/446094
+- id: second_support_only_if_expendable
+  scope: diver
+  rule: A second support-category stratagem is allowed only if it is expendable (EAT-17, Commando) AND the first
+    is a different non-expendable weapon. Two expendables on one diver is redundant.
+  sources:
+  - https://helldivers.wiki.gg/wiki/EAT-17_Expendable_Anti-Tank
+  - https://helldivers.wiki.gg/wiki/MLS-4X_Commando
+  - https://primagames.com/tips/helldivers-2-is-the-eat-17-or-recoilless-rifle-better
+- id: max_one_backpack_slot
+  scope: diver
+  rule: One backpack per diver. Any item with backpack:true (backpack-fed support weapons AND backpack-category
+    stratagems) counts against it; at most one such item per diver.
+  sources:
+  - https://u.gg/hd2/tier-list/helldivers-2-backpack-stratagem-tier-list
+  - https://www.gfinityesports.com/guides/helldivers-2-jump-pack
+  - https://game8.co/games/Helldivers-2/archives/446094
+- id: expendable_needs_a_main
+  scope: diver
+  rule: An expendable (EAT/Commando) as a diver's ONLY support weapon is acceptable but weak on long missions —
+    prefer pairing it with a sustained support weapon, or give it to a diver whose role is strike-heavy.
+  sources:
+  - https://helldivers.wiki.gg/wiki/EAT-17_Expendable_Anti-Tank
+- id: eagle_soft_cap
+  scope: diver
+  rule: All of a diver's Eagles share one rearm (150 s base, ~120 s upgraded, 108 s if recalled early); while rearming
+    none are usable. Soft cap 2 Eagles per diver; 3 only on a dedicated strike role and flagged; 4 never.
+  sources:
+  - https://helldivers.wiki.gg/zh/wiki/Eagle_Rearm
+  - https://afkgaming.com/gaming/general/what-is-eagle-rearm-and-how-does-it-work-in-helldivers-2
+  - https://steamcommunity.com/app/553850/discussions/0/4302697675601568860
+  - https://steamcommunity.com/app/553850/discussions/0/4339851902701308524
+- id: default_kit_shape
+  scope: diver
+  rule: 'Default diver shape: 1 support weapon + 1 backpack (or, if the support is backpack-fed, a 2nd offensive
+    pick instead) + 2 offensive/defensive stratagems.'
+  sources:
+  - https://game8.co/games/Helldivers-2/archives/446094
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+- id: needs_sustained_damage
+  scope: diver
+  rule: 'Every diver should have at least one sustained (non-cooldown) damage source beyond the primary: a non-expendable
+    support weapon, or a sentry/emplacement on static missions. A kit of only strikes (no support weapon) is permitted
+    only for a dedicated strike role and only if the primary is strong_primary.'
+  sources:
+  - https://game8.co/games/Helldivers-2/archives/446094
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+- id: armor_split_primary_vs_support
+  scope: diver
+  rule: 'Primary and support should cover different axes: if the support weapon has no ''at'', the diver needs ''at''
+    from grenade (G-123 Thermite, G/40-K Meltamine), a strike, or a squadmate; if the support is AT, prefer a ''ch''
+    primary.'
+  sources:
+  - https://timesaver.gg/blog/helldivers-2-best-terminid-loadout
+  - https://timesaver.gg/blog/helldivers-2-best-automaton-loadout
+- id: orbital_laser_limited
+  scope: diver
+  rule: Orbital Laser has 3 uses per mission (300 s cooldown) — don't count it as repeatable AT/ch coverage on long
+    missions; never two per squad.
+  sources:
+  - https://helldivers.wiki.gg/wiki/Orbital_Laser
+- id: backpack_fed_reload_any_teammate
+  scope: diver
+  rule: Since 7.0.0 assisted reload works if EITHER shooter or helper wears the backpack. A backpack-fed AT gunner
+    does not need a dedicated loader slot; any adjacent teammate can speed reloads. RR self-reload is slow; AC self-reload
+    is fast if a round stays chambered.
+  sources:
+  - https://u.gg/hd2/news/helldivers-2-adds-necromorphs-level-300-and-new-seaf-units-in-patch-7-0
+  - https://fandomwire.com/helldivers-2-7-0-weapon-stratagem-changes-explained/
+  - https://playday.one/2026/08/12/helldivers-2-update-full-patch-notes/
+- id: no_duplicate_support_weapon
+  scope: squad
+  rule: 'No two divers carry the same support weapon (exception: EAT-17 on extreme-armour missions).'
+  sources:
+  - https://tacticalgamehub.com/blog/helldivers-2-best-loadouts-squad
+  - https://pwm-pro.com/blog/post/helldivers-2-squad-cooperation-guide-best-team-strategies-for-missions
+- id: no_duplicate_stratagem_default
+  scope: squad
+  rule: 'Duplicate stratagem names across the squad are redundancy by default (16 slots shared). Allowed stacks:
+    FX-12 Shield Generator Relay vs automatons; sentries on objective_defense/fixed_location; EAT-17 on anti_heavy.'
+  sources:
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+  - https://steamcommunity.com/app/553850/discussions/0/4298194451988409845
+- id: one_supply_pack
+  scope: squad
+  rule: Exactly zero or one B-1 Supply Pack per squad (4 shareable boxes, 480 s cooldown). Recommend one for 4-player
+    squads with a backpack-fed or ammo-hungry support weapon.
+  sources:
+  - https://helldivers.wiki.gg/wiki/B-1_Supply_Pack
+  - https://www.switchbladegaming.com/helldivers-2/beginners-guide-20/
+- id: at_depth
+  scope: squad
+  rule: 'Anti-tank depth: 4-player squad needs >=2 divers whose support weapon has ''at'' (heavy_pen), plus >=1
+    ''at'' strike (Eagle 500kg Bomb, Orbital Railcannon Strike, Orbital Precision Strike, Orbital Laser, Eagle 110mm
+    Rocket Pods). 2-3 players: >=1 ''at'' support + >=1 other ''at'' source. Super Helldive: AT diver carries two
+    ''at'' stratagems.'
+  sources:
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+  - https://www.game-rack.com/en/articles/en-helldivers-2-terminid-team-loadouts-1157
+  - https://neonsect.com/helldivers-2/helldivers-2-super-helldive-guide/
+- id: chaff_floor
+  scope: squad
+  rule: At least one (2-3 players) / two (4 players) independent 'ch' stratagem sources across the squad (ch support
+    weapon, ch sentry, cluster/napalm/gas/gatling/airstrike).
+  sources:
+  - https://pwm-pro.com/blog/post/helldivers-2-squad-cooperation-guide-best-team-strategies-for-missions
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+- id: structure_floor
+  scope: squad
+  rule: At least two 'st' sources in a 4-player squad (one for 2-3) — bug holes/nests, fabricators, jammers, AA
+    emplacements, gunship facilities. Raise to three under structure_demo/hole_closing.
+  sources:
+  - https://helldivers.wiki.gg/wiki/Anti-Air_Emplacement
+  - https://helldivers.wiki.gg/wiki/Strategem_jammer
+- id: small_squad_self_sufficiency
+  scope: squad
+  rule: 'In 1-3 player squads prefer AT that does not need a buddy: LAS-99 Quasar Cannon, EAT-17, AC-8 Autocannon
+    over GR-8 Recoilless Rifle / FAF-14 Spear. Each diver should hold at least one ''at'' answer.'
+  sources:
+  - https://timesaver.gg/blog/helldivers-2-best-terminid-loadout
+- id: role_spread
+  scope: squad
+  rule: 'Spread roles: no more than two divers in the same role; four distinct roles preferred (anti-armour, support,
+    crowd control, flex/scout).'
+  sources:
+  - https://www.switchbladegaming.com/helldivers-2/best-team-compositions/
+  - https://www.switchbladegaming.com/helldivers-2/beginners-guide-20/
+  - https://bittopup.com/article/helldivers-2-best-loadouts-super-helldive-2026
+- id: jump_pack_cost
+  scope: squad
+  rule: Each Jump Pack diver cannot carry backpack-fed AT; with >=2 Jump Packs re-check at_depth.
+  sources:
+  - https://u.gg/hd2/tier-list/helldivers-2-backpack-stratagem-tier-list
+- id: eagles_per_diver_not_shared
+  scope: squad
+  rule: Treat each diver's Eagle-1 as independent (own Super Destroyer); squad Eagle duplicates are redundancy,
+    not a shared-resource conflict.
+  sources:
+  - https://helldivers.wiki.gg/wiki/Eagle
