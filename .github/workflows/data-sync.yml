@@ -110,10 +110,19 @@ jobs:
         run: |
           if [ -n "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY: present"; else echo "ANTHROPIC_API_KEY: MISSING"; fi
           pip install --quiet anthropic pyyaml
+          # facts first: pull the wiki catalog and import any wiki items we don't have yet
+          python3 sync/verify_wiki.py --catalog
+          python3 sync/import_wiki_items.py | tee /tmp/import.txt
           if [ -n "$REQUEUE" ]; then
             python3 -c "import json,sys; p='sync/state.json'; s=json.load(open(p)); s['pending']=sorted(set(s['pending'])|{sys.argv[1]}); json.dump(s,open(p,'w'),indent=2)" "$REQUEUE"
           fi
           python3 sync/draft_update.py
+          # gate the draft on the wiki facts (bot-opened PRs don't trigger data-verify)
+          { echo; echo "### Wiki import"; cat /tmp/import.txt; echo; python3 sync/verify_wiki.py --offline || true; } > /tmp/verify.md
+          if [ -f sync/.draft_summary.md ]; then cat /tmp/verify.md >> sync/.draft_summary.md
+          elif ! git diff --quiet -- app/warmind/data; then
+            { echo "Wiki import found new items (no pending patch)."; cat /tmp/verify.md; } > sync/.draft_summary.md
+          fi
       - name: Push branch + open draft PR
         if: steps.open.outputs.count == '0'
         env: { GH_TOKEN: "${{ github.token }}" }
@@ -131,7 +140,7 @@ jobs:
           git config user.email "actions@github.com"
           git checkout -b "$BRANCH"
           cp sync/.draft_summary.md /tmp/body.md && rm sync/.draft_summary.md
-          git add app/warmind/data sync/state.json
+          git add app/warmind/data sync/state.json sync/wiki_catalog.json
           { echo "data-sync: seed update for pending HD2 patches"; echo; cat /tmp/body.md; } > /tmp/msg.md
           git commit -F /tmp/msg.md
           for i in 1 2 3 4; do git push -u origin "$BRANCH" && break || { echo "retry $i"; sleep $((2**i)); }; done

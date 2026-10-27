@@ -82,6 +82,8 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN squad_size INTEGER")
         if "briefed" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN briefed INTEGER DEFAULT 0")
+        if "reroll" not in lcols:
+            c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
         if "verdict_json" not in rcols:
             c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
@@ -135,6 +137,12 @@ def set_briefed(lobby_id, briefed: bool):
     with _lock, _conn() as c:
         c.execute("UPDATE lobby SET briefed=?, updated_at=? WHERE id=?",
                   (1 if briefed else 0, time.time(), lobby_id))
+
+
+def bump_reroll(lobby_id) -> int:
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET reroll=COALESCE(reroll,0)+1, updated_at=? WHERE id=?", (time.time(), lobby_id))
+        return c.execute("SELECT reroll FROM lobby WHERE id=?", (lobby_id,)).fetchone()["reroll"]
 
 
 def set_confidence(pid, confidence):

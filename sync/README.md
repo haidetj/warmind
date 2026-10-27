@@ -44,10 +44,26 @@ Actions tab: **data-sync → Run workflow**.
 
 `data-sync-pr.yml` still turns any manually pushed `data-sync/*` branch into a PR.
 
+### 4. Wiki fact check (every data change, weekly, and inside the daily draft)
+`verify_wiki.py` pulls every item page from helldivers.wiki.gg (MediaWiki API, on
+the Actions runner) into `wiki_catalog.json` and checks each item's **facts**
+against its infobox: section, warbond source, armour weight and passive,
+stratagem type, backpack, expendable. Any mismatch fails `data-verify`. Facts are
+never hand-typed: `import_wiki_items.py` adds wiki items we don't have yet with
+the wiki's facts and conservative editorial defaults (coverage/tags from the
+wiki's traits, grade B), which humans or research can refine. Our editorial
+fields (tags, coverage, grades) are the only judgment calls in the data.
+
+Loadout rules (one support weapon in hand, backpack slot, Eagle cap, squad
+redundancy and coverage floors) live in `app/warmind/data/kit_rules.yaml` with
+their sources; the long-form research is `docs/loadout-research.md`.
+
 ## Files
 - `validate_data.py` — the consistency gate
 - `patch_watch.py` — the Steam patch-feed watcher
 - `draft_update.py` — drafts the sourced seed update for pending patches
+- `verify_wiki.py` — wiki fact check (and `--catalog` to refresh `wiki_catalog.json`)
+- `import_wiki_items.py` — adds wiki items we don't have, with wiki facts
 - `state.json` — `pending` (gids awaiting a data update), `last_seen_*` (watcher), `processed_gid` (newest patch handled by a merged update)
 - `patches/` — one notes file per detected patch, the source of truth for the update
 - `latest_patch.md` — the newest patch notes, for humans skimming the repo

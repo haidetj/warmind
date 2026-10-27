@@ -118,6 +118,8 @@
       el("div", { class: "ph" }, [el("span", { class: "pid" }, [pid]), el("span", { class: "pt" }, [title]), ps]),
     ].concat(kids || []));
   }
+  // item name -> wiki link (opens a new tab), so any diver can double-check a pick
+  const wk = name => { const u = META && META.wiki && META.wiki[name]; return u ? el("a", { class: "wk", href: u, target: "_blank", rel: "noopener" }, [name]) : name; };
   const tag = (cls, text, title) => el("span", { class: "tag " + (cls || ""), title: title }, [text]);
   const fileBtn = (cls, text, multiple) => el("label", { class: "btn filebtn " + (cls || "") }, [text, el("input", { type: "file", accept: "image/*", multiple: multiple ? "" : null })]);
 
@@ -253,8 +255,21 @@
     }
     const sig = JSON.stringify(s);
     if (sig === lastSig && STATE) return;   // nothing changed: leave the page (and any open folds) alone
+    if (STATE) announce(STATE, s);
     lastSig = sig; STATE = s;
     try { liveRoot ? renderLive() : render(); } catch (e) { console.error("WARMIND render failed:", e); }
+  }
+  // what changed since the last poll that someone else did — divers in, mission edits, loadouts landing
+  function announce(prev, next) {
+    const me = meRec(), had = new Set(prev.players.map(p => p.id));
+    const fresh = next.players.filter(p => !had.has(p.id) && !(me && me.id === p.id)).map(p => p.callsign);
+    const msgs = [];
+    if (fresh.length) msgs.push(t("toast.diver_in", { list: fresh.join(", ") }));
+    if (JSON.stringify(prev.mission) !== JSON.stringify(next.mission) && prev.mission)
+      msgs.push(next.directive ? t("toast.mission_changed") : t("toast.mission_changed.plain"));
+    else if (!prev.directive && next.directive) msgs.push(t("toast.loadouts_ready"));
+    else if ((prev.reroll || 0) !== (next.reroll || 0)) msgs.push(t("toast.rerolled"));
+    if (msgs.length) toast(msgs.join(" · "));
   }
   async function refresh() { STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive(); }
 
@@ -423,16 +438,16 @@
       kids.push(el("div", { class: "readout-q" }, [t("readout.prefix", { list: STATE.squad_readout_keys.map(k => t("ro." + k)).join("; ") })]));
     else if (STATE.squad_readout) kids.push(el("div", { class: "readout-q" }, [STATE.squad_readout]));
     if (r.final) kids.push(el("div", { class: "hint" }, [r.ready ? t("rdy.final.ready") : t("rdy.final.early")]));
-    else if (STATE.directive) {
-      kids.push(el("div", { class: "hint" }, [t("rdy.prov")]));
-      if (isCreator() && r.joined > 0) {
-        const b = el("button", { class: "btn", type: "button" }, [t("rdy.brief")]);
+    else {
+      kids.push(el("div", { class: "hint" }, [t("rdy.hold")]));
+      if (isCreator() && r.joined > 0 && r.mission_set) {
+        const b = el("button", { class: "btn", type: "button" }, [t("rdy.generate")]);
         b.onclick = async () => {
           if (busy) return; busy = true; b.disabled = true;
-          try { STATE = await jpost("/api/lobby/" + LID + "/brief", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("rdy.briefed")); }
+          try { STATE = await jpost("/api/lobby/" + LID + "/brief", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("rdy.generated")); }
           catch (e) { toast(e.message); b.disabled = false; } finally { busy = false; }
         };
-        kids.push(el("div", { class: "btnrow" }, [b]));
+        kids.push(el("div", { class: "btnrow" }, [b]), el("div", { class: "hint" }, [t("rdy.generate.hint")]));
       }
     }
     return panel(t("man.pid"), t("man.title"), { status: r.final ? t("rdy.briefed") : t("rdy.status.wait"), statusKind: r.final ? "ok" : "warn" }, kids);
@@ -532,13 +547,15 @@
       w.items.forEach(i => {
         const cb = el("input", { type: "checkbox" }); cb.checked = owned.has(i.name);
         cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); save(); };
-        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [i.name]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
+        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [wk(i.name)]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
       });
       const setSeg = v => { ["all", "some", "none"].forEach(k => { btns[k].classList.toggle("on", k === v); btns[k].setAttribute("aria-pressed", String(k === v)); }); items.style.display = v === "some" ? "grid" : "none"; };
       btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
       btns.none.onclick = () => { names.forEach(n => owned.delete(n)); setSeg("none"); save(); };
       btns.some.onclick = () => setSeg("some");
-      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.name]), seg]), items]));
+      const cnt = el("span", { class: "gs" }, [haveN + "/" + names.length]);
+      items.addEventListener("change", () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; });
+      body.appendChild(el("div", { class: "gearrow" }, [el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [w.kind === "special" ? t("gear.special") : w.name, " ", cnt]), seg]), items]));
     });
     const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
     confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; save(); };
@@ -574,6 +591,8 @@
       ro(t("mis.mode"), t("mode." + m.mode), m.mode === "d100" ? "d100" : ""),
       ro(t("mis.oath"), oath),
       mods.length ? ro(t("mis.mods"), mods.join(" · "), "wide") : null,
+      (m.planet_hazards || []).length ? ro(t("mis.hazards"), m.planet_hazards.map(id => ((META.hazards || []).find(h => h.id === id) || { name: id }).name).join(" · "), "wide") : null,
+      (m.tactical_objectives || []).length ? ro(t("mis.tacticals"), m.tactical_objectives.map(id => ((META.tacticals || []).find(x => x.id === id) || { name: id }).name).join(" · "), "wide") : null,
     ]));
   }
 
@@ -609,8 +628,9 @@
       else { if (!list.some(x => x.id === draft.mission_id)) draft.mission_id = list[0].id; list.forEach(x => misSel.appendChild(el("option", { value: x.id }, [x.name]))); misSel.value = draft.mission_id; }
     }
     fillMissions();
-    facSel.onchange = () => { draft.faction = facSel.value; fillMissions(); };
-    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); };
+    let fillTacticals = () => {};
+    facSel.onchange = () => { draft.faction = facSel.value; fillMissions(); fillTacticals(); };
+    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); };
     misSel.onchange = () => { draft.mission_id = misSel.value; };
     body.appendChild(el("div", { class: "blk grid2" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "m-fac" }, [t("mis.faction")]), facSel]),
@@ -631,6 +651,31 @@
       ops.appendChild(c);
     });
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops]));
+
+    // planet hazards + tactical objectives: both feed the mission pressure
+    const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };
+    const haz = el("div", { class: "chips" });
+    (META.hazards || []).forEach(h => {
+      const c = el("button", { type: "button", class: "chip", "aria-pressed": String(draft.planet_hazards.indexOf(h.id) >= 0) }, [h.name]);
+      c.onclick = () => toggle(draft.planet_hazards, h.id, c);
+      haz.appendChild(c);
+    });
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.hazards.label")]), haz]));
+    const tac = el("div", { class: "chips" });
+    fillTacticals = () => {
+      tac.innerHTML = "";
+      const dv = parseInt(diffSel.value, 10);
+      const list = (META.tacticals || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin && dv <= x.dmax);
+      draft.tactical_objectives = draft.tactical_objectives.filter(id => list.some(x => x.id === id));   // drop ones this map can't have
+      if (!list.length) tac.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("mis.tacticals.none")]));
+      list.forEach(x => {
+        const c = el("button", { type: "button", class: "chip", "aria-pressed": String(draft.tactical_objectives.indexOf(x.id) >= 0) }, [x.name]);
+        c.onclick = () => toggle(draft.tactical_objectives, x.id, c);
+        tac.appendChild(c);
+      });
+    };
+    fillTacticals();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.tacticals.label")]), tac, el("div", { class: "hint" }, [t("mis.vars.hint")])]));
 
     // oath
     const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
@@ -664,7 +709,7 @@
         const s = r.suggestion || {};
         if (s.faction) { facSel.value = s.faction; draft.faction = s.faction; }
         if (s.difficulty) { diffSel.value = s.difficulty; draft.difficulty = s.difficulty; }
-        fillMissions();
+        fillMissions(); fillTacticals();
         toast(s.note ? s.note : t("mis.prefilled"));
       } catch (e) { toast(e.message); } finally { lockControls([prefill, save], false); busy = false; }
     };
@@ -676,9 +721,10 @@
   // ----------------------------------------------------------------- 03: briefing
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
-    if (!d) return [el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];
+    if (!d) return [r.mission_set
+      ? el("div", { class: "alert" }, [el("b", {}, [t("brief.hold.t")]), t("brief.hold")])
+      : el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];
     const out = [];
-    if (!r.final) out.push(el("div", { class: "alert" }, [el("b", {}, [t("brief.prov.t")]), t("rdy.prov")]));
 
     // the read
     const pr = el("div", { class: "pressure" }, ((d.pressure && d.pressure.top) || []).map(([k, v]) =>
@@ -709,8 +755,36 @@
 
     // loadouts
     const roster = el("div", { class: "roster" }); const me = meRec();
-    STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, !r.final)));
-    out.push(panel(t("roster.pid"), t("roster.title"), { status: r.final ? t("rdy.briefed") : t("brief.prov"), statusKind: r.final ? "ok" : "warn" }, [roster]));
+    STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false)));
+    const rkids = [roster];
+    if (isCreator()) {
+      const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
+      rb.onclick = async () => {
+        if (busy) return; busy = true; rb.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled")); }
+        catch (e) { toast(e.message); } finally { busy = false; rb.disabled = false; }
+      };
+      rkids.push(el("div", { class: "btnrow" }, [rb]), el("div", { class: "hint" }, [t("roster.reroll.hint")]));
+    }
+    out.push(panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids));
+
+    // squad review: redundancy + impact, each line with its research sources
+    if (d.review && d.review.length) {
+      const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return u; } };
+      const lines = el("ul", { class: "review" }, d.review.map(r => el("li", { class: r.status }, [
+        el("span", { class: "st" }, [r.status === "ok" ? "✓" : r.status === "fixed" ? "⟳" : "!"]),
+        el("span", { class: "tx" }, [
+          has(r.k) ? t(r.k, r.p) : r.k,
+          r.status === "fixed" ? tag("amber", t("rev.fixed")) : r.status === "gap" ? tag("red", t("rev.gap")) : null,
+          (r.sources || []).length ? el("span", { class: "src" }, [t("rev.sources") + ": "].concat(
+            r.sources.filter((u, i, a) => a.findIndex(x => host(x) === host(u)) === i)   // one link per site
+              .map((u, i) => el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? ", " : "") + host(u)])))) : null,
+        ]),
+      ])));
+      const fixed = d.review.some(r => r.status === "fixed"), gap = d.review.some(r => r.status === "gap");
+      out.push(panel(t("rev.pid"), t("rev.title"), { status: gap ? t("rev.gap") : fixed ? t("rev.fixed") : "OK", statusKind: gap ? "bad" : fixed ? "warn" : "ok" },
+        [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("rev.hint")]), lines, el("div", { class: "hint" }, [t("rev.rules")])]));
+    }
 
     // coordination
     const mtx = el("div", { class: "matrix" });
@@ -755,14 +829,14 @@
     if (!a) return card;
     const kit = el("ul", { class: "kit" });
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
-    kit.appendChild(row("card.primary", a.primary));
-    kit.appendChild(row("card.secondary", a.secondary));
-    kit.appendChild(row("card.grenade", a.grenade));
-    kit.appendChild(row("card.armor", a.armor, (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive));
-    kit.appendChild(row("card.booster", a.booster));
+    kit.appendChild(row("card.primary", wk(a.primary)));
+    kit.appendChild(row("card.secondary", wk(a.secondary)));
+    kit.appendChild(row("card.grenade", wk(a.grenade)));
+    kit.appendChild(row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive));
+    kit.appendChild(row("card.booster", wk(a.booster)));
     (a.stratagems || []).forEach((s, i) => kit.appendChild(el("li", {}, [
       el("span", { class: "sl" }, [i === 0 ? t("card.strats") : ""]),
-      el("span", { class: "vv" }, [s, s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
+      el("span", { class: "vv" }, [wk(s), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
     ])));
     card.appendChild(kit);
     const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
@@ -850,6 +924,16 @@
     g3.appendChild(el("div", { class: "gk" }, [t("gl.growth")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.growth.d")]));
     g3.appendChild(el("div", { class: "gk" }, [t("gl.thin")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.thin.d")]));
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.card")])); body.appendChild(g3);
+    // research sources behind the kit rules
+    const src = el("div", { class: "gloss" });
+    (META.kit_rules || []).forEach(r => {
+      src.appendChild(el("div", { class: "gk" }, [r.id.replace(/_/g, " ")]));
+      src.appendChild(el("div", { class: "gv" }, [r.rule, " ", el("span", { class: "src" }, (r.sources || []).map((u, i) =>
+        el("a", { href: u, target: "_blank", rel: "noopener" }, [(i ? " · " : "") + "[" + (i + 1) + "]"])))]));
+    });
+    body.appendChild(el("div", { class: "sub-h" }, [t("gl.sources")]));
+    body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d")]));
+    body.appendChild(src);
     return el("details", { class: "fold panel", style: "padding:0" }, [el("summary", {}, [t("gl.title")]), body]);
   }
 })();

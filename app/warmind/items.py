@@ -31,6 +31,7 @@ class Item:
     weight: str = ""                # armor only
     passive: str = ""               # armor only
     warbond: str = ""               # source warbond; "" / "Helldivers Mobilize" = base (always owned)
+    expendable: bool = False        # single-use support weapon (EAT, Commando): pairs with a real one
 
     def base_grade(self, faction: str) -> float:
         return GRADE_SCALE.get(self.grade.get(faction, "C"), -0.2)
@@ -48,6 +49,7 @@ def _mk(rec: dict, slot: str) -> Item:
         weight=rec.get("weight", ""),
         passive=rec.get("passive", ""),
         warbond=rec.get("warbond", ""),
+        expendable=bool(rec.get("expendable", False)),
     )
 
 
@@ -81,7 +83,10 @@ class Pool:
         return self._by_name.get(name)
 
     def stratagems_in(self, categories: set[str]) -> list[Item]:
-        return [s for s in self.stratagems if s.category in categories]
+        """Stratagems in any of `categories`; the pseudo-category "expendable" means
+        single-use support weapons (EAT, Commando)."""
+        return [s for s in self.stratagems if s.category in categories
+                or ("expendable" in categories and s.expendable)]
 
     def armor_of_weight(self, weight: str) -> list[Item]:
         return [a for a in self.armor if a.weight == weight]

@@ -30,7 +30,8 @@ ROLES: dict[str, Role] = {
         name="HARDPOINT",
         signature=frozenset({"static_position", "sentry", "shield_pack", "sustain_fire"}),
         armor_weight="Heavy",
-        slots=({"relay"}, {"sentry"}, {"sentry", "emplacement"}, {"sentry", "emplacement", "mine"}),
+        # a carried support weapon, then the killzone (static cap 3 — see kitrules)
+        slots=({"support"}, {"relay", "sentry"}, {"sentry", "emplacement"}, {"sentry", "emplacement", "mine"}),
         primary_pref=frozenset({"stagger_primary", "close_quarters"}),
         grenade_cover="ch",
         reactive=False,
@@ -40,7 +41,8 @@ ROLES: dict[str, Role] = {
         name="HAMMER",
         signature=frozenset({"heavy_pen", "support_weapon"}),
         armor_weight="Medium",
-        slots=({"support"}, {"support"}, {"eagle", "orbital"}, {"orbital", "eagle"}),
+        # one held support weapon; the second slot is an expendable beside it or a backpack
+        slots=({"support"}, {"expendable", "backpack"}, {"eagle", "orbital"}, {"orbital", "eagle"}),
         primary_pref=frozenset({"strong_primary"}),
         grenade_cover="at",
         reactive=True,

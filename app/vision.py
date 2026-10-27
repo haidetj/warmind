@@ -258,7 +258,9 @@ def _mock_oath_line(verdict: dict | None) -> str:
 
 LANG_NAMES = {"en": "English", "es": "Spanish", "pt": "Brazilian Portuguese", "fr": "French",
               "de": "German", "it": "Italian", "pl": "Polish", "ru": "Russian", "ja": "Japanese",
-              "ko": "Korean", "zh": "Simplified Chinese"}
+              "ko": "Korean", "zh": "Simplified Chinese", "hu": "Hungarian", "sv": "Swedish",
+              "nl": "Dutch", "tl": "Tagalog (natural Filipino gamer Taglish is fine)",
+              "pirate": "English written in playful pirate speak (arr, matey, ye) — still clear and precise"}
 
 
 def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
