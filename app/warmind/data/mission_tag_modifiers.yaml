@@ -154,10 +154,36 @@ objective_defense:
 
 # ---------------- constraints ----------------
 
+commando_op:
+  description: >
+    Commando Operations (Automaton-only). Stratagems can only be called while the
+    Super Destroyer is in low orbit — two 60-second windows per mission, opened by
+    its own call-in stratagem — so every stratagem is planned, not reactive. Kit
+    you call once and carry all mission (support weapons, backpacks) beats strikes
+    that need re-calls; a single high-impact strike on the objective still earns a
+    slot. Threat rises permanently with every enemy reinforcement call, so stealth
+    and mobility beat firepower. Reinforcement is from 4 pods (3 each), not stratagems.
+    Sources: helldivers.wiki.gg/wiki/Commando_Missions, Fandom Operations, GamesRadar
+    and FandomWire Commando guides (verified 2026-10-27).
+  modifiers:
+    support_weapon: +0.70
+    ammo_independent: +0.60
+    backpack_sustain: +0.40
+    strong_primary: +0.50
+    mobility: +0.40
+    light_armor: +0.30
+    stealth: +0.70
+    eagle: -0.30
+    orbital: -0.30
+    sentry: -0.70
+    static_position: -0.60
+
 no_stratagem_support:
   description: >
-    Commando operations and Stratagem Jammer radii. Stratagems are unavailable or
+    Stratagem Jammer radii and similar dead zones. Stratagems are unavailable or
     unreliable. Same inversion as Ion Storms — what you carry is what you have.
+    (Commando Operations are NOT this: they have two Super Destroyer windows —
+    see commando_op.)
   modifiers:
     support_weapon: +0.80
     strong_primary: +0.60

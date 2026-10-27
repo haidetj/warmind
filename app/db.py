@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -51,6 +52,15 @@ CREATE TABLE IF NOT EXISTS result (
   aar_text TEXT,
   created_at REAL
 );
+CREATE TABLE IF NOT EXISTS callsign_stats (
+  callsign_key TEXT PRIMARY KEY,
+  callsign TEXT,
+  snapshot_json TEXT,
+  confidence_json TEXT,
+  play_style TEXT,
+  style_note TEXT,
+  updated_at REAL
+);
 CREATE INDEX IF NOT EXISTS idx_player_lobby ON player(lobby_id);
 CREATE INDEX IF NOT EXISTS idx_result_player ON result(player_id);
 """
@@ -83,6 +93,42 @@ def set_owned(pid, owned):
     with _lock, _conn() as c:
         c.execute("UPDATE player SET owned_json=?, gear_confirmed=1, updated_at=? WHERE id=?",
                   (json.dumps(owned) if owned is not None else None, time.time(), pid))
+
+
+_GENERIC_CALLSIGN = re.compile(r"^diver\s*\d+$")
+
+
+def callsign_key(callsign: str | None) -> str | None:
+    """Normalized key for remembering stats across lobbies, or None for blank /
+    generic placeholder names ("Diver 3") that would collide across strangers.
+    Callsigns are NOT authenticated — this is a best-effort convenience."""
+    k = " ".join((callsign or "").strip().lower().split())
+    if not k or _GENERIC_CALLSIGN.match(k):
+        return None
+    return k
+
+
+def remember_callsign(callsign, snapshot, confidence, play_style, style_note):
+    k = callsign_key(callsign)
+    if not k or not snapshot:
+        return
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO callsign_stats(callsign_key,callsign,snapshot_json,confidence_json,play_style,"
+                  "style_note,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(callsign_key) DO UPDATE SET "
+                  "callsign=excluded.callsign, snapshot_json=excluded.snapshot_json, "
+                  "confidence_json=excluded.confidence_json, play_style=excluded.play_style, "
+                  "style_note=excluded.style_note, updated_at=excluded.updated_at",
+                  (k, callsign.strip(), json.dumps(snapshot), json.dumps(confidence) if confidence else None,
+                   play_style, style_note, time.time()))
+
+
+def recall_callsign(callsign):
+    k = callsign_key(callsign)
+    if not k:
+        return None
+    with _lock, _conn() as c:
+        row = c.execute("SELECT * FROM callsign_stats WHERE callsign_key=?", (k,)).fetchone()
+        return dict(row) if row else None
 
 
 def set_briefed(lobby_id, briefed: bool):

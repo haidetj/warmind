@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import time
 
 from fastapi import FastAPI, Form, Header, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -94,7 +95,7 @@ def _resolve(lobby) -> dict:
                          "vector": d.pressure.vector},
             "matrix": d.capability_matrix,
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
-            "swaps": d.swaps,
+            "swaps": d.swaps, "doctrine": d.doctrine,
         }
 
     players_out = []
@@ -322,12 +323,26 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
             # Join them with a pending style and let them pick one or retry.
             vision_error = str(e)
             note = "Couldn't read that screenshot — pick your style or try another shot."
+    restored = False
+    if snapshot is None and not vision_error and parsed_call:
+        # returning diver, no new screenshot: restore their last read by callsign
+        mem = db.recall_callsign(parsed_call)
+        if mem and mem.get("snapshot_json"):
+            snapshot = json.loads(mem["snapshot_json"])
+            play_style = mem.get("play_style") or stats.classify(snapshot)[0]
+            when = time.strftime("%b %d", time.gmtime(mem.get("updated_at") or time.time()))
+            note, source, restored = (f"Restored your last stat read ({when}) by callsign — re-upload to refresh.",
+                                      "remembered", True)
+            confidence = json.loads(mem["confidence_json"]) if mem.get("confidence_json") else None
     callsign_final = parsed_call or f"Diver {n_existing + 1}"
     db.add_or_update_player(pid, lid, token, callsign_final, play_style, source, note, snapshot)
     if confidence:
         db.set_confidence(pid, confidence)
+    if source == "screenshot":
+        db.remember_callsign(callsign_final, snapshot, confidence, play_style, note)
     return {"player_id": pid, "player_token": token, "play_style": play_style,
-            "style_note": note, "style_source": source, "vision_error": vision_error}
+            "style_note": note, "style_source": source, "vision_error": vision_error,
+            "restored": restored}
 
 
 def _require_player(pid, token):
@@ -376,9 +391,12 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
     except Exception as e:
         # Player already has a spot; a failed re-read just reports back, no crash.
         return {"ok": False, "vision_error": str(e)}
-    db.add_or_update_player(pid, lid, p["token"], parsed.get("callsign") or p["callsign"],
+    callsign_final = parsed.get("callsign") or p["callsign"]
+    db.add_or_update_player(pid, lid, p["token"], callsign_final,
                             parsed["play_style"], "screenshot", parsed["style_note"], parsed["snapshot"])
     db.set_confidence(pid, parsed.get("confidence"))
+    db.remember_callsign(callsign_final, parsed["snapshot"], parsed.get("confidence"),
+                         parsed["play_style"], parsed["style_note"])
     return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"],
             "validity": parsed["validity"], "confidence": parsed.get("confidence")}
 
