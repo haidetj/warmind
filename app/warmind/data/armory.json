@@ -1,0 +1,1061 @@
+{
+ "40-K Meltagun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "A-35 Recon": {
+  "group": "Medium"
+ },
+ "A-9 Helljumper": {
+  "group": "Medium"
+ },
+ "A/AC-8 Autocannon Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/ARC-3 Tesla Tower": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/FLAM-40 Flame Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/G-16 Gatling Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/GM-17 Gas Mortar Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/LAS-98 Laser Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/M-12 Mortar Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/M-23 EMS Mortar Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/MG-43 Machine Gun Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "A/MLS-4X Rocket Sentry": {
+  "group": "Sentries",
+  "permit": "Defensive"
+ },
+ "AC-1 Dutiful": {
+  "group": "Medium"
+ },
+ "AC-2 Obedient": {
+  "group": "Light"
+ },
+ "AC-8 Autocannon": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "AD-11 Livewire": {
+  "group": "Light"
+ },
+ "AD-26 Bleeding Edge": {
+  "group": "Medium"
+ },
+ "AD-49 Apollonian": {
+  "group": "Heavy"
+ },
+ "AF-02 Haz-Master": {
+  "group": "Medium"
+ },
+ "AF-50 Noxious Ranger": {
+  "group": "Light"
+ },
+ "AF-52 Lockdown": {
+  "group": "Heavy"
+ },
+ "AF-91 Field Chemist": {
+  "group": "Medium"
+ },
+ "AMW-20 Apex": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "APW-1 Anti-Materiel Rifle": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "AR-11 Arbitrator": {
+  "group": "Assault Rifles"
+ },
+ "AR-23 Liberator": {
+  "group": "Assault Rifles"
+ },
+ "AR-23A Liberator Carbine": {
+  "group": "Assault Rifles"
+ },
+ "AR-23C Liberator Concussive": {
+  "group": "Assault Rifles"
+ },
+ "AR-23L Liberator Legacy": {
+  "group": "Assault Rifles"
+ },
+ "AR-23P Liberator Penetrator": {
+  "group": "Assault Rifles"
+ },
+ "AR-59 Suppressor": {
+  "group": "Assault Rifles"
+ },
+ "AR-61 Tenderizer": {
+  "group": "Assault Rifles"
+ },
+ "ARC-12 Blitzer": {
+  "group": "Energy-Based"
+ },
+ "ARC-3 Arc Thrower": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "AX/AR-23 Guard Dog": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "AX/ARC-3 K-9": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "AX/FLAM-75 Hot Dog": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "AX/LAS-5 Rover": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "AX/TX-13 Dog Breath": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "Armed Resupply Pods": {},
+ "B-01 Tactical": {
+  "group": "Medium"
+ },
+ "B-08 Light Gunner": {
+  "group": "Light"
+ },
+ "B-1 Supply Pack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "B-100 Portable Hellbomb": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "B-22 Model Citizen": {
+  "group": "Medium"
+ },
+ "B-24 Enforcer": {
+  "group": "Medium"
+ },
+ "B-27 Fortified Commando": {
+  "group": "Heavy"
+ },
+ "B/FLAM-80 Cremator": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "B/MD C4 Pack": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "BFM-16 Tanker": {
+  "group": "Light"
+ },
+ "BFM-220 Ironclad": {
+  "group": "Heavy"
+ },
+ "BFM-77 Reformer": {
+  "group": "Medium"
+ },
+ "BP-20 Correct Officer": {
+  "group": "Medium"
+ },
+ "BP-32 Jackboot": {
+  "group": "Light"
+ },
+ "BP-77 Grand Juror": {
+  "group": "Heavy"
+ },
+ "BR-14 Adjudicator": {
+  "group": "Assault Rifles"
+ },
+ "CB-9 Exploding Crossbow": {
+  "group": "Explosives"
+ },
+ "CE-07 Demolition Specialist": {
+  "group": "Light"
+ },
+ "CE-101 Guerilla Gorilla": {
+  "group": "Heavy"
+ },
+ "CE-27 Ground Breaker": {
+  "group": "Medium"
+ },
+ "CE-35 Trench Engineer": {
+  "group": "Medium"
+ },
+ "CE-64 Grenadier": {
+  "group": "Heavy"
+ },
+ "CE-67 Titan": {
+  "group": "Light"
+ },
+ "CE-74 Breaker": {
+  "group": "Light"
+ },
+ "CE-81 Juggernaut": {
+  "group": "Medium"
+ },
+ "CM-09 Bonesnapper": {
+  "group": "Medium"
+ },
+ "CM-10 Clinician": {
+  "group": "Medium"
+ },
+ "CM-14 Physician": {
+  "group": "Medium"
+ },
+ "CM-17 Butcher": {
+  "group": "Heavy"
+ },
+ "CM-21 Trench Paramedic": {
+  "group": "Light"
+ },
+ "CPG-48 Sapper": {
+  "group": "Medium"
+ },
+ "CPH-26 Commandant": {
+  "group": "Light"
+ },
+ "CPR-80 Bulwark": {
+  "group": "Heavy"
+ },
+ "CQC-1 One True Flag": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "CQC-19 Stun Lance": {
+  "group": "Melee"
+ },
+ "CQC-2 Saber": {
+  "group": "Melee"
+ },
+ "CQC-20 Breaching Hammer": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "CQC-30 Stun Baton": {
+  "group": "Melee"
+ },
+ "CQC-42 Machete": {
+  "group": "Melee"
+ },
+ "CQC-5 Combat Hatchet": {
+  "group": "Melee"
+ },
+ "CQC-73 Entrenchment Tool": {
+  "group": "Melee"
+ },
+ "CQC-9 Defoliation Tool": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "CW-22 Kodiak": {
+  "group": "Heavy"
+ },
+ "CW-36 Winter Warrior": {
+  "group": "Heavy"
+ },
+ "CW-4 Arctic Ranger": {
+  "group": "Light"
+ },
+ "CW-9 White Wolf": {
+  "group": "Medium"
+ },
+ "Concealed Insertion": {},
+ "DBS-2 Double Freedom": {
+  "group": "Shotguns"
+ },
+ "DP-00 Tactical": {
+  "group": "Medium"
+ },
+ "DP-11 Champion of the People": {
+  "group": "Medium"
+ },
+ "DP-40 Hero of the Federation": {
+  "group": "Medium"
+ },
+ "DP-53 Savior of the Free": {
+  "group": "Medium"
+ },
+ "DP-8 Mountain-Scaled": {
+  "group": "Medium"
+ },
+ "DS-10 Big Game Hunter": {
+  "group": "Light"
+ },
+ "DS-191 Scorpion": {
+  "group": "Medium"
+ },
+ "DS-42 Federation's Blade": {
+  "group": "Heavy"
+ },
+ "Dead Sprint": {},
+ "E/AT-12 Anti-Tank Emplacement": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "E/GL-21 Grenadier Battlement": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "E/MG-101 HMG Emplacement": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "EAT-17 Expendable Anti-Tank": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "EAT-411 Leveller": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "EAT-700 Expendable Napalm": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "EX-00 Prototype X": {
+  "group": "Light"
+ },
+ "EX-03 Prototype 3": {
+  "group": "Medium"
+ },
+ "EX-16 Prototype 16": {
+  "group": "Medium"
+ },
+ "EXO-45 Patriot Exosuit": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "EXO-49 Emancipator Exosuit": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "EXO-51 Lumberer Exosuit": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "EXO-55 Breakthrough Exosuit": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "Eagle 110mm Rocket Pods": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle 500kg Bomb": {
+  "group": "Eagle",
+  "permit": "Offense"
+ },
+ "Eagle Airstrike": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Cluster Bomb": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Fly By": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Gas Airstrike": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Napalm Airstrike": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Smoke Strike": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Eagle Strafing Run": {
+  "group": "Eagle",
+  "permit": "Offensive"
+ },
+ "Experimental Infusion": {},
+ "Expert Extraction Pilot": {},
+ "FAF-14 Spear": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "FLAM-40 Flamethrower": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "FLAM-66 Torcher": {
+  "group": "Special"
+ },
+ "FS-05 Marksman": {
+  "group": "Heavy"
+ },
+ "FS-11 Executioner": {
+  "group": "Heavy"
+ },
+ "FS-23 Battle Master": {
+  "group": "Heavy"
+ },
+ "FS-34 Exterminator": {
+  "group": "Medium"
+ },
+ "FS-37 Ravager": {
+  "group": "Light"
+ },
+ "FS-38 Eradicator": {
+  "group": "Light"
+ },
+ "FS-55 Devastator": {
+  "group": "Heavy"
+ },
+ "FS-61 Dreadnought": {
+  "group": "Heavy"
+ },
+ "FX-12 Shield Generator Relay": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "Firebomb Hellpods": {},
+ "Flexible Reinforcement Budget": {},
+ "G-10 Incendiary": {
+  "group": "Standard"
+ },
+ "G-109 Urchin": {
+  "group": "Special"
+ },
+ "G-11 Caltrops": {
+  "group": "Special"
+ },
+ "G-12 High Explosive": {
+  "group": "Standard"
+ },
+ "G-123 Thermite": {
+  "group": "Special"
+ },
+ "G-13 Incendiary Impact": {
+  "group": "Special"
+ },
+ "G-142 Pyrotech": {
+  "group": "Special"
+ },
+ "G-16 Impact": {
+  "group": "Special"
+ },
+ "G-23 Stun": {
+  "group": "Special"
+ },
+ "G-3 Smoke": {
+  "group": "Special"
+ },
+ "G-31 Arc": {
+  "group": "Special"
+ },
+ "G-4 Gas": {
+  "group": "Special"
+ },
+ "G-48 Giga Grenade": {
+  "group": "Special"
+ },
+ "G-50 Seeker": {
+  "group": "Special"
+ },
+ "G-6 Frag": {
+  "group": "Standard"
+ },
+ "G-60 Anti-Tank Seeker": {
+  "group": "Special"
+ },
+ "G-7 Pineapple": {
+  "group": "Standard"
+ },
+ "G-8 Immolation": {
+  "group": "Special"
+ },
+ "G-89 Smokescreen": {
+  "group": "Special"
+ },
+ "G/40-K Melta Mine": {
+  "group": "Special"
+ },
+ "G/SH-39 Shield": {
+  "group": "Special"
+ },
+ "GL-15 Evictor": {
+  "group": "Explosives"
+ },
+ "GL-21 Grenade Launcher": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "GL-28 Belt-Fed Grenade Launcher": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "GL-52 De-Escalator": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "GP-20 Ultimatum": {
+  "group": "Special"
+ },
+ "GP-31 Grenade Pistol": {
+  "group": "Special"
+ },
+ "GR-8 Recoilless Rifle": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "GS-11 Democracy's Deputy": {
+  "group": "Light"
+ },
+ "GS-17 Frontier Marshal": {
+  "group": "Medium"
+ },
+ "GS-66 Lawmaker": {
+  "group": "Heavy"
+ },
+ "Hellpod Space Optimization": {},
+ "I-09 Heatseeker": {
+  "group": "Light"
+ },
+ "I-102 Draconaught": {
+  "group": "Medium"
+ },
+ "I-44 Salamander": {
+  "group": "Heavy"
+ },
+ "I-92 Fire Fighter": {
+  "group": "Medium"
+ },
+ "IE-12 Righteous": {
+  "group": "Medium"
+ },
+ "IE-3 Martyr": {
+  "group": "Medium"
+ },
+ "IE-57 Hell-Bent": {
+  "group": "Light"
+ },
+ "Increased Reinforcement Budget": {},
+ "Integrated Extinguishers": {},
+ "JAR-5 Dominator": {
+  "group": "Special"
+ },
+ "K-2 Throwing Knife": {
+  "group": "Special"
+ },
+ "KDM-500 Outrider": {
+  "group": "Heavy"
+ },
+ "LAS-12 Sai": {
+  "group": "Energy-Based"
+ },
+ "LAS-13 Trident": {
+  "group": "Energy-Based"
+ },
+ "LAS-16 Sickle": {
+  "group": "Energy-Based"
+ },
+ "LAS-17 Double-Edge Sickle": {
+  "group": "Energy-Based"
+ },
+ "LAS-44 Nova": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "LAS-5 Scythe": {
+  "group": "Energy-Based"
+ },
+ "LAS-58 Talon": {
+  "group": "Special"
+ },
+ "LAS-7 Dagger": {
+  "group": "Special"
+ },
+ "LAS-98 Laser Cannon": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "LAS-99 Quasar Cannon": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "LIFT-182 Warp Pack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "LIFT-850 Jump Pack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "LIFT-860 Hover Pack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "Localization Confusion": {},
+ "M-1000 Maxigun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "M-102 Gunner FRV": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "M-103 Supply FRV": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "M-104 Incinerator FRV": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "M-105 Stalwart": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "M6C/SOCOM Pistol": {
+  "group": "Pistols"
+ },
+ "M7S SMG": {
+  "group": "Submachine Guns"
+ },
+ "M90A Shotgun": {
+  "group": "Shotguns"
+ },
+ "MA5C Assault Rifle": {
+  "group": "Assault Rifles"
+ },
+ "MD-17 Anti-Tank Mines": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "MD-6 Anti-Personnel Minefield": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "MD-8 Gas Mines": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "MD-I4 Incendiary Mines": {
+  "group": "Emplacements",
+  "permit": "Defensive"
+ },
+ "MG-206 Heavy Machine Gun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "MG-43 Machine Gun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "MGX-42 Bullet Storm": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "MLS-4X Commando": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "MP-98 Knight": {
+  "group": "Submachine Guns"
+ },
+ "MS-11 Solo Silo": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "Motivational Shocks": {},
+ "Muscle Enhancement": {},
+ "O-2 Heavy Operator": {
+  "group": "Heavy"
+ },
+ "O-3 Free Spirit": {
+  "group": "Light"
+ },
+ "O-44 Bonded Pilot": {
+  "group": "Medium"
+ },
+ "Orbital 120mm HE Barrage": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital 380mm HE Barrage": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Airburst Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Confetti": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital EMS Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Gas Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Gatling Barrage": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Laser": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Napalm Barrage": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Precision Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Railcannon Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Smoke Strike": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "Orbital Walking Barrage": {
+  "group": "Orbital",
+  "permit": "Offensive"
+ },
+ "P-11 Stim Pistol": {
+  "group": "Special"
+ },
+ "P-113 Verdict": {
+  "group": "Pistols"
+ },
+ "P-19 Redeemer": {
+  "group": "Pistols"
+ },
+ "P-2 Peacemaker": {
+  "group": "Pistols"
+ },
+ "P-33 Missile Pistol": {
+  "group": "Special"
+ },
+ "P-34 Breacher": {
+  "group": "Special"
+ },
+ "P-35 Re-Educator": {
+  "group": "Special"
+ },
+ "P-4 Senator": {
+  "group": "Pistols"
+ },
+ "P-44 Mist": {
+  "group": "Pistols"
+ },
+ "P-69 Veto": {
+  "group": "Pistols"
+ },
+ "P-72 Crisper": {
+  "group": "Special"
+ },
+ "P-92 Warrant": {
+  "group": "Pistols"
+ },
+ "P/40-K Bolt Pistol": {
+  "group": "Special"
+ },
+ "PH-202 Twigsnapper": {
+  "group": "Heavy"
+ },
+ "PH-56 Jaguar": {
+  "group": "Medium"
+ },
+ "PH-9 Predator": {
+  "group": "Light"
+ },
+ "PLAS-1 Scorcher": {
+  "group": "Energy-Based"
+ },
+ "PLAS-101 Purifier": {
+  "group": "Energy-Based"
+ },
+ "PLAS-15 Loyalist": {
+  "group": "Special"
+ },
+ "PLAS-39 Accelerator Rifle": {
+  "group": "Energy-Based"
+ },
+ "PLAS-45 Epoch": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "R-2 Amendment": {
+  "group": "Marksman Rifles"
+ },
+ "R-2124 Constitution": {
+  "group": "Marksman Rifles"
+ },
+ "R-36 Eruptor": {
+  "group": "Explosives"
+ },
+ "R-4 Hyena": {
+  "group": "Marksman Rifles"
+ },
+ "R-40 Sightliner": {
+  "group": "Sniper Rifles"
+ },
+ "R-6 Deadeye": {
+  "group": "Marksman Rifles"
+ },
+ "R-63 Diligence": {
+  "group": "Marksman Rifles"
+ },
+ "R-63CS Diligence Counter Sniper": {
+  "group": "Marksman Rifles"
+ },
+ "R-72 Censor": {
+  "group": "Marksman Rifles"
+ },
+ "R/40-K Hot-Shot Marksman Rifle": {
+  "group": "Energy-Based"
+ },
+ "RE-1861 Parade Commander": {
+  "group": "Light"
+ },
+ "RE-2310 Honorary Guard": {
+  "group": "Medium"
+ },
+ "RE-824 Bearer of the Standard": {
+  "group": "Heavy"
+ },
+ "RL-77 Airburst Rocket Launcher": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "RS-100 Sanctioner": {
+  "group": "Light"
+ },
+ "RS-20 Constrictor": {
+  "group": "Light"
+ },
+ "RS-40 Beast of Prey": {
+  "group": "Heavy"
+ },
+ "RS-422 Railgun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "RS-6 Fiend Destroyer": {
+  "group": "Medium"
+ },
+ "RS-67 Null Cipher": {
+  "group": "Medium"
+ },
+ "RS-89 Shadow Paragon": {
+  "group": "Light"
+ },
+ "S-11 Speargun": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "SA-04 Combat Technician": {
+  "group": "Medium"
+ },
+ "SA-12 Servo Assisted": {
+  "group": "Medium"
+ },
+ "SA-25 Steel Trooper": {
+  "group": "Medium"
+ },
+ "SA-32 Dynamo": {
+  "group": "Heavy"
+ },
+ "SA-7 Headfirst": {
+  "group": "Medium"
+ },
+ "SA-8 Ram": {
+  "group": "Heavy"
+ },
+ "SC-15 Drone Master": {
+  "group": "Medium"
+ },
+ "SC-30 Trailblazer Scout": {
+  "group": "Light"
+ },
+ "SC-34 Infiltrator": {
+  "group": "Light"
+ },
+ "SC-37 Legionnaire": {
+  "group": "Light"
+ },
+ "SG-20 Halt": {
+  "group": "Shotguns"
+ },
+ "SG-22 Bushwhacker": {
+  "group": "Special"
+ },
+ "SG-225 Breaker": {
+  "group": "Shotguns"
+ },
+ "SG-225IE Breaker Incendiary": {
+  "group": "Shotguns"
+ },
+ "SG-225SP Breaker Spray&Pray": {
+  "group": "Shotguns"
+ },
+ "SG-451 Cookout": {
+  "group": "Shotguns"
+ },
+ "SG-8 Punisher": {
+  "group": "Shotguns"
+ },
+ "SG-8P Punisher Plasma": {
+  "group": "Energy-Based"
+ },
+ "SG-8S Slugger": {
+  "group": "Shotguns"
+ },
+ "SG-97 Sweeper": {
+  "group": "Shotguns"
+ },
+ "SH-20 Ballistic Shield Backpack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "SH-32 Shield Generator Pack": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "SH-51 Directional Shield": {
+  "group": "Backpacks",
+  "permit": "Supply"
+ },
+ "SMG-203 Gallant": {
+  "group": "Submachine Guns"
+ },
+ "SMG-32 Reprimand": {
+  "group": "Submachine Guns"
+ },
+ "SMG-37 Defender": {
+  "group": "Submachine Guns"
+ },
+ "SMG-72 Pummeler": {
+  "group": "Submachine Guns"
+ },
+ "SMG/FLAM-34 Stoker": {
+  "group": "Submachine Guns"
+ },
+ "SR-18 Roadblock": {
+  "group": "Heavy"
+ },
+ "SR-24 Street Scout": {
+  "group": "Light"
+ },
+ "SR-64 Cinderblock": {
+  "group": "Heavy"
+ },
+ "SS-15 Focal Point": {
+  "group": "Medium"
+ },
+ "SS-33 Mimetic Marshal": {
+  "group": "Light"
+ },
+ "SS-500 Pale Prosecutor": {
+  "group": "Light"
+ },
+ "Sample Extricator": {},
+ "Sample Scanner": {},
+ "StA-11 SMG": {
+  "group": "Submachine Guns"
+ },
+ "StA-52 Assault Rifle": {
+  "group": "Assault Rifles"
+ },
+ "StA-X3 W.A.S.P. Launcher": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "Stamina Enhancement": {},
+ "Stun Pods": {},
+ "Surplus EAT Allocation": {},
+ "TD-110 Maelstrom": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "TD-220 Bastion MK XVI": {
+  "group": "Vehicles",
+  "permit": "Supply"
+ },
+ "TED-63 Dynamite": {
+  "group": "Standard"
+ },
+ "TG-122 Demo-Trooper": {
+  "group": "Heavy"
+ },
+ "TG-8 Sharpshooter": {
+  "group": "Medium"
+ },
+ "TM-1 Lure Mine": {
+  "group": "Special"
+ },
+ "TR-117 Alpha Commander": {
+  "group": "Medium"
+ },
+ "TR-40 Gold Eagle": {
+  "group": "Medium"
+ },
+ "TR-62 Knight": {
+  "group": "Heavy"
+ },
+ "TR-7 Ambassador of the Brand": {
+  "group": "Medium"
+ },
+ "TR-9 Cavalier of Democracy": {
+  "group": "Medium"
+ },
+ "TX-41 Sterilizer": {
+  "group": "Support Weapons",
+  "permit": "Supply"
+ },
+ "UAV Recon Booster": {},
+ "UF-16 Inspector": {
+  "group": "Light"
+ },
+ "UF-50 Bloodhound": {
+  "group": "Medium"
+ },
+ "UF-84 Doubt Killer": {
+  "group": "Medium"
+ },
+ "VG-70 Variable": {
+  "group": "Special"
+ },
+ "Vitality Enhancement": {}
+}

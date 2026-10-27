@@ -1857,7 +1857,8 @@
    "traits": "Support Weapon {{*}} Chargeup {{*}} Anti-Tank",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Meltagun Stratagem Icon Background.svg"
   },
   {
    "title": "AC-8 Autocannon",
@@ -1870,7 +1871,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armor Penetrating {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP (APHET) AP (Flak)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Autocannon Stratagem Icon Background.svg"
   },
   {
    "title": "AMW-20 Apex",
@@ -1882,7 +1884,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armour Penetrating {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Apex Stratagem Icon Background.svg"
   },
   {
    "title": "APW-1 Anti-Materiel Rifle",
@@ -1894,7 +1897,8 @@
    "traits": "Support Weapon {{*}} Heavy Armor Penetrating",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Anti-Materiel Rifle Stratagem Icon Background.svg"
   },
   {
    "title": "ARC-3 Arc Thrower",
@@ -1906,7 +1910,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup {{*}} Arc",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Arc Thrower Stratagem Icon Background.svg"
   },
   {
    "title": "B/FLAM-80 Cremator",
@@ -1918,7 +1923,8 @@
    "traits": "Support Weapon {{*}} Hellpod {{*}} Backpack {{*}} Incendiary",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Cremator Stratagem Icon Background.svg"
   },
   {
    "title": "B/MD C4 Pack",
@@ -1930,7 +1936,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Sticky",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "C4 Pack Stratagem Icon Background.svg"
   },
   {
    "title": "CQC-1 One True Flag",
@@ -1942,7 +1949,8 @@
    "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Melee {{*}} One Handed",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "One True Flag Stratagem Icon Background.svg"
   },
   {
    "title": "CQC-20 Breaching Hammer",
@@ -1954,7 +1962,8 @@
    "traits": "Support Weapon {{*}} Explosive {{*}} Anti-Tank {{*}} Melee",
    "base_cooldown": "480s",
    "penetration": "AP (Melee) AP (Explosion)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Breaching Hammer Stratagem Icon Background.svg"
   },
   {
    "title": "CQC-9 Defoliation Tool",
@@ -1966,7 +1975,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Melee",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Defoliation Tool Stratagem Icon Background.svg"
   },
   {
    "title": "EAT-17 Expendable Anti-Tank",
@@ -1978,7 +1988,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
    "base_cooldown": "70s",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Expendable Anti-Tank Stratagem Icon Background.svg"
   },
   {
    "title": "EAT-411 Leveller",
@@ -1990,7 +2001,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
    "base_cooldown": "140s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Leveller Stratagem Icon Background.svg"
   },
   {
    "title": "EAT-700 Expendable Napalm",
@@ -2002,7 +2014,8 @@
    "traits": "Support Weapon {{*}} Incendiary {{*}} Expendable",
    "base_cooldown": "140s",
    "penetration": "AP (Bomblets)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Expendable Napalm Stratagem Icon Background.svg"
   },
   {
    "title": "FAF-14 Spear",
@@ -2014,7 +2027,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Stationary Reload {{*}} Guided",
    "base_cooldown": "480s",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Spear Stratagem Icon Background.svg"
   },
   {
    "title": "FLAM-40 Flamethrower",
@@ -2026,7 +2040,8 @@
    "traits": "Support Weapon {{*}} Hellpod {{*}} Incendiary",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Flamethrower Stratagem Icon Background.svg"
   },
   {
    "title": "GL-21 Grenade Launcher",
@@ -2038,7 +2053,8 @@
    "traits": "Support Weapon {{*}} Explosive {{*}} Medium Armor Penetrating",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Grenade Launcher Stratagem Icon Background.svg"
   },
   {
    "title": "GL-28 Belt-Fed Grenade Launcher",
@@ -2050,7 +2066,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armor Penetrating {{*}} Explosive",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Belt-Fed Grenade Launcher Stratagem Icon Background.svg"
   },
   {
    "title": "GL-52 De-Escalator",
@@ -2062,7 +2079,8 @@
    "traits": "Support Weapon {{*}} Explosive {{*}} Heavy Armor Penetrating {{*}} Arc",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "De-Escalator Stratagem Icon Background.svg"
   },
   {
    "title": "GR-8 Recoilless Rifle",
@@ -2074,7 +2092,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP (HEAT) AP AP (HE) AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Recoilless Rifle Stratagem Icon Background.svg"
   },
   {
    "title": "LAS-44 Nova",
@@ -2085,7 +2104,8 @@
    "traits": "Support Weapon {{*}} Heavy Armour Penetrating {{*}} Heat",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Nova Stratagem Icon Background.svg"
   },
   {
    "title": "LAS-98 Laser Cannon",
@@ -2097,7 +2117,8 @@
    "traits": "Support Weapon {{*}} Hellpod {{*}} Heavy Armor Penetrating {{*}} Heat {{*}} Beam",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Laser Cannon Stratagem Icon Background.svg"
   },
   {
    "title": "LAS-99 Quasar Cannon",
@@ -2109,7 +2130,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Quasar Cannon Stratagem Icon Background.svg"
   },
   {
    "title": "M-1000 Maxigun",
@@ -2121,7 +2143,8 @@
    "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Backpack",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Maxigun Stratagem Icon Background.svg"
   },
   {
    "title": "M-105 Stalwart",
@@ -2133,7 +2156,8 @@
    "traits": "Support Weapon {{*}} Light Armor Penetrating",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Stalwart Stratagem Icon Background.svg"
   },
   {
    "title": "MG-206 Heavy Machine Gun",
@@ -2145,7 +2169,8 @@
    "traits": "Support Weapon {{*}} Heavy Armor Penetrating {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Heavy Machine Gun Stratagem Icon Background.svg"
   },
   {
    "title": "MG-43 Machine Gun",
@@ -2157,7 +2182,8 @@
    "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Machine Gun Stratagem Icon Background.svg"
   },
   {
    "title": "MGX-42 Bullet Storm",
@@ -2169,7 +2195,8 @@
    "traits": "Support Weapon {{*}} Light Armor Penetrating {{*}} Expendable",
    "base_cooldown": "70s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Bullet Storm Stratagem Icon Background.svg"
   },
   {
    "title": "MLS-4X Commando",
@@ -2181,7 +2208,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
    "base_cooldown": "120s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Commando Stratagem Icon Background.svg"
   },
   {
    "title": "MS-11 Solo Silo",
@@ -2193,7 +2221,8 @@
    "traits": "Support Weapon {{*}} Explosive {{*}} Anti-Tank {{*}} Expendable",
    "base_cooldown": "180s",
    "penetration": "AP (Main Explosion) AP (Impact Explosion)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Solo Silo Stratagem Icon Background.svg"
   },
   {
    "title": "PLAS-45 Epoch",
@@ -2205,7 +2234,8 @@
    "traits": "Support Weapon {{*}} Explosive {{*}} Heavy Armor Penetrating {{*}} Stationary Reload {{*}} Chargeup",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Epoch Stratagem Icon Background.svg"
   },
   {
    "title": "RL-77 Airburst Rocket Launcher",
@@ -2217,7 +2247,8 @@
    "traits": "Support Weapon {{*}} Backpack {{*}} Medium Armor Penetrating {{*}} Stationary Reload",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Airburst Rocket Launcher Stratagem Icon Background.svg"
   },
   {
    "title": "RS-422 Railgun",
@@ -2229,7 +2260,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Railgun Stratagem Icon Background.svg"
   },
   {
    "title": "S-11 Speargun",
@@ -2241,7 +2273,8 @@
    "traits": "Support Weapon {{*}} Caustic {{*}} Anti-Tank",
    "base_cooldown": "480s",
    "penetration": "AP",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Speargun Stratagem Icon Background.svg"
   },
   {
    "title": "StA-X3 W.A.S.P. Launcher",
@@ -2253,7 +2286,8 @@
    "traits": "Support Weapon {{*}} Anti-Tank {{*}} Backpack {{*}}Stationary Reload {{*}} Guided",
    "base_cooldown": "480s",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "W.A.S.P. Launcher Stratagem Icon Background.svg"
   },
   {
    "title": "TX-41 Sterilizer",
@@ -2265,7 +2299,8 @@
    "traits": "Support Weapon {{*}} Caustic",
    "base_cooldown": "480s",
    "penetration": "5",
-   "permit_type": "Supply"
+   "permit_type": "Supply",
+   "stratagem_image": "Sterilizer Stratagem Icon Background.svg"
   },
   {
    "title": "G-10 Incendiary",
