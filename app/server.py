@@ -76,7 +76,11 @@ def _resolve(lobby) -> dict:
         d = resolve_squad(session, roster, {})
         by_pid = {a.player_id: a for a in d.assignments}
         directive = {
-            "pressure": d.pressure, "matrix": d.capability_matrix,
+            # top/driver are computed methods on Pressure — the dataclass serializer
+            # drops them, so send them explicitly or "The read" renders empty.
+            "pressure": {"top": d.pressure.top(), "driver": d.pressure.driver(),
+                         "vector": d.pressure.vector},
+            "matrix": d.capability_matrix,
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
             "swaps": d.swaps,
         }
