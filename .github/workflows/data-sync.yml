@@ -4,13 +4,20 @@ name: data-sync
 #   - validate : on every push to the data/scripts, prove the seed is internally
 #                coherent (catches an edit that would silently break loadouts).
 #   - watch    : daily, poll the HD2 patch feed. When a new patch ships, commit the
-#                notes, advance state, and open an issue. The daily Claude "data-sync"
-#                Routine then drafts a PR updating the seed for review.
+#                notes, advance state, and open an issue.
+#   - draft    : if any patch is pending, sync/draft_update.py asks Claude (with web
+#                search, sourced names only) for the seed additions, validates them in
+#                code, and opens a draft PR. Needs the ANTHROPIC_API_KEY Actions secret.
 
 on:
   schedule:
     - cron: "0 14 * * *"        # daily ~14:00 UTC
   workflow_dispatch:
+    inputs:
+      requeue_gid:
+        description: "Re-draft an already-processed patch (its gid from sync/patches/). Opens no PR if nothing new is found."
+        required: false
+        default: ""
   push:
     paths:
       - "app/warmind/data/**"
@@ -20,6 +27,7 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 jobs:
   validate:
@@ -73,7 +81,64 @@ jobs:
             echo "- [ ] Changed **hazards** / planet effects -> hazards.yaml"
             echo "- [ ] New **warbond / items**, re-tiered gear -> items.yaml"
             echo ""
-            echo "The daily **data-sync** Claude Routine drafts a PR for this; review and merge it."
+            echo "The **draft** job of this workflow opens a draft PR with the sourced additions; review and merge it."
           } > /tmp/issue_body.md
           gh issue create --title "HD2 patch: ${TITLE} — review WARMIND seed" \
             --label data-sync --body-file /tmp/issue_body.md
+
+  draft:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    needs: watch
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }          # the watch job may have just committed new pending patches
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Skip if a data-sync PR is already open
+        id: open
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          N=$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("data-sync/"))] | length')
+          echo "count=$N" >> "$GITHUB_OUTPUT"
+          if [ "$N" != "0" ]; then echo "A data-sync PR is already open — review that one first."; fi
+      - name: Draft the seed update
+        if: steps.open.outputs.count == '0'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          REQUEUE: ${{ github.event.inputs.requeue_gid }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then echo "ANTHROPIC_API_KEY: present"; else echo "ANTHROPIC_API_KEY: MISSING"; fi
+          pip install --quiet anthropic pyyaml
+          if [ -n "$REQUEUE" ]; then
+            python3 -c "import json,sys; p='sync/state.json'; s=json.load(open(p)); s['pending']=sorted(set(s['pending'])|{sys.argv[1]}); json.dump(s,open(p,'w'),indent=2)" "$REQUEUE"
+          fi
+          python3 sync/draft_update.py
+      - name: Push branch + open draft PR
+        if: steps.open.outputs.count == '0'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if [ ! -f sync/.draft_summary.md ]; then echo "Nothing drafted."; exit 0; fi
+          # a re-drafted patch that adds nothing changes no file: report and stop. A NEW patch with
+          # nothing to add still changes state.json (marked processed), so it gets a PR and isn't redrafted daily.
+          if git diff --quiet -- app/warmind/data sync/state.json; then
+            echo "No new data — the seed already covers these patches. Summary:"; cat sync/.draft_summary.md
+            echo "### Data-sync draft: nothing new" >> "$GITHUB_STEP_SUMMARY"; cat sync/.draft_summary.md >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          BRANCH="data-sync/$(date -u +%Y-%m-%d)-run${GITHUB_RUN_NUMBER}"
+          git config user.name  "warmind data bot"
+          git config user.email "actions@github.com"
+          git checkout -b "$BRANCH"
+          cp sync/.draft_summary.md /tmp/body.md && rm sync/.draft_summary.md
+          git add app/warmind/data sync/state.json
+          { echo "data-sync: seed update for pending HD2 patches"; echo; cat /tmp/body.md; } > /tmp/msg.md
+          git commit -F /tmp/msg.md
+          for i in 1 2 3 4; do git push -u origin "$BRANCH" && break || { echo "retry $i"; sleep $((2**i)); }; done
+          # pushes made with the workflow token don't trigger other workflows, so open the PR here
+          for n in $(gh issue list --label data-sync --state open --json number --jq '.[].number'); do echo "Closes #$n" >> /tmp/body.md; done
+          if gh pr create --draft --base main --head "$BRANCH" --title "Data sync: seed update for new HD2 patches" --body-file /tmp/body.md; then exit 0; fi
+          URL="https://github.com/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          MSG="Drafted seed update is on \`$BRANCH\`, but Actions isn't allowed to open PRs here (Settings → Actions → General → Workflow permissions → *Allow GitHub Actions to create and approve pull requests*). Open it in one click: $URL"
+          FIRST=$(gh issue list --label data-sync --state open --json number --jq '.[0].number')
+          if [ -n "$FIRST" ]; then gh issue comment "$FIRST" --body "$MSG"; else gh issue create --label data-sync --title "Data-sync draft ready: $BRANCH" --body "$MSG"; fi

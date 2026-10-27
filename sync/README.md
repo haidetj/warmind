@@ -24,24 +24,30 @@ appends the gid to `state.json["pending"]`, refreshes `latest_patch.md`, and the
 workflow opens a **`data-sync` issue** with a checklist. A feed outage doesn't fail
 the run but raises a visible warning annotation, so it can't masquerade as "no news".
 
-### 3. Auto-drafted update (daily Claude scheduled task → GitHub Action)
-A scheduled Claude session checks `state.json["pending"]`. If anything is pending it
-reads each patch file, updates `app/warmind/data/*.yaml` (web-verifying names the
-notes leave vague — it never invents names), clears `pending`, sets
-`processed_gid`, runs the validator, and **pushes a `data-sync/<date>` branch**
-with its per-file summary + review checklist in the commit message.
+### 3. Auto-drafted update (GitHub Actions, same daily run)
+The `draft` job runs `draft_update.py` whenever `state.json["pending"]` is non-empty
+and no data-sync PR is already open. It sends the pending patch notes, the closed
+tag vocabularies and the existing names to Claude **with web search**, asking for
+additions to `items.yaml` (all six sections) and `missions.yaml` as JSON, each with
+source URLs. Every proposal is then checked in code: unknown tags, malformed
+grades, duplicates and anything without a source are rejected and listed in the PR,
+never written. Balance changes to existing gear are listed for a human, not applied.
+It clears `pending`, sets `processed_gid`, runs `validate_data.py`, pushes a
+`data-sync/<date>-run<N>` branch and opens a **draft PR** whose body lists what was
+added (with sources), what was rejected and why, and the review checklist. If
+Actions can't open PRs in this repo, it comments a one-click compare link on the
+data-sync issue instead. Nothing changes the live data without a human merge.
 
-The `data-sync-pr` workflow turns that push into a **draft PR** (commit message →
-PR body, plus `Closes #N` for the open data-sync issues). The Claude session only
-needs git for this — it does not need GitHub API tools. If the repo setting *Allow
-GitHub Actions to create and approve pull requests* is off, the workflow instead
-comments a one-click compare link on the data-sync issue, so an update is never
-silently stranded. You review and merge; merging deploys. Nothing changes the
-live data without a human merge.
+Needs the `ANTHROPIC_API_KEY` secret under *Settings → Secrets and variables →
+Actions* (the job log prints whether it's present). Run it on demand from the
+Actions tab: **data-sync → Run workflow**.
+
+`data-sync-pr.yml` still turns any manually pushed `data-sync/*` branch into a PR.
 
 ## Files
 - `validate_data.py` — the consistency gate
 - `patch_watch.py` — the Steam patch-feed watcher
+- `draft_update.py` — drafts the sourced seed update for pending patches
 - `state.json` — `pending` (gids awaiting a data update), `last_seen_*` (watcher), `processed_gid` (newest patch handled by a merged update)
 - `patches/` — one notes file per detected patch, the source of truth for the update
 - `latest_patch.md` — the newest patch notes, for humans skimming the repo

@@ -87,7 +87,7 @@ html:lang(ja) .sect .tt,html:lang(ko) .sect .tt,html:lang(zh) .sect .tt{letter-s
 
 /* phase rail */
 .rail{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:16px}
-.rail a{display:flex;flex-direction:column;gap:3px;padding:9px 10px;text-decoration:none;border:1px solid var(--line);
+.rail a{display:flex;flex-direction:column;gap:3px;min-width:0;padding:9px 10px;text-decoration:none;border:1px solid var(--line);
   background:rgba(4,7,11,.6);color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;min-height:52px;
   clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%)}
 .rail a b{font-family:var(--head);font-size:14px;letter-spacing:1.5px;color:var(--ink-2);font-weight:700}
@@ -101,7 +101,8 @@ html:lang(ja) .sect .tt,html:lang(ko) .sect .tt,html:lang(zh) .sect .tt{letter-s
   font-family:var(--mono);font-size:12.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;
   color:var(--c);background:rgba(62,230,255,.06);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);
   clip-path:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)));
-  transition:background .15s,color .15s,box-shadow .15s;text-decoration:none;user-select:none;white-space:nowrap}
+  transition:background .15s,color .15s,box-shadow .15s;text-decoration:none;user-select:none;
+  text-align:center;max-width:100%;overflow-wrap:anywhere}  /* labels wrap: translations run long */
 .btn:hover{background:color-mix(in srgb,var(--c) 16%,transparent);box-shadow:inset 0 0 14px color-mix(in srgb,var(--c) 28%,transparent)}
 .btn:focus-visible{box-shadow:inset 0 0 0 2px var(--c),inset 0 0 16px color-mix(in srgb,var(--c) 30%,transparent)}
 .btn.primary{--c:var(--amber);background:var(--amber);color:#140e02;border-color:var(--amber);box-shadow:var(--glow-a)}
@@ -271,7 +272,7 @@ ol.orders li::before{content:counter(o,decimal-leading-zero);font-family:var(--m
 .dcard .cs{color:var(--ink);font-weight:700;font-family:var(--mono);letter-spacing:.5px}
 .kit{list-style:none;margin:0;padding:4px 18px 10px 20px}
 .kit li{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:7px 0;border-top:1px dashed var(--line);font-size:13.5px;align-items:baseline}
-.kit .sl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.kit .sl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;overflow-wrap:anywhere;min-width:0;text-transform:uppercase;color:var(--muted)}
 .kit .vv{color:var(--ink);font-family:var(--mono);font-size:12.5px}
 .kit .vv small{display:block;font-family:var(--sans);color:var(--muted);font-size:11.5px;margin-top:1px}
 .grow{margin-left:8px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--amber);border:1px solid rgba(255,194,58,.55);padding:1px 6px;vertical-align:1px}
@@ -382,7 +383,8 @@ ul.notes li.d100::before{border-color:var(--red)}
 @media(max-width:640px){
   .wrap{padding:0 16px} .langfab{padding:10px 16px 0} main{padding:12px 0 60px} .panel{padding:16px} .stack{gap:14px}
   .roster{grid-template-columns:1fr} .sect .num{font-size:36px} .sect .tt{font-size:18px}
-  .rail a{padding:8px 7px;font-size:9px;letter-spacing:1px} .rail a b{font-size:12px}
+  .rail{gap:4px} .rail a{padding:8px 5px;font-size:9px;letter-spacing:1px} .rail a b{font-size:10.5px;letter-spacing:0;overflow-wrap:anywhere}
+  .deploy{letter-spacing:2px;font-size:14px} .kit .sl{letter-spacing:.8px}
   .kit li{grid-template-columns:82px 1fr}
 }
 @media(prefers-reduced-motion:reduce){
