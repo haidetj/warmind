@@ -1,0 +1,3198 @@
+{
+ "source": "https://helldivers.wiki.gg",
+ "fetched": "2026-10-27",
+ "items": [
+  {
+   "title": "A-35 Recon",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Feet First",
+   "source": "Halo: ODST Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "A-9 Helljumper",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Feet First",
+   "source": "Halo: ODST Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "AC-1 Dutiful",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Acclimated",
+   "source": "Righteous Revenants Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "AC-2 Obedient",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Acclimated",
+   "source": "Righteous Revenants Page 2",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "AD-11 Livewire",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Adreno-Defibrillator",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "AD-26 Bleeding Edge",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Adreno-Defibrillator",
+   "source": "Control Group Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "AD-49 Apollonian",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Adreno-Defibrillator",
+   "source": "Control Group Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "AF-02 Haz-Master",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Advanced Filtration",
+   "source": "Chemical Agents Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "AF-50 Noxious Ranger",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Advanced Filtration",
+   "source": "Chemical Agents Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "AF-52 Lockdown",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Advanced Filtration",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "AF-91 Field Chemist",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Advanced Filtration",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "B-01 Tactical",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Extra Padding",
+   "source": "Starter Equipment",
+   "armor": "150",
+   "speed": "500"
+  },
+  {
+   "title": "B-08 Light Gunner",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Extra Padding",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "550"
+  },
+  {
+   "title": "B-22 Model Citizen",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Anniversary Gift",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "B-24 Enforcer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Fortified",
+   "source": "Superstore",
+   "armor": "129",
+   "speed": "471"
+  },
+  {
+   "title": "B-27 Fortified Commando",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Extra Padding",
+   "source": "Superstore",
+   "armor": "200",
+   "speed": "450"
+  },
+  {
+   "title": "BFM-16 Tanker",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Blunt-Force Mitigation",
+   "source": "Ironclad Democracy Page 1",
+   "armor": "75",
+   "speed": "550"
+  },
+  {
+   "title": "BFM-220 Ironclad",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Blunt-Force Mitigation",
+   "source": "Ironclad Democracy Page 2",
+   "armor": "175",
+   "speed": "450"
+  },
+  {
+   "title": "BFM-77 Reformer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Blunt-Force Mitigation",
+   "source": "Superstore",
+   "armor": "125",
+   "speed": "500"
+  },
+  {
+   "title": "BP-20 Correct Officer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Ballistic Padding",
+   "source": "Force of Law Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "BP-32 Jackboot",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Ballistic Padding",
+   "source": "Force of Law Page 2",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "BP-77 Grand Juror",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Ballistic Padding",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CE-07 Demolition Specialist",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Engineering Kit",
+   "source": "Democratic Detonation Page 2",
+   "armor": "64",
+   "speed": "536"
+  },
+  {
+   "title": "CE-101 Guerilla Gorilla",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CE-27 Ground Breaker",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Engineering Kit",
+   "source": "Democratic Detonation Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CE-35 Trench Engineer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Engineering Kit",
+   "source": "Helldivers Mobilize! Page 3",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CE-64 Grenadier",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CE-67 Titan",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "79",
+   "speed": "521"
+  },
+  {
+   "title": "CE-74 Breaker",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "CE-81 Juggernaut",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CM-09 Bonesnapper",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Med-Kit",
+   "source": "Helldivers Mobilize! Page 4",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CM-10 Clinician",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Med-Kit",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CM-14 Physician",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Med-Kit",
+   "source": "Helldivers Mobilize! Page 9",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CM-17 Butcher",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Med-Kit",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CM-21 Trench Paramedic",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Med-Kit",
+   "source": "Superstore",
+   "armor": "64",
+   "speed": "536"
+  },
+  {
+   "title": "CPG-48 Sapper",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Concussive Padding, Grenadier",
+   "source": "Entrenched Division Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "CPH-26 Commandant",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Concussive Padding, Hazmat",
+   "source": "Entrenched Division Page 2",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "CPR-80 Bulwark",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Concussive Padding, Reinforced",
+   "source": "Superstore",
+   "armor": "180",
+   "speed": "450"
+  },
+  {
+   "title": "CW-22 Kodiak",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Fortified",
+   "source": "Polar Patriots Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CW-36 Winter Warrior",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Servo-Assisted",
+   "source": "Polar Patriots Page 1",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "CW-4 Arctic Ranger",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Scout",
+   "source": "Polar Patriots Page 3",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "CW-9 White Wolf",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Extra Padding",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "500"
+  },
+  {
+   "title": "DP-00 Tactical",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Liberty Day",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DP-11 Champion of the People",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Helldivers Mobilize! Page 10",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DP-40 Hero of the Federation",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Helldivers Mobilize! Page 5",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DP-53 Savior of the Free",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Super Citizen Edition",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DP-8 Mountain-Scaled",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Siege-Ready",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DS-10 Big Game Hunter",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Desert Stormer",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "DS-191 Scorpion",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Desert Stormer",
+   "source": "Dust Devils Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "DS-42 Federation's Blade",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Desert Stormer",
+   "source": "Dust Devils Page 1",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "EX-00 Prototype X",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Electrical Conduit",
+   "source": "Cutting Edge Page 3",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "EX-03 Prototype 3",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Electrical Conduit",
+   "source": "Cutting Edge Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "EX-16 Prototype 16",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Electrical Conduit",
+   "source": "Cutting Edge Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "FS-05 Marksman",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Fortified",
+   "source": "Helldivers Mobilize! Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "FS-11 Executioner",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Fortified",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "FS-23 Battle Master",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Fortified",
+   "source": "Helldivers Mobilize! Page 6",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "FS-34 Exterminator",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Fortified",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "FS-37 Ravager",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "FS-38 Eradicator",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Fortified",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "FS-55 Devastator",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Fortified",
+   "source": "Democratic Detonation Page 3",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "FS-61 Dreadnought",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Servo-Assisted",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "GS-11 Democracy's Deputy",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Gunslinger",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "GS-17 Frontier Marshal",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Gunslinger",
+   "source": "Borderline Justice Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "GS-66 Lawmaker",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Gunslinger",
+   "source": "Borderline Justice Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "I-09 Heatseeker",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Inflammable",
+   "source": "Freedom's Flame Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "I-102 Draconaught",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Inflammable",
+   "source": "Freedom's Flame Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "I-44 Salamander",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Inflammable",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "I-92 Fire Fighter",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Inflammable",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "IE-12 Righteous",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Integrated Explosives",
+   "source": "Servants of Freedom Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "IE-3 Martyr",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Integrated Explosives",
+   "source": "Servants of Freedom Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "IE-57 Hell-Bent",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Integrated Explosives",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "IX-Voidwalker",
+   "template": "Infobox Armor"
+  },
+  {
+   "title": "KDM-500 Outrider",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Kinetic Displacement Mitigation",
+   "source": "Permanent Enclosure",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "O-2 Heavy Operator",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Oxygenator",
+   "source": "Exo Experts Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "O-3 Free Spirit",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Oxygenator",
+   "source": "Exo Experts Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "O-44 Bonded Pilot",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Oxygenator",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "PH-202 Twigsnapper",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Peak Physique",
+   "source": "Viper Commandos Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "PH-56 Jaguar",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Peak Physique",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "PH-9 Predator",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Peak Physique",
+   "source": "Viper Commandos Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "RE-1861 Parade Commander",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Reinforced Epaulettes",
+   "source": "Masters of Ceremony Page 2",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "RE-2310 Honorary Guard",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Reinforced Epaulettes",
+   "source": "Masters of Ceremony Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "RE-824 Bearer of the Standard",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Reinforced Epaulettes",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "RS-100 Sanctioner",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Reduced Signature",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "RS-20 Constrictor",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Rock Solid",
+   "source": "Python Commandos Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "RS-40 Beast of Prey",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Rock Solid",
+   "source": "Python Commandos Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "RS-6 Fiend Destroyer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Rock Solid",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "RS-67 Null Cipher",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Reduced Signature",
+   "source": "Redacted Regiment Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "RS-89 Shadow Paragon",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Reduced Signature",
+   "source": "Redacted Regiment Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "SA-04 Combat Technician",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Scout",
+   "source": "Helldivers Mobilize! Page 8",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "SA-12 Servo Assisted",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Servo-Assisted",
+   "source": "Steeled Veterans Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "SA-25 Steel Trooper",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Servo-Assisted",
+   "source": "Steeled Veterans Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "SA-32 Dynamo",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Servo-Assisted",
+   "source": "Steeled Veterans Page 3",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "SA-7 Headfirst",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Supplemental Adrenaline",
+   "source": "Siege Breakers Page 1",
+   "armor": "125",
+   "speed": "500"
+  },
+  {
+   "title": "SA-8 Ram",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Supplemental Adrenaline",
+   "source": "Siege Breakers Page 2",
+   "armor": "175",
+   "speed": "450"
+  },
+  {
+   "title": "SC-15 Drone Master",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Engineering Kit",
+   "source": "Superstore",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "SC-30 Trailblazer Scout",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Scout",
+   "source": "Helldivers Mobilize! Page 7",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "SC-34 Infiltrator",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Scout",
+   "source": "Helldivers Mobilize! Page 1",
+   "armor": "70",
+   "speed": "530"
+  },
+  {
+   "title": "SC-37 Legionnaire",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Servo-Assisted",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "SR-18 Roadblock",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Siege-Ready",
+   "source": "Urban Legends Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "SR-24 Street Scout",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Siege-Ready",
+   "source": "Urban Legends Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "SR-64 Cinderblock",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Siege-Ready",
+   "source": "Superstore",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "SS-15 Focal Point",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Stationary Shroud",
+   "source": "Scope of Authority Page 2",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "SS-33 Mimetic Marshal",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Stationary Shroud",
+   "source": "Scope of Authority Page 1",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "SS-500 Pale Prosecutor",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Stationary Shroud",
+   "source": "Superstore",
+   "armor": "50",
+   "speed": "550"
+  },
+  {
+   "title": "TG-122 Demo-Trooper",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "True Grit",
+   "source": "Castellan's Creed Page 2",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "TG-8 Sharpshooter",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "True Grit",
+   "source": "Castellan's Creed Page 1",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "TR-117 Alpha Commander",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Med-Kit",
+   "source": "Downloadable Content",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "TR-40 Gold Eagle",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Extra Padding",
+   "source": "Escalation of Freedom",
+   "armor": "150",
+   "speed": "500"
+  },
+  {
+   "title": "TR-62 Knight",
+   "template": "Infobox Armor",
+   "type": "Heavy",
+   "passive": "Servo-Assisted",
+   "source": "Pre-Order Bonus",
+   "armor": "150",
+   "speed": "450"
+  },
+  {
+   "title": "TR-7 Ambassador of the Brand",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Extra Padding",
+   "source": "Pre-Order Bonus",
+   "armor": "150",
+   "speed": "500"
+  },
+  {
+   "title": "TR-9 Cavalier of Democracy",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Democracy Protects",
+   "source": "Pre-Order Bonus",
+   "armor": "100",
+   "speed": "500"
+  },
+  {
+   "title": "UF-16 Inspector",
+   "template": "Infobox Armor",
+   "type": "Light",
+   "passive": "Unflinching",
+   "source": "Truth Enforcers Page 3",
+   "armor": "75",
+   "speed": "550"
+  },
+  {
+   "title": "UF-50 Bloodhound",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Unflinching",
+   "source": "Truth Enforcers Page 2",
+   "armor": "125",
+   "speed": "500"
+  },
+  {
+   "title": "UF-84 Doubt Killer",
+   "template": "Infobox Armor",
+   "type": "Medium",
+   "passive": "Unflinching",
+   "source": "Superstore",
+   "armor": "125",
+   "speed": "500"
+  },
+  {
+   "title": "Armed Resupply Pods",
+   "template": "Infobox Booster",
+   "source": "Urban Legends Page 2",
+   "description": "Mounts a modified AR-23 Liberator to all resupply pods, allowing them to double as automatic turrets."
+  },
+  {
+   "title": "Concealed Insertion",
+   "template": "Infobox Booster",
+   "source": "Redacted Regiment Page 3",
+   "description": "Equips Hellpods to deploy smokescreens on impact, obscuring Helldiver deployment."
+  },
+  {
+   "title": "Dead Sprint",
+   "template": "Infobox Booster",
+   "source": "Truth Enforcers Page 1",
+   "description": "Allows Helldivers to keep sprinting even when they are out of stamina, draining their health instead."
+  },
+  {
+   "title": "Experimental Infusion",
+   "template": "Infobox Booster",
+   "source": "Viper Commandos Page 3",
+   "description": "In addition to restoring health, stims temporarily increase movement speed and damage reduction."
+  },
+  {
+   "title": "Expert Extraction Pilot",
+   "template": "Infobox Booster",
+   "source": "Democratic Detonation Page 2",
+   "description": "Lowers the time it takes for the extraction shuttle to reach the extraction beacon."
+  },
+  {
+   "title": "Firebomb Hellpods",
+   "template": "Infobox Booster",
+   "source": "Freedom's Flame Page 3",
+   "description": "Lines all Hellpods with volatile incendiaries that detonate upon impact, igniting any units in vicinity of the drop site."
+  },
+  {
+   "title": "Flexible Reinforcement Budget",
+   "template": "Infobox Booster",
+   "source": "Steeled Veterans Page 3",
+   "description": "Reduce time until new reinforcements are granted once they've been depleted."
+  },
+  {
+   "title": "Hellpod Space Optimization",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 3",
+   "description": "Helldivers come out of the Hellpod fully stocked on Ammo, Grenades, and Stims."
+  },
+  {
+   "title": "Increased Reinforcement Budget",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 10",
+   "description": "Increases the number of available reinforcements."
+  },
+  {
+   "title": "Integrated Extinguishers",
+   "template": "Infobox Booster",
+   "source": "Ironclad Democracy Page 3",
+   "description": "Equips Helldiver uniforms with form-fitting, automated, rapid-response fire suppression systems. Significantly reduces the time it takes to naturally extinguish flames without conducting ground-aided smothering manuevers."
+  },
+  {
+   "title": "Localization Confusion",
+   "template": "Infobox Booster",
+   "source": "Cutting Edge Page 1",
+   "description": "Increases the time between enemy encounters."
+  },
+  {
+   "title": "Motivational Shocks",
+   "template": "Infobox Booster",
+   "source": "Polar Patriots Page 1",
+   "description": "Allows all Helldivers to recover faster after being slowed by an attack, such as acid. Does not mitigate “area effects,” such as EMS strikes."
+  },
+  {
+   "title": "Muscle Enhancement",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 9",
+   "description": "Allows Helldivers to traverse difficult terrain with ease."
+  },
+  {
+   "title": "Sample Extricator",
+   "template": "Infobox Booster",
+   "source": "Borderline Justice Page 3",
+   "description": "Large enemies now have a chance of dropping Samples on death. Capped at 10 drops per mission."
+  },
+  {
+   "title": "Sample Scanner",
+   "template": "Infobox Booster",
+   "source": "Masters of Ceremony Page 3",
+   "description": "The Sample scanner gives you a 15% chance to receive twice the Samples on sample pick up."
+  },
+  {
+   "title": "Stamina Enhancement",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 7",
+   "description": "Increases all Helldivers' stamina capacity and recovery."
+  },
+  {
+   "title": "Stun Pods",
+   "template": "Infobox Booster",
+   "source": "Force of Law Page 2",
+   "description": "Exposes Hellpod wiring upon surface contact, stunning any units in the vicinity of the drop site."
+  },
+  {
+   "title": "Surplus EAT Allocation",
+   "template": "Infobox Booster",
+   "source": "Ironclad Democracy Page 2",
+   "description": "Grants two free uses of the Expendable Anti-Tank (EAT) Stratagem per mission; enough to grant a full squad one single-use rocket launcher each, provided squad members employ the proper equipment distribution protocol."
+  },
+  {
+   "title": "UAV Recon Booster",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 6",
+   "description": "Increases all Helldivers' effective radar range."
+  },
+  {
+   "title": "Vitality Enhancement",
+   "template": "Infobox Booster",
+   "source": "Helldivers Mobilize! Page 4",
+   "description": "Provides minor damage reduction from all sources for all Helldivers."
+  },
+  {
+   "title": "Rapid Acquisition",
+   "template": "Infobox Mission"
+  },
+  {
+   "title": "Reinforcement Pods",
+   "template": "Infobox Mission"
+  },
+  {
+   "title": "SEAF Artillery",
+   "template": "Infobox Mission"
+  },
+  {
+   "title": "Seize Industrial Complex",
+   "template": "Infobox Mission"
+  },
+  {
+   "title": "Spread Democracy",
+   "template": "Infobox Mission"
+  },
+  {
+   "title": "A/AC-8 Autocannon Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Sentry {{*}} Anti-Tank",
+   "base_cooldown": "150s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/ARC-3 Tesla Tower",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Sentry {{*}} Arc",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/FLAM-40 Flame Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Urban Legends Page 2",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Incendiary {{*}} Sentry",
+   "base_cooldown": "100s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/G-16 Gatling Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Sentry {{*}} Medium Armor Penetrating",
+   "base_cooldown": "150s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/GM-17 Gas Mortar Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Entrenched Division Page 2",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Caustic {{*}} Sentry",
+   "base_cooldown": "180s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/LAS-98 Laser Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Control Group Page 2",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Sentry {{*}} Heavy Armor Penetrating {{*}} Heat {{*}} Beam",
+   "base_cooldown": "150s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/M-12 Mortar Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Medium Armor Penetrating",
+   "base_cooldown": "180s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/M-23 EMS Mortar Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Stun",
+   "base_cooldown": "180s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/MG-43 Machine Gun Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Sentry {{*}} Medium Armor Penetrating",
+   "base_cooldown": "90s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "A/MLS-4X Rocket Sentry",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Sentry",
+   "traits": "Hellpod {{*}} Explosive {{*}} Sentry {{*}} Anti-Tank",
+   "base_cooldown": "150s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "AX/AR-23 Guard Dog",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack {{*}} Medium Armor Penetrating",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AX/ARC-3 K-9",
+   "template": "Infobox Stratagem",
+   "source": "Force of Law Page 3",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack {{*}} Anti-Tank {{*}} Arc",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AX/FLAM-75 Hot Dog",
+   "template": "Infobox Stratagem",
+   "source": "Python Commandos Page 1",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack {{*}} Incendiary",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AX/LAS-5 Rover",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack {{*}} Light Armor Penetrating {{*}} Beam",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AX/TX-13 Dog Breath",
+   "template": "Infobox Stratagem",
+   "source": "Chemical Agents Page 3",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack {{*}} Caustic",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Activate E-711 Extraction Drill",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "0s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Aquifer Drill",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "0s"
+  },
+  {
+   "title": "B-1 Supply Pack",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "B-100 Portable Hellbomb",
+   "template": "Infobox Stratagem",
+   "source": "Servants of Freedom Page 3",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Explosive {{*}} Backpack {{*}} Anti-Tank",
+   "base_cooldown": "300s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Call In Super Destroyer",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Ship",
+   "base_cooldown": "N/A"
+  },
+  {
+   "title": "Cargo Container",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "0s"
+  },
+  {
+   "title": "Dark Fluid Vessel",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "30s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "E/AT-12 Anti-Tank Emplacement",
+   "template": "Infobox Stratagem",
+   "source": "Urban Legends Page 3",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Anti-Tank",
+   "base_cooldown": "180s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "E/GL-21 Grenadier Battlement",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Explosive {{*}} Medium Armor Penetrating",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "E/MG-101 HMG Emplacement",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "180s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "EXO-45 Patriot Exosuit",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Vehicle",
+   "traits": "Explosive {{*}} Vehicle {{*}} Anti-Tank {{*}} Medium Armor Penetrating",
+   "base_cooldown": "420s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EXO-49 Emancipator Exosuit",
+   "template": "Infobox Stratagem",
+   "source": "Robotics Workshop",
+   "stratagem_type": "Vehicle",
+   "traits": "Explosive {{*}} Vehicle {{*}} Anti-Tank",
+   "base_cooldown": "420s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EXO-51 Lumberer Exosuit",
+   "template": "Infobox Stratagem",
+   "source": "Exo Experts Page 2",
+   "stratagem_type": "Vehicle",
+   "traits": "Explosive {{*}} Vehicle {{*}} Incendiary {{*}} Anti-Tank",
+   "base_cooldown": "420s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EXO-55 Breakthrough Exosuit",
+   "template": "Infobox Stratagem",
+   "source": "Exo Experts Page 3",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "420s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Eagle 110mm Rocket Pods",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle 500kg Bomb",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
+   "base_cooldown": "15s",
+   "permit_type": "Offense"
+  },
+  {
+   "title": "Eagle Airstrike",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Anti-Tank",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Cluster Bomb",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Medium Armor Penetrating",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Fly By",
+   "template": "Infobox Stratagem",
+   "source": "Liberty Day 2026",
+   "stratagem_type": "Eagle",
+   "traits": "Eagle",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Gas Airstrike",
+   "template": "Infobox Stratagem",
+   "source": "Counterdissident Hammer",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Caustic",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Napalm Airstrike",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle {{*}} Incendiary",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Rearm",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Ship",
+   "base_cooldown": "0s"
+  },
+  {
+   "title": "Eagle Smoke Strike",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Explosive {{*}} Eagle",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Eagle Strafing Run",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Eagle",
+   "traits": "Eagle {{*}} Anti-Tank",
+   "base_cooldown": "15s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "FX-12 Shield Generator Relay",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod",
+   "base_cooldown": "90s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "Hive Breaker Drill",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "119s"
+  },
+  {
+   "title": "LIFT-182 Warp Pack",
+   "template": "Infobox Stratagem",
+   "source": "Control Group Page 3",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "LIFT-850 Jump Pack",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "LIFT-860 Hover Pack",
+   "template": "Infobox Stratagem",
+   "source": "Borderline Justice Page 3",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "M-102 Gunner FRV",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "M-103 Supply FRV",
+   "template": "Infobox Stratagem",
+   "source": "Hanger",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Medium Armor Penetrating",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "M-104 Incinerator FRV",
+   "template": "Infobox Stratagem",
+   "source": "N/A",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Incendiary",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MD-17 Anti-Tank Mines",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Explosive {{*}} Anti-Tank",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "MD-6 Anti-Personnel Minefield",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Explosive {{*}} Medium Armor Penetrating",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "MD-8 Gas Mines",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Explosive {{*}} Caustic",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "MD-I4 Incendiary Mines",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Emplacement",
+   "traits": "Hellpod {{*}} Explosive {{*}} Incendiary",
+   "base_cooldown": "120s",
+   "permit_type": "Defensive"
+  },
+  {
+   "title": "NUX-223 Hellbomb",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "30s"
+  },
+  {
+   "title": "Orbital 120mm HE Barrage",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
+   "base_cooldown": "180s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital 380mm HE Barrage",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
+   "base_cooldown": "240s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Airburst Strike",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Medium Armor Penetrating",
+   "base_cooldown": "90s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Confetti",
+   "template": "Infobox Stratagem",
+   "source": "Liberty Day 2026",
+   "stratagem_type": "Orbital",
+   "traits": "Orbital",
+   "base_cooldown": "80s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital EMS Strike",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Orbital",
+   "traits": "Orbital {{*}} Anti-Tank {{*}} Stun",
+   "base_cooldown": "75s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Gas Strike",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Caustic",
+   "base_cooldown": "75s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Gatling Barrage",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "70s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Illumination Flare",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Other",
+   "base_cooldown": "N/A"
+  },
+  {
+   "title": "Orbital Laser",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Orbital {{*}} Anti-Tank {{*}} Beam",
+   "base_cooldown": "300s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Napalm Barrage",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Incendiary",
+   "base_cooldown": "240s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Precision Strike",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
+   "base_cooldown": "80s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Railcannon Strike",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Orbital {{*}} Anti-Tank",
+   "base_cooldown": "180s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Smoke Strike",
+   "template": "Infobox Stratagem",
+   "source": "Bridge",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital",
+   "base_cooldown": "75s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Orbital Walking Barrage",
+   "template": "Infobox Stratagem",
+   "source": "Orbital Cannons",
+   "stratagem_type": "Orbital",
+   "traits": "Explosive {{*}} Orbital {{*}} Anti-Tank",
+   "base_cooldown": "240s",
+   "permit_type": "Offensive"
+  },
+  {
+   "title": "Portable Comms Relay",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "N/A"
+  },
+  {
+   "title": "Prospecting Drill",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "0s"
+  },
+  {
+   "title": "Reinforce",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Ship",
+   "base_cooldown": "0s"
+  },
+  {
+   "title": "Resupply",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Ship",
+   "base_cooldown": "180s"
+  },
+  {
+   "title": "SH-20 Ballistic Shield Backpack",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "240s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "SH-32 Shield Generator Pack",
+   "template": "Infobox Stratagem",
+   "source": "Engineering Bay",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "480s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "SH-51 Directional Shield",
+   "template": "Infobox Stratagem",
+   "source": "Urban Legends Page 1",
+   "stratagem_type": "Backpack",
+   "traits": "Hellpod {{*}} Backpack",
+   "base_cooldown": "300s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "SSSD Delivery",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "8s"
+  },
+  {
+   "title": "Seismic Probe",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "27.5"
+  },
+  {
+   "title": "SoS Beacon",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Ship",
+   "base_cooldown": "0s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Super Earth Flag",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "N/A"
+  },
+  {
+   "title": "TD-110 Maelstrom",
+   "template": "Infobox Stratagem",
+   "source": "Armored Eagle",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Heavy Armor Penetrating {{*}} Anti-Tank",
+   "base_cooldown": "780s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "TD-220 Bastion MK XVI",
+   "template": "Infobox Stratagem",
+   "source": "Hangar",
+   "stratagem_type": "Vehicle",
+   "traits": "Vehicle {{*}} Explosive {{*}} Anti-Tank {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "780s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Tactical Video Camera",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "traits": "Hellpod",
+   "base_cooldown": "N/A",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Tectonic Drill",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "0s",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "Upload Data",
+   "template": "Infobox Stratagem",
+   "stratagem_type": "Objective",
+   "base_cooldown": "N/A"
+  },
+  {
+   "title": "40-K Meltagun",
+   "template": "Infobox Support Weapon",
+   "source": "Castellan’s Creed Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Energy-Based",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Chargeup {{*}} Anti-Tank",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AC-8 Autocannon",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Explosives",
+   "weapon_traits": "Support Weapon {{*}} Hellpod {{*}} Backpack {{*}} Heavy Armor Penetrating {{*}} Stationary Reload",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armor Penetrating {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP (APHET) AP (Flak)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "AMW-20 Apex",
+   "template": "Infobox Support Weapon",
+   "source": "Scope of Authority Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armour Penetrating {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "APW-1 Anti-Materiel Rifle",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Armor Precision",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Heavy Armor Penetrating",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "ARC-3 Arc Thrower",
+   "template": "Infobox Support Weapon",
+   "source": "Engineering Bay",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Energy-Based",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup {{*}} Arc",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "B/FLAM-80 Cremator",
+   "template": "Infobox Support Weapon",
+   "source": "Entrenched Division Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Hellpod {{*}} Backpack {{*}} Incendiary",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "B/MD C4 Pack",
+   "template": "Infobox Support Weapon",
+   "source": "Redacted Regiment Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Tank",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Sticky",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "CQC-1 One True Flag",
+   "template": "Infobox Support Weapon",
+   "source": "Masters of Ceremony Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Melee",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Melee {{*}} One Handed",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "CQC-20 Breaching Hammer",
+   "template": "Infobox Support Weapon",
+   "source": "Siege Breakers Page 1",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Melee",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Explosive {{*}} Anti-Tank {{*}} Melee",
+   "base_cooldown": "480s",
+   "penetration": "AP (Melee) AP (Explosion)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "CQC-9 Defoliation Tool",
+   "template": "Infobox Support Weapon",
+   "source": "Python Commandos Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Melee",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Melee",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EAT-17 Expendable Anti-Tank",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Tank",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
+   "base_cooldown": "70s",
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EAT-411 Leveller",
+   "template": "Infobox Support Weapon",
+   "source": "Siege Breakers Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Tank",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
+   "base_cooldown": "140s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "EAT-700 Expendable Napalm",
+   "template": "Infobox Support Weapon",
+   "source": "Dust Devils Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Incendiary",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Incendiary {{*}} Expendable",
+   "base_cooldown": "140s",
+   "penetration": "AP (Bomblets)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "FAF-14 Spear",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Missiles",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Stationary Reload {{*}} Guided",
+   "base_cooldown": "480s",
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "FLAM-40 Flamethrower",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Hellpod {{*}} Incendiary",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "GL-21 Grenade Launcher",
+   "template": "Infobox Support Weapon",
+   "source": "Engineering Bay",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Explosives",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Explosive {{*}} Medium Armor Penetrating",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "GL-28 Belt-Fed Grenade Launcher",
+   "template": "Infobox Support Weapon",
+   "source": "Siege Breakers Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Heavy Armor Penetrating {{*}} Explosive",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "GL-52 De-Escalator",
+   "template": "Infobox Support Weapon",
+   "source": "Force of Law Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Stun {{*}} Tesla",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Explosive {{*}} Heavy Armor Penetrating {{*}} Arc",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "GR-8 Recoilless Rifle",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Tank",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Anti-Tank {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP (HEAT) AP AP (HE) AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "LAS-44 Nova",
+   "template": "Infobox Support Weapon",
+   "source": "Scope of Authority Page 3",
+   "weapon_category": "Support Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Heavy Armour Penetrating {{*}} Heat",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "LAS-98 Laser Cannon",
+   "template": "Infobox Support Weapon",
+   "source": "Engineering Bay",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Energy-Based",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Hellpod {{*}} Heavy Armor Penetrating {{*}} Heat {{*}} Beam",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "LAS-99 Quasar Cannon",
+   "template": "Infobox Support Weapon",
+   "source": "Engineering Bay",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Energy-Based",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "M-1000 Maxigun",
+   "template": "Infobox Support Weapon",
+   "source": "Python Commandos Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Backpack",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "M-105 Stalwart",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Light Armor Penetrating",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MG-206 Heavy Machine Gun",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Heavy Armor Penetrating {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MG-43 Machine Gun",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Medium Armor Penetrating {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MGX-42 Bullet Storm",
+   "template": "Infobox Support Weapon",
+   "source": "Exo Experts Page 1",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Light Armor Penetrating {{*}} Expendable",
+   "base_cooldown": "70s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MLS-4X Commando",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Missiles",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Expendable",
+   "base_cooldown": "120s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "MS-11 Solo Silo",
+   "template": "Infobox Support Weapon",
+   "source": "Dust Devils Page 3",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Explosive",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Explosive {{*}} Anti-Tank {{*}} Expendable",
+   "base_cooldown": "180s",
+   "penetration": "AP (Main Explosion) AP (Impact Explosion)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "PLAS-45 Epoch",
+   "template": "Infobox Support Weapon",
+   "source": "Control Group Page 1",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Explosive {{*}} Heavy Armor Penetrating {{*}} Stationary Reload {{*}} Chargeup",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "RL-77 Airburst Rocket Launcher",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Rocket Launcher",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Backpack {{*}} Medium Armor Penetrating {{*}} Stationary Reload",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "RS-422 Railgun",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Armor Precision",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Chargeup",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "S-11 Speargun",
+   "template": "Infobox Support Weapon",
+   "source": "Dust Devils Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Anti-Armor Precision",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Caustic {{*}} Anti-Tank",
+   "base_cooldown": "480s",
+   "penetration": "AP",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "StA-X3 W.A.S.P. Launcher",
+   "template": "Infobox Support Weapon",
+   "source": "Patriotic Administration Center",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Missiles",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Backpack {{*}}Stationary Reload {{*}} Guided",
+   "base_cooldown": "480s",
+   "penetration": "AP (Projectile) AP (Explosion)",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "TX-41 Sterilizer",
+   "template": "Infobox Support Weapon",
+   "source": "Chemical Agents Page 2",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Heavy Weapons",
+   "stratagem_type": "Support Weapon",
+   "traits": "Support Weapon {{*}} Caustic",
+   "base_cooldown": "480s",
+   "penetration": "5",
+   "permit_type": "Supply"
+  },
+  {
+   "title": "G-10 Incendiary",
+   "template": "Infobox Throwable",
+   "source": "Steeled Veterans Page 2",
+   "weapon_type": "Standard",
+   "throwable_traits": "Incendiary {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-109 Urchin",
+   "template": "Infobox Throwable",
+   "source": "Force of Law Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Sticky {{*}} Stun",
+   "penetration": "6"
+  },
+  {
+   "title": "G-11 Caltrops",
+   "template": "Infobox Throwable",
+   "source": "Scope of Authority Page 1",
+   "weapon_type": "Special",
+   "throwable_traits": "Stun {{*}} Sticky",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-12 High Explosive",
+   "template": "Infobox Throwable",
+   "source": "Starter Equipment",
+   "weapon_type": "Standard",
+   "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-123 Thermite",
+   "template": "Infobox Throwable",
+   "source": "Democratic Detonation Page 1",
+   "weapon_type": "Special",
+   "throwable_traits": "Anti-Tank {{*}} Sticky",
+   "penetration": "AV"
+  },
+  {
+   "title": "G-13 Incendiary Impact",
+   "template": "Infobox Throwable",
+   "source": "Polar Patriots Page 2",
+   "weapon_type": "Special",
+   "throwable_traits": "Incendiary {{*}} Explosive",
+   "penetration": "3"
+  },
+  {
+   "title": "G-142 Pyrotech",
+   "template": "Infobox Throwable",
+   "source": "Masters of Ceremony Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Incendiary {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-16 Impact",
+   "template": "Infobox Throwable",
+   "source": "Helldivers Mobilize! Page 5",
+   "weapon_type": "Special",
+   "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
+   "penetration": "AV"
+  },
+  {
+   "title": "G-23 Stun",
+   "template": "Infobox Throwable",
+   "source": "Cutting Edge Page 2",
+   "weapon_type": "Special",
+   "throwable_traits": "Explosive {{*}} Stun",
+   "penetration": "AV"
+  },
+  {
+   "title": "G-3 Smoke",
+   "template": "Infobox Throwable",
+   "source": "Helldivers Mobilize! Page 8",
+   "weapon_type": "Special",
+   "throwable_traits": "Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-31 Arc",
+   "template": "Infobox Throwable",
+   "source": "Control Group Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Explosive {{*}} Arc",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-4 Gas",
+   "template": "Infobox Throwable",
+   "source": "Chemical Agents Page 1",
+   "weapon_type": "Special",
+   "throwable_traits": "Caustic {{*}} Explosive",
+   "penetration": "6"
+  },
+  {
+   "title": "G-48 Giga Grenade",
+   "template": "Infobox Throwable",
+   "source": "Entrenched Division Page 2",
+   "weapon_type": "Special",
+   "throwable_traits": "Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-50 Seeker",
+   "template": "Infobox Throwable",
+   "source": "Servants of Freedom Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} Guided",
+   "penetration": "AV"
+  },
+  {
+   "title": "G-6 Frag",
+   "template": "Infobox Throwable",
+   "source": "Helldivers Mobilize! Page 1",
+   "weapon_type": "Standard",
+   "throwable_traits": "Medium Armor Penetrating {{*}} Explosive",
+   "penetration": "AV"
+  },
+  {
+   "title": "G-60 Anti-Tank Seeker",
+   "template": "Infobox Throwable",
+   "source": "Ironclad Democracy Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Anti-Tank {{*}} Explosive {{*}} Guided",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-7 Pineapple",
+   "template": "Infobox Throwable",
+   "source": "Dust Devils Page 3",
+   "weapon_type": "Standard",
+   "throwable_traits": "Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-8 Immolation",
+   "template": "Infobox Throwable",
+   "source": "Ironclad Democracy Page 1",
+   "weapon_type": "Special",
+   "throwable_traits": "Incendiary",
+   "penetration": "AP"
+  },
+  {
+   "title": "G-89 Smokescreen",
+   "template": "Infobox Throwable",
+   "source": "Superstore",
+   "weapon_type": "Special",
+   "throwable_traits": "Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "G/40-K Melta Mine",
+   "template": "Infobox Throwable",
+   "source": "Castellan’s Creed",
+   "weapon_type": "Special",
+   "throwable_traits": "Anti-Tank",
+   "penetration": "AP"
+  },
+  {
+   "title": "G/SH-39 Shield",
+   "template": "Infobox Throwable",
+   "source": "Siege Breakers Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Sticky",
+   "penetration": "AP"
+  },
+  {
+   "title": "K-2 Throwing Knife",
+   "template": "Infobox Throwable",
+   "source": "Viper Commandos Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Medium Armor Penetrating",
+   "penetration": "AV"
+  },
+  {
+   "title": "TED-63 Dynamite",
+   "template": "Infobox Throwable",
+   "source": "Borderline Justice Page 3",
+   "weapon_type": "Standard",
+   "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "TM-1 Lure Mine",
+   "template": "Infobox Throwable",
+   "source": "Redacted Regiment Page 3",
+   "weapon_type": "Special",
+   "throwable_traits": "Anti-Tank {{*}} Sticky {{*}} Explosive",
+   "penetration": "AP (Explosion) AP (Shrapnel)"
+  },
+  {
+   "title": "AR-11 Arbitrator",
+   "template": "Infobox Weapon",
+   "source": "Ironclad Democracy Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP (4mm) AP (10g)"
+  },
+  {
+   "title": "AR-23 Liberator",
+   "template": "Infobox Weapon",
+   "source": "Starter Equipment",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-23A Liberator Carbine",
+   "template": "Infobox Weapon",
+   "source": "Viper Commandos Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-23C Liberator Concussive",
+   "template": "Infobox Weapon",
+   "source": "Steeled Veterans Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-23L Liberator Legacy",
+   "template": "Infobox Weapon",
+   "source": "Liberty Day 2186",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-23P Liberator Penetrator",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize Page 6",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-59 Suppressor",
+   "template": "Infobox Weapon",
+   "source": "Redacted Regiment Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
+   "penetration": "AP"
+  },
+  {
+   "title": "AR-61 Tenderizer",
+   "template": "Infobox Weapon",
+   "source": "Polar Patriots Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "ARC-12 Blitzer",
+   "template": "Infobox Weapon",
+   "source": "Cutting Edge Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Arc",
+   "penetration": "ap"
+  },
+  {
+   "title": "BR-14 Adjudicator",
+   "template": "Infobox Weapon",
+   "source": "Democratic Detonation Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "CB-9 Exploding Crossbow",
+   "template": "Infobox Weapon",
+   "source": "Democratic Detonation Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Explosives",
+   "weapon_traits": "Explosive {{*}} One Handed",
+   "penetration": "ap"
+  },
+  {
+   "title": "CQC-19 Stun Lance",
+   "template": "Infobox Weapon",
+   "source": "Urban Legends Page 1",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
+   "penetration": "ap"
+  },
+  {
+   "title": "CQC-2 Saber",
+   "template": "Infobox Weapon",
+   "source": "Masters of Ceremony Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
+   "penetration": "ap"
+  },
+  {
+   "title": "CQC-30 Stun Baton",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
+   "penetration": "ap"
+  },
+  {
+   "title": "CQC-42 Machete",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
+   "penetration": "AP"
+  },
+  {
+   "title": "CQC-5 Combat Hatchet",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
+   "penetration": "AP"
+  },
+  {
+   "title": "CQC-72 Entrenchment Tool",
+   "template": "Infobox Weapon",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Support Weapon {{*}} Melee {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "CQC-73 Entrenchment Tool",
+   "template": "Infobox Weapon",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Melee",
+   "weapon_traits": "Melee {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "DBS-2 Double Freedom",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "FLAM-66 Torcher",
+   "template": "Infobox Weapon",
+   "source": "Freedom's Flame Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Incendiary",
+   "penetration": "4"
+  },
+  {
+   "title": "GL-15 Evictor",
+   "template": "Infobox Weapon",
+   "source": "Ironclad Democracy Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Explosives",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Explosive {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "GP-20 Ultimatum",
+   "template": "Infobox Weapon",
+   "source": "Servants of Freedom Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "One Handed {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "GP-31 Grenade Pistol",
+   "template": "Infobox Weapon",
+   "source": "Democratic Detonation Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "One Handed {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "JAR-5 Dominator",
+   "template": "Infobox Weapon",
+   "source": "Steeled Veterans Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "LAS-12 Sai",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Heat",
+   "penetration": "AP"
+  },
+  {
+   "title": "LAS-13 Trident",
+   "template": "Infobox Weapon",
+   "source": "Siege Breakers Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Light Armor Penetrating {{*}} Heat",
+   "penetration": "AP"
+  },
+  {
+   "title": "LAS-16 Sickle",
+   "template": "Infobox Weapon",
+   "source": "Cutting Edge Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Light Armor Penetrating {{*}} Heat",
+   "penetration": "ap"
+  },
+  {
+   "title": "LAS-17 Double-Edge Sickle",
+   "template": "Infobox Weapon",
+   "source": "Servants of Freedom Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Light Armor Penetrating {{*}} Medium Armor Penetrating {{*}} Heavy Armor Penetrating {{*}} Heat",
+   "penetration": "ap"
+  },
+  {
+   "title": "LAS-5 Scythe",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 5",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Light Armor Penetrating {{*}} Beam {{*}} Heat",
+   "penetration": "ap"
+  },
+  {
+   "title": "LAS-58 Talon",
+   "template": "Infobox Weapon",
+   "source": "Borderline Justice Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "{{*}}One Handed {{*}}Heat {{*}} Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "LAS-7 Dagger",
+   "template": "Infobox Weapon",
+   "source": "Cutting Edge Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "{{*}}Light Armor Penetrating {{*}}One Handed {{*}} Beam {{*}}Heat",
+   "penetration": "AP"
+  },
+  {
+   "title": "M6C/SOCOM Pistol",
+   "template": "Infobox Weapon",
+   "source": "Halo: ODST Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
+   "penetration": "AP"
+  },
+  {
+   "title": "M7S SMG",
+   "template": "Infobox Weapon",
+   "source": "Halo: ODST Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
+   "penetration": "AP"
+  },
+  {
+   "title": "M90A Shotgun",
+   "template": "Infobox Weapon",
+   "source": "Halo: ODST Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "MA5C Assault Rifle",
+   "template": "Infobox Weapon",
+   "source": "Halo: ODST Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "MP-98 Knight",
+   "template": "Infobox Weapon",
+   "source": "Super Citizen Edition",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
+   "penetration": "ap"
+  },
+  {
+   "title": "P-11 Stim Pistol",
+   "template": "Infobox Weapon",
+   "source": "Chemical Agents Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "One Handed {{*}} Rounds Reload {{*}} Stimulative",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-113 Verdict",
+   "template": "Infobox Weapon",
+   "source": "Polar Patriots Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "{{*}} Medium Armor Penetrating {{*}} One Handed",
+   "penetration": "ap"
+  },
+  {
+   "title": "P-19 Redeemer",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-2 Peacemaker",
+   "template": "Infobox Weapon",
+   "source": "Starter Equipment",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-33 Missile Pistol",
+   "template": "Infobox Weapon",
+   "source": "Exo Experts Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Anti-Tank {{*}} One Handed {{*}} Guided {{*}} Explosive",
+   "penetration": "AP (Projectile) AP (Explosion)"
+  },
+  {
+   "title": "P-34 Breacher",
+   "template": "Infobox Weapon",
+   "source": "Ironclad Democracy Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "One Handed {{*}} Anti-Tank {{*}} Sticky {{*}} Explosive",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-35 Re-Educator",
+   "template": "Infobox Weapon",
+   "source": "Redacted Regiment Page 1",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "One Handed {{*}} Caustic {{*}} Heavy Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-4 Senator",
+   "template": "Infobox Weapon",
+   "source": "Steeled Veterans Page 1",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Heavy Armor Penetrating {{*}}One Handed {{*}}Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-44 Mist",
+   "template": "Infobox Weapon",
+   "source": "Scope of Authority Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "One Handed {{*}} Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-69 Veto",
+   "template": "Infobox Weapon",
+   "source": "Entrenched Division Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-72 Crisper",
+   "template": "Infobox Weapon",
+   "source": "Freedom's Flame Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Incendiary {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "P-92 Warrant",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Pistols",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Guided",
+   "penetration": "ap"
+  },
+  {
+   "title": "P/40-K Bolt Pistol",
+   "template": "Infobox Weapon",
+   "source": "Castellan’s Creed",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} One Handed",
+   "penetration": "AP (Projectile) AP (Explosion)"
+  },
+  {
+   "title": "PLAS-1 Scorcher",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 10",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Light Armor Penetrating {{*}} Explosive",
+   "penetration": "AP (Projectile) AP (Explosion)"
+  },
+  {
+   "title": "PLAS-101 Purifier",
+   "template": "Infobox Weapon",
+   "source": "Polar Patriots Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Chargeup {{*}} Explosive {{*}} Medium Armor Penetrating",
+   "penetration": "ap"
+  },
+  {
+   "title": "PLAS-15 Loyalist",
+   "template": "Infobox Weapon",
+   "source": "Truth Enforcers Page 3",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Medium Armor Penetrating{{*}} One Handed{{*}} Explosive{{*}} Chargeup",
+   "penetration": "ap"
+  },
+  {
+   "title": "PLAS-39 Accelerator Rifle",
+   "template": "Infobox Weapon",
+   "source": "Righteous Revenants Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Explosive {{*}} Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-2 Amendment",
+   "template": "Infobox Weapon",
+   "source": "Masters of Ceremony Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-2124 Constitution",
+   "template": "Infobox Weapon",
+   "source": "Liberty Day",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-36 Eruptor",
+   "template": "Infobox Weapon",
+   "source": "Democratic Detonation Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Explosives",
+   "weapon_traits": "Explosive {{*}} Heavy Armor Penetrating",
+   "penetration": "AP (Projectile) AP (Explosion)"
+  },
+  {
+   "title": "R-4 Hyena",
+   "template": "Infobox Weapon",
+   "source": "Celestial Fence",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Incendiary",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-40 Sightliner",
+   "template": "Infobox Weapon",
+   "source": "Scope of Authority Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Sniper Rifles",
+   "weapon_traits": "Heavy Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-6 Deadeye",
+   "template": "Infobox Weapon",
+   "source": "Borderline Justice Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Rounds Reload {{*}} Medium Armor Penetrating",
+   "penetration": "ap"
+  },
+  {
+   "title": "R-63 Diligence",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "R-63CS Diligence Counter Sniper",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 7",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "ap"
+  },
+  {
+   "title": "R-72 Censor",
+   "template": "Infobox Weapon",
+   "source": "Redacted Regiment Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Marksman Rifles",
+   "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
+   "penetration": "AP"
+  },
+  {
+   "title": "R/40-K Hot-Shot Marksman Rifle",
+   "template": "Infobox Weapon",
+   "source": "Castellan’s Creed",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "SG-20 Halt",
+   "template": "Infobox Weapon",
+   "source": "Truth Enforcers Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "{{*}}Light Armor Penetrating {{*}}Medium Armor Penetrating {{*}}Rounds Reload",
+   "penetration": "ap (Flechette) ap (Stun)"
+  },
+  {
+   "title": "SG-22 Bushwhacker",
+   "template": "Infobox Weapon",
+   "source": "Viper Commandos Page 2",
+   "weapon_category": "Secondary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
+   "penetration": "ap"
+  },
+  {
+   "title": "SG-225 Breaker",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 4",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "SG-225IE Breaker Incendiary",
+   "template": "Infobox Weapon",
+   "source": "Steeled Veterans Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating {{*}} Incendiary",
+   "penetration": "ap"
+  },
+  {
+   "title": "SG-225SP Breaker Spray&Pray",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 9",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "ap"
+  },
+  {
+   "title": "SG-451 Cookout",
+   "template": "Infobox Weapon",
+   "source": "Freedom's Flame Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload {{*}} Incendiary",
+   "penetration": "ap"
+  },
+  {
+   "title": "SG-8 Punisher",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Light Armor Penetrating{{*}}Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "SG-88 Break-Action Shotgun",
+   "template": "Infobox Weapon",
+   "weapon_category": "Support Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Support Weapon {{*}} Light Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "SG-8P Punisher Plasma",
+   "template": "Infobox Weapon",
+   "source": "Cutting Edge Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Energy-Based",
+   "weapon_traits": "Explosive",
+   "penetration": "ap"
+  },
+  {
+   "title": "SG-8S Slugger",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 8",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "SG-97 Sweeper",
+   "template": "Infobox Weapon",
+   "source": "Superstore",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Shotguns",
+   "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
+   "penetration": "AP"
+  },
+  {
+   "title": "SMG-203 Gallant",
+   "template": "Infobox Weapon",
+   "source": "Exo Experts Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Medium Armor Penetrating {{*}} One Handed",
+   "penetration": "ap"
+  },
+  {
+   "title": "SMG-32 Reprimand",
+   "template": "Infobox Weapon",
+   "source": "Truth Enforcers Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Medium Armor Penetrating",
+   "penetration": "ap"
+  },
+  {
+   "title": "SMG-37 Defender",
+   "template": "Infobox Weapon",
+   "source": "Helldivers Mobilize! Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "SMG-72 Pummeler",
+   "template": "Infobox Weapon",
+   "source": "Polar Patriots Page 2",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
+   "penetration": "ap"
+  },
+  {
+   "title": "SMG/FLAM-34 Stoker",
+   "template": "Infobox Weapon",
+   "source": "Entrenched Division Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Incendiary",
+   "penetration": "AP (12mm) AP (Flamethrower)"
+  },
+  {
+   "title": "StA-11 SMG",
+   "template": "Infobox Weapon",
+   "source": "Righteous Revenants Page 3",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Submachine Guns",
+   "weapon_traits": "Light Armor Penetrating{{*}}One Handed",
+   "penetration": "AP"
+  },
+  {
+   "title": "StA-52 Assault Rifle",
+   "template": "Infobox Weapon",
+   "source": "Righteous Revenants Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Assault Rifles",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  },
+  {
+   "title": "VG-70 Variable",
+   "template": "Infobox Weapon",
+   "source": "Control Group Page 1",
+   "weapon_category": "Primary Weapons",
+   "weapon_type": "Special",
+   "weapon_traits": "Light Armor Penetrating",
+   "penetration": "AP"
+  }
+ ]
+}
