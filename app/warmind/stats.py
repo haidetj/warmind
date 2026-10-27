@@ -34,6 +34,92 @@ def derive(s: dict) -> dict:
     }
 
 
+def scorecard(s: dict) -> list[dict]:
+    """Human-facing derived stats for display. Each entry: {label, value, hint}.
+    Only includes a stat when the inputs it needs are present, so we never show a
+    fabricated 0. Career data has friendly-fire KILLS (not damage), labelled honestly."""
+    g = lambda k: float(s.get(k) or 0)
+    has = lambda *ks: any(s.get(k) for k in ks)
+    out = []
+    def add(label, value, hint=""):
+        out.append({"label": label, "value": value, "hint": hint})
+
+    if has("shots_fired"):
+        add("Accuracy", f"{g('shots_hit') / (g('shots_fired') or 1) * 100:.1f}%", "shots hit / fired")
+    if has("enemy_kills"):
+        d = g("deaths")
+        add("K/D", f"{g('enemy_kills') / d:.1f}" if d else "∞", "enemy kills / deaths")
+    if has("missions_played"):
+        m = g("missions_played")
+        add("Mission success", f"{g('missions_won') / m * 100:.0f}%", "won / played")
+        add("Extraction rate", f"{g('extractions') / m * 100:.0f}%", "extracted / played")
+        add("Kills / mission", f"{g('enemy_kills') / m:.0f}")
+        add("Deaths / mission", f"{g('deaths') / m:.1f}")
+        if has("objectives"):
+            add("Objectives / mission", f"{g('objectives') / m:.1f}")
+        if has("samples"):
+            add("Samples / mission", f"{g('samples') / m:.0f}")
+        if has("total_stratagems"):
+            add("Stratagems / mission", f"{g('total_stratagems') / m:.1f}")
+        if has("in_mission_seconds"):
+            add("Avg mission", f"{g('in_mission_seconds') / 60 / m:.0f} min")
+    if has("enemy_kills") and has("friendly_kills"):
+        ek = g("enemy_kills") or 1
+        add("Friendly-fire kills", f"{g('friendly_kills') / ek * 1000:.1f}", "per 1k enemy kills")
+    ek = g("enemy_kills") or 1
+    if has("melee_kills"):
+        add("Melee kill share", f"{g('melee_kills') / ek * 100:.1f}%")
+    if has("grenade_kills"):
+        add("Grenade kill share", f"{g('grenade_kills') / ek * 100:.1f}%")
+    if has("eagle_kills"):
+        add("Eagle kill share", f"{g('eagle_kills') / ek * 100:.1f}%")
+    return out
+
+
+# flavour fragments for the squad readout, keyed by a signal and its direction
+def squad_readout(snaps: list[dict]) -> str | None:
+    """A deterministic, flavourful one-line read of the whole squad from the
+    aggregate of everyone's career stats. None when there's nothing to read."""
+    snaps = [s for s in snaps if s]
+    if not snaps:
+        return None
+    agg = {}
+    for s in snaps:
+        for k, v in s.items():
+            if isinstance(v, (int, float)):
+                agg[k] = agg.get(k, 0) + v
+    g = lambda k: float(agg.get(k) or 0)
+    clauses = []
+    shots = g("shots_fired")
+    if shots:
+        acc = g("shots_hit") / shots * 100
+        clauses.append((abs(acc - 65), "a crack shot squad" if acc >= 72 else
+                        "spray-and-pray — trigger discipline is thin" if acc < 55 else
+                        "steady marksmanship"))
+    missions = g("missions_played")
+    if missions:
+        wr = g("missions_won") / missions * 100
+        clauses.append((abs(wr - 85), "near-flawless mission record" if wr >= 92 else
+                        "a shaky win record" if wr < 70 else "a solid win record"))
+        xr = g("extractions") / missions * 100
+        clauses.append((abs(xr - 70), "extraction-disciplined — they get out with the loot" if xr >= 80 else
+                        "they'd rather die on the objective than extract" if xr < 50 else "even-handed about extraction"))
+    ek = g("enemy_kills")
+    if ek and g("friendly_kills") is not None:
+        ffp = g("friendly_kills") / ek * 1000
+        clauses.append((abs(ffp - 8), "surgically clean — almost no friendly fire" if ffp <= 3 else
+                        "a danger to each other — heavy friendly fire" if ffp >= 15 else "normal friendly-fire discipline"))
+    if ek and missions:
+        kpm = ek / missions
+        clauses.append((abs(kpm - 350) / 100, "an extermination crew" if kpm >= 500 else
+                        "light on the trigger" if kpm < 180 else "a measured kill rate"))
+    if not clauses:
+        return None
+    clauses.sort(key=lambda c: -c[0])  # strongest (most extreme) signals first
+    picked = [c[1] for c in clauses[:3]]
+    return "This squad reads as " + "; ".join(picked) + "."
+
+
 def validate(s: dict) -> list[str]:
     """The validity checks from the doctrine skill. Returns a list of problems."""
     problems = []

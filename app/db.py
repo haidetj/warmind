@@ -63,6 +63,8 @@ def init():
         cols = {r["name"] for r in c.execute("PRAGMA table_info(player)").fetchall()}
         if "owned_json" not in cols:
             c.execute("ALTER TABLE player ADD COLUMN owned_json TEXT")
+        if "confidence_json" not in cols:
+            c.execute("ALTER TABLE player ADD COLUMN confidence_json TEXT")
 
 
 def set_owned(pid, owned):
@@ -70,6 +72,13 @@ def set_owned(pid, owned):
     with _lock, _conn() as c:
         c.execute("UPDATE player SET owned_json=?, updated_at=? WHERE id=?",
                   (json.dumps(owned) if owned is not None else None, time.time(), pid))
+
+
+def set_confidence(pid, confidence):
+    """confidence: {"verified": [...], "uncertain": [...]} from the double-read, or None."""
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET confidence_json=? WHERE id=?",
+                  (json.dumps(confidence) if confidence else None, pid))
 
 
 def create_lobby(lobby_id, name, creator_token):

@@ -49,6 +49,18 @@ def _owned_of(p) -> list | None:
         return None
 
 
+def _conf_of(p) -> dict | None:
+    """A player row's double-read confidence {verified, uncertain}, or None."""
+    raw = p.get("confidence_json") if isinstance(p, dict) else None
+    if not raw:
+        return None
+    try:
+        v = json.loads(raw)
+        return v if isinstance(v, dict) else None
+    except Exception:
+        return None
+
+
 def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
@@ -96,13 +108,17 @@ def _resolve(lobby) -> dict:
             "play_style": p["play_style"], "style_source": p["style_source"],
             "style_note": p["style_note"], "has_stats": bool(snap),
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
+            "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
+            "confidence": _conf_of(p),       # which read fields were double-read-verified
             "owned": _owned_of(p),           # None = owns everything; else owned non-base gear
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"])} if res else None),
         })
+    all_snaps = [json.loads(p["snapshot_json"]) for p in players_rows if p["snapshot_json"]]
     return {
         "id": lobby["id"], "name": lobby["name"], "mission": mission,
         "players": players_out, "directive": directive,
+        "squad_readout": stats.squad_readout(all_snaps),
     }
 
 
@@ -254,13 +270,14 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
     parsed_call = callsign.strip()
     imgs = await _read_images(images)
-    vision_error = None
+    vision_error, confidence = None, None
     if imgs:
         try:
             parsed = vision.parse_career(imgs, mock_index=n_existing)
             snapshot = parsed["snapshot"]
             play_style, note, source = parsed["play_style"], parsed["style_note"], "screenshot"
             parsed_call = parsed_call or parsed.get("callsign") or ""
+            confidence = parsed.get("confidence")
         except Exception as e:
             # A bad/unreadable screenshot must never lock a diver out of the lobby.
             # Join them with a pending style and let them pick one or retry.
@@ -268,6 +285,8 @@ async def join(lid: str, callsign: str = Form(""), images: list[UploadFile] = Fi
             note = "Couldn't read that screenshot — pick your style or try another shot."
     callsign_final = parsed_call or f"Diver {n_existing + 1}"
     db.add_or_update_player(pid, lid, token, callsign_final, play_style, source, note, snapshot)
+    if confidence:
+        db.set_confidence(pid, confidence)
     return {"player_id": pid, "player_token": token, "play_style": play_style,
             "style_note": note, "style_source": source, "vision_error": vision_error}
 
@@ -320,8 +339,9 @@ async def update_career(lid: str, pid: str, images: list[UploadFile] = File(defa
         return {"ok": False, "vision_error": str(e)}
     db.add_or_update_player(pid, lid, p["token"], parsed.get("callsign") or p["callsign"],
                             parsed["play_style"], "screenshot", parsed["style_note"], parsed["snapshot"])
+    db.set_confidence(pid, parsed.get("confidence"))
     return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"],
-            "validity": parsed["validity"]}
+            "validity": parsed["validity"], "confidence": parsed.get("confidence")}
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/result")
