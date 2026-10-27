@@ -1,0 +1,130 @@
+{
+ "Acclimated": {
+  "page": "Acclimated",
+  "text": "Provides ''' 50% ''' resistance to fire, gas, acid, and electrical damage. '''''' is an armor passive in ''Helldivers 2.'' == Description == == Explanation == A versatile jack-of-all-trades effect that grants damage resistance to: *Fire – including Helldivers, Incineration Corps, or fire tornados *Gas – Helldivers *Acid – Terminids *Electrical (arc) – Helldivers and Illuminate == Armor List == == See Also == Other passives with similar effects: * * * * * * * == Change History =="
+ },
+ "Adreno-Defibrillator": {
+  "page": "Adreno-Defibrillator",
+  "text": "Provides one-time, short-lived resuscitation upon death, given that the Helldiver's body is still intact. Increases stim effect duration by ''' 2.0s '''. Provides ''' 50% ''' resistance to arc damage. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Functionality== Upon dying, unless gibbed, the player will ragdoll and health is immediately restored to full. While not under the effects of a stim, vision will turn black and white and audio will be muffled. Revived players suffer a permanent bleed penalty, where their stamina will always be fully depleted and their health constantly drains. Health drains at a rate of approximately 20% per second, and the player can still take damage from enemies as normal. This last stand state ends when the player's health is fully depleted, whether from the health drain or from enemy attacks. ==Tactical Information== * This armor passive"
+ },
+ "Advanced Filtration": {
+  "page": "Advanced Filtration",
+  "text": "Provides ''' 80% ''' resistance to gas damage and effects. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== You become near-resistant to the and slowing effects of gas. Interestingly, the heavy variety of this armor, when combined with the Vitality Enhancement booster, renders the Helldiver '''completely''' immune to gas. Notable gas threats include the following: *AX/TX-13 “Guard Dog” Dog Breath *G-4 Gas grenades *MD-8 Gas Mines *Orbital Gas Strikes *TX-41 Sterilizer *S-11 Speargun ==Armor List== ==See Also== Other passives with similar effects: * * * ==Change History=="
+ },
+ "Ballistic Padding": {
+  "page": "Ballistic Padding",
+  "text": "Provides ''' 25% ''' resistance to chest damage. Provides ''' 25% ''' resistance to explosive damage. Prevents ''' all damage from bleeding ''' if chest hemorrhages. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' The chest damage reduction modifies the damage multipliers without increasing the region's health pool. '''2.''' You suffer 25% less from explosions. '''3.''' The from torso bleeding is fully stopped. === Notes === * The explosion resistance applies to the whole body, not just the chest. == Armor List == == See Also == Other passives with similar effects: * * * * * == Change History =="
+ },
+ "Blunt-Force Mitigation": {
+  "page": "Blunt-Force Mitigation",
+  "text": "Bearer is more resistant to being knocked prone. Reduces damage taken from impact and collisions by ''' 30% '''. Provides a ''' higher armor rating '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' All incoming stagger is reduced by '''30%''', which prevents you from being ragdolled by attacks that have a stagger value lower than 36, such as Radical kicks, Devastator punches and Overseer staff swings, but not stronger attacks such as Cannon Turret shots and Reinforced Scout Strider missiles. '''2.''' The wearer takes moderately less damage from impacts (such as being ragdolled into terrain at high speed, or falling to the ground) and collisions (such as being run over by a FRV or Charger). '''3.''' It increases the wearer's armor rating by '''25''', enhancing defense without further reducing speed or stamina regeneration. == Armor List == ="
+ },
+ "Concussive Padding, Grenadier": {
+  "page": "Concussive Padding, Grenadier",
+  "text": "Provides ''' 50% ''' resistance to explosive damage. Increases initial inventory and holding capacity of throwables by ''' +2 '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== * It halves all damage taken from explosions, making it especially effective against the Automaton front. * The wearer deploys with two additional throwables and can collect two more before reaching full capacity. '''In Detail:''' ==Armor List== ==See Also== Other passives with similar effects: * * * * * * ==Change History== ==References=="
+ },
+ "Concussive Padding, Hazmat": {
+  "page": "Concussive Padding, Hazmat",
+  "text": "Provides ''' 50% ''' resistance to explosive damage. Provides ''' 25% ''' resistance to gas damage and effects. Sidearm recoil reduced by ''' 30% '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== * It halves all damage taken from explosions, making it especially effective against the bot-front. * You become more resistant to the and slowing effects of gas. * Your secondary's recoil is reduced, making it easier to maintain accuracy. ==Armor List== ==See Also== Other passives with similar effects: * * * * * * * * * ==Change History=="
+ },
+ "Concussive Padding, Reinforced": {
+  "page": "Concussive Padding, Reinforced",
+  "text": "Provides ''' 50% ''' resistance to explosive damage. Provides a ''' higher armor rating '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' It halves all damage taken from explosions, making it especially effective against the bot-front. '''2.''' It increases the wearer's armor rating by 30 points, enhancing defense without further reducing speed or stamina regeneration. ==Armor List== ==See Also== Other passives with similar effects: * * * * * * * ==Change History=="
+ },
+ "Democracy Protects": {
+  "page": "Democracy Protects",
+  "text": "''' 50% ''' chance to not die when taking lethal damage. Prevents ''' all damage from bleeding ''' if chest hemorrhages. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' The wearer is granted repeated chances to survive otherwise fatal damage—be it a devastating headshot from a cannon turret, a crushing headbutt from a charger, or even a Helldiver passing gas. '''2.''' The from torso bleeding is fully stopped. ==Armor List== ==See Also== Other passives with similar effects: * * * ==Change History=="
+ },
+ "Desert Stormer": {
+  "page": "Desert Stormer",
+  "text": "Provides ''' 40% ''' resistance to fire, gas, acid, and electrical damage. Increases throwing range by ''' 20% '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == ''' 1. ''' A versatile jack-of-all-trades effect that grants damage resistance to: *Fire – including Helldivers, Incineration Corps, or fire tornados *Gas – Helldivers *Acid – Terminids *Electrical (arc) – Helldivers and Illuminate ''' 2. ''' You can toss throwables farther, including stratagem beacons. == Armor List == == See Also == Other passives with similar effects: * * * * * * * * == Change History =="
+ },
+ "Electrical Conduit": {
+  "page": "Electrical Conduit",
+  "text": "Provides ''' 95% ''' resistance to arc damage. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== You gain resistance against electrical arcs. Before the Illuminates' return, Helldivers saw it as useful only against specific team-killing traitors. Now, wearers may stay unscathed in close combat against Watchers and Harvesters, or when triggering lightning spires. Notable arc threats include the following: Helldivers *A/ARC-3 Tesla Tower *ARC-3 Arc Thrower *ARC-12 Blitzer *AX/ARC-3 \"Guard Dog\" K-9 *G-31 Arc *GL-52 De-Escalator Illuminates *Harvesters *Lightning spires *Watchers ==Armor List== ==See Also== Other passives with similar effects: * * * ==Change History=="
+ },
+ "Engineering Kit": {
+  "page": "Engineering Kit",
+  "text": "Further reduces recoil when crouching or prone by ''' 30% '''. Increases initial inventory and holding capacity of throwables by ''' +2 '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' It reduces the vertical recoil of firearms, but not the horizontal or the Helldiver's sway. Standing reduces recoil as much as crouching without the passive ability, while crouching does so as much as proning. '''2.''' The wearer deploys with two additional throwables. This increases both the initial count of throwables, as well as the maximum capacity. '''In Detail:''' ==Armor List== ppl==See Also== Other passives with similar effects: * * * * * ==Issues== :Either the description is inaccurate or the practical effect is unintended, as recoil reduction applies across all stances rather than being limited to crouched or prone positions. ==Change History== ==Refer"
+ },
+ "Extra Padding": {
+  "page": "Extra Padding",
+  "text": "Provides a ''' higher armor rating '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== It increases the wearer's armor rating by 50 points, enhancing defense without further reducing speed or stamina regeneration. ==Armor List== ==See Also== Other passives with similar effects: * * * * ==Change History=="
+ },
+ "Feet First": {
+  "page": "Feet First",
+  "text": "Wearer makes ''' 50% ''' less noise when moving. Increases point-of-interest identification range by ''' 30% '''. Provides immunity to leg injuries. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' Reduces any movement noise: walking, crouching, crawling, slipping from terrain, etc. by 50%. In most situations, enemies will be unable to hear Helldivers. It also reduces noise made by Jump Pack and Hover Pack on lifting and landing stages. [https://youtu.be/MXOS5G94tcU Jump Pack and Hover Pack Noise Reduction] '''2.''' Objective-based Minor Places of Interest are called out by Helldivers from 30% further away. This increases the 54-56m mPOI detection range to 70-72m, approximately 14-16m further from normal. This also affects the ? that appears on the map whenever a mPOI is nearby. '''(a)''' This only applies to objective-based Minor Places of Int"
+ },
+ "Fortified": {
+  "page": "Fortified",
+  "text": "Further reduces recoil when crouching or prone by ''' 30% '''. Provides ''' 50% ''' resistance to explosive damage. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' It reduces the vertical recoil of firearms, but not the horizontal or the Helldiver's sway. Standing reduces recoil as much as crouching without the passive ability, while crouching does so as much as proning. '''2.''' It halves all damage taken from explosions, making it especially effective against the bot-front. ==Armor List== ==See Also== Other passives with similar effects: * * * * * * ==Issues== :Either the description is inaccurate or the practical effect is unintended, as recoil reduction applies across all stances rather than being limited to crouched or prone positions. ==Change History== ==References=="
+ },
+ "Gunslinger": {
+  "page": "Gunslinger",
+  "text": "Increases sidearms reload speed by ''' 40% '''. Sidearm draw/holster speed increased by ''' 50% '''. Sidearm recoil reduced by ''' 70% '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' You reload your secondary 40% faster, even tactically. To calculate your weapon's new reload time, visit its page, locate the value in seconds under Weapon Statistics , and divide it by 1.4 Reload Time ÷ 1.4 Tactical Reload ÷ 1.4 '''2.''' Swapping to your secondary is '''x1.5''' times faster '''3.''' Your secondary's recoil is reduced dramatically (by 70%!), making it easier to maintain accuracy. ==Armor List== ==See Also== Other passives with similar effects: * * * * * * ==Change History=="
+ },
+ "Inflammable": {
+  "page": "Inflammable",
+  "text": "Provides ''' 75% ''' damage resistance to fire, allowing bearer to rest assured in their inflammability. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == You become much more resistant to the fire . Notable fire threats Environmental Hazards *Exploding barrels *Fire tornadoes *Volcano plants Enemies *Specific Automatons **Hulk Scorchers **Incineration Corps ***Pyro Troopers ***Incendiary MG Devastators ***Conflagration Devastators ***Incendiary Rocket Devastator ***Hulk Firebombers *Terminid Dragonroaches *Illuminate laser weapons **Harvesters **Gazers Helldivers *Primary weapons **AR-2 Coyote **SMG/FLAM-34 Stoker **FLAM-66 Torcher **LAS-5 Scythe **LAS-17 Double-Edge Sickle (overheating) **SG-225IE Breaker Incendiary **SG-451 Cookout *Secondary weapons **LAS-7 Dagger **P-72 Crisper *Throwables **G-10 Incendiary **G-13 Incendiary Impact **G-142 Pyrotech "
+ },
+ "Integrated Explosives": {
+  "page": "Integrated Explosives",
+  "text": "Armor explodes ''' 1.5s ''' after the wearer dies. Increases initial inventory and holding capacity of throwables by ''' +2 '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' The [https://callofduty.fandom.com/Martyrdom martyrdom] style explosion deals 2,000 damage with a penetration of and a demolition force of 30—potentially enough to finish off even some of the heaviest units and destroy all spawn structures, except for Bile Titan holes. '''In Detail:''' '''2.''' The wearer deploys with two additional throwables. This increases both the initial count of throwables, as well as the maximum capacity. '''In Detail:''' === Notes === * The stats of the explosion are similar to those of an anti-tank mine in terms of radius, damage, and penetration, but with reduced demolition and stagger force. == Armor List == == See Also == Other passives with"
+ },
+ "Kinetic Displacement Mitigation": {
+  "page": "Kinetic Displacement Mitigation",
+  "text": "Provides ''' 50% ''' damage resistance to fire, allowing bearer to rest assured in their inflammability. Gives the wearer a ''' 50% ''' chance to avoid grievous limb injury. Reduces damage taken from impact and collisions by ''' 30% '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' The wearer takes half as much damage from fire. '''2.''' If the effect triggers, hits that would ordinarily break a limb still deal full damage to your health, but the limb remains at 1 instead of breaking. '''3.''' The wearer takes moderately less damage from impacts (such as being ragdolled into terrain at high speed, or falling to the ground) and collisions (such as being run over by a FRV or Charger). Notable fire threats Environmental Hazards *Exploding barrels *Fire tornadoes *Volcano plants Enemies *Specific Automatons **Hulk Scorchers **Incineration Corps"
+ },
+ "Med-Kit": {
+  "page": "Med-Kit",
+  "text": "Increases initial inventory and holding capacity of stims by ''' +2 '''. Increases stim effect duration by ''' 2.0s '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' The wearer deploys with four stims (or six with HSO), compared to the usual two (or four), and can also collect two more before reaching full capacity. '''2.''' Each stim ''you'' pack lasts two seconds longer, allowing you—or a teammate—to withstand such as fire or gas. *This effect extends to your P-11 Stim Pistol. *Stims from non-wearing teammates do not last longer. ==Armor List== ==See Also== Another passive with similar effects: : ==Change History=="
+ },
+ "Oxygenator": {
+  "page": "Oxygenator",
+  "text": "Increases the wearer's walking speed and running speed. Increases the speed and duration of slides. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' The wearer walks and runs 10% faster. The speed increase does not apply when prone, crouching or aiming down sights. To calculate your new speed, use this formula: Effective Speed = Armor Speed * 1.1 '''2.''' The wearer slides faster and for ~160ms longer. This results in a 50% increase in slide distance, a 1 meter increase. === Notes === * The 10% speed boost is equal to that of the Experimental Infusion booster. * The speed boost is roughly equivalent to an armor with 50 less Armor Rating, but lacking the increased stamina a lower Armor Rating armor provides. * The slide distance increase allows for \"slide-reloading\" of most stationary reload weapons, such as the AC-8 Autocannon. [https://youtu.b"
+ },
+ "Peak Physique": {
+  "page": "Peak Physique",
+  "text": "Increases melee damage by ''' 40% '''. Improves weapons handling with less drag on weapon movement. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' Your becomes 40% more deadly — whether it's butt-strokes, pistol-whips, bayonet thrusts, melee swings, or kicks. This damage increase affects both normal damage as well as durable damage. '''2.''' Your ergonomics stat increases by 30 points, allowing you to snap between targets more quickly—especially noticeable when using heavier weapons like the Dominator, Eruptor, or most support weapons. ==Armor List== ==See Also== Other passives with similar effects: * * * ==Issues== :*This effect remains applied to a dropped weapon or an emplacement after leaving, granting other 'divers ''who aren't in their '' better handling as well. (This appears to have been patched.) :*If another wearer picks up the weapon o"
+ },
+ "Reduced Signature": {
+  "page": "Reduced Signature",
+  "text": "Wearer makes ''' 50% ''' less noise when moving. Reduces range at which enemies can detect the wearer by ''' 40% '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == The Reduced Signature passive reduces how noticeable a Helldiver is to enemies, both visibly and audibly. This is especially useful when employing Stealth tactics to deal with Enemies and Objectives. == Armor List == == See Also == Other passives with similar effects: * * * == Change History =="
+ },
+ "Reinforced Epaulettes": {
+  "page": "Reinforced Epaulettes",
+  "text": "Increases reload speed of primary weapons by ''' 30% '''. Gives wearer a ''' 50% ''' chance to avoid grievous limb injury. Increases melee damage by ''' 20% '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' You reload primaries 30% faster, even tactically. To calculate your weapon's new reload time, visit its page, locate the value in seconds under Weapon Statistics , and divide it by 1.3 Reload Time ÷ 1.3 Tactical Reload ÷ 1.3 '''2.''' If the effect triggers, hits that would ordinarily break a limb still deal full damage to your health, but the limb remains at 1 instead of breaking. '''3.''' Your becomes 20% more deadly — whether it's butt-strokes, pistol-whips, bayonet thrusts, melee swings, or kicks. This damage increase affects both normal damage as well as durable damage. ==Armor List== == See Also == Other passives with similar effects: *"
+ },
+ "Rock Solid": {
+  "page": "Rock Solid",
+  "text": "Increases melee damage by ''' 40% '''. Bearer is more resistant to being knocked prone. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' Your becomes 40% more deadly — whether it's butt-strokes, pistol-whips, bayonet thrusts, melee swings, or kicks. It also applies to melee weapons, including both secondary melee weapons and support melee weapons. This damage increase affects both normal damage as well as durable damage. '''2.''' All incoming stagger is reduced by '''30%''', which prevents you from being ragdolled by attacks that have a stagger value lower than 36, such as Radical kicks, Devastator punches and Overseer staff swings, but not stronger attacks such as Cannon Turret shots and Reinforced Scout Strider missiles. == Armor List == == Gallery == File:Rock Solid Armor Passive Icon.png|Render given by a Community Manager == See Also == Ot"
+ },
+ "Scout": {
+  "page": "Scout",
+  "text": "Markers placed on the map will generate radar scans every ''' 2.0s '''. Reduces range at which enemies can detect the wearer by ''' 30% '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' Your map marker scans enemies for you within its range every two seconds, at half the personal radar's frequency. This technique can be used to locate or avoid enemies, but not to discover POIs. '''2.''' Your presence is diminished, making it harder for enemies to sense you. May be useful in clearing objectives and gather loot with less enemy disruption. ==Armor List== ==See Also== Another passive with similar effects: * * * * ==Change History=="
+ },
+ "Servo-Assisted": {
+  "page": "Servo-Assisted",
+  "text": "Increases throwing range by ''' 30% '''. Provides ''' +50% ''' limb health. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' You can toss throwables farther, including stratagem beacons. '''2.''' The health of the Helldiver's arms increases from 35 to 52, and the health of the legs increases from 45 to 67. A limb is broken when its health is reduced to 0. ==Armor List== ==See Also== Armor passives with similar effects: * * * ==Change History=="
+ },
+ "Siege-Ready": {
+  "page": "Siege-Ready",
+  "text": "Increases reload speed of primary weapons by ''' 30% '''. Increases ammo capacity of all weapons by ''' 20% '''. Does not affect weapon backpacks. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' You reload primaries 30% faster, even tactically. To calculate your weapon's new reload time, visit its page, locate the value in seconds under Weapon Statistics , and divide it by 1.3 Reload Time ÷ 1.3 Tactical Reload ÷ 1.3 '''2.''' You can carry more ammunition per weapon. This does not apply to the Ultimatum and all underbarrel weapons, such as the Stoker's flamethrower. The expandable table below outlines the capacity increase per magazine/round size. This increase affects both the starting capacity and the maximum capacity. ==Armor List== ==See Also== Other passives with similar effects: * * * ==Change History=="
+ },
+ "Stationary Shroud": {
+  "page": "Stationary Shroud",
+  "text": "Reduces weapon sway while aiming by 35%. Wearer makes 15% less noise when moving. Mimics foliage-level concealment, reducing enemy detection range while the wearer remains stationary and crouched or prone. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == Reduces weapon sway that occurs while aiming by 35%. Reduces any movement noise: walking, crouching, crawling, slipping from terrain, etc. by 15%. In most situations, enemies will be unable to hear Helldivers. It also reduces noise made by Jump Pack and Hover Pack on lifting and landing stages. Reduces how noticeable a Helldiver is to enemies while crouched/prone '''and''' not moving by 75%. == Armor List == == See Also == Other passives with similar effects: * * * == Change History == == References =="
+ },
+ "Supplemental Adrenaline": {
+  "page": "Supplemental Adrenaline",
+  "text": "When the wearer takes damage, they regain some stamina. Provides a ''' higher armor rating '''. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == Increases the wearer's armor rating by 25 points without reducing speed or stamina regeneration. Normally, torso hits reduce both health and stamina, while hits to other body sections reduce health without depleting stamina. Supplemental Adrenaline restores stamina when the wearer takes damage. The observed refund differs between enemies: Terminid Scavenger and Warrior hits consistently restore approximately a full stamina bar, whereas Voteless attacks and tested Automaton attacks generally appear to follow damage-based scaling—approximately two points of stamina restored per point of maximum health lost, up to a full bar. Overseer plasma projectiles also showed this scaling. Torso hits still inflict stamina da"
+ },
+ "True Grit": {
+  "page": "True Grit",
+  "text": "Increases reload speed of support weapons by ''' 30% '''. Slightly increases weapon ergonomics to reduce drag on weapon movement. '''''' is an armor passive in ''Helldivers 2''. == Description == == Explanation == '''1.''' Your support weapons reload 30% faster, even tactically. Assisted reloads do '''not''' benefit from this buff, no matter who has the passive equipped. The reload speed buff does '''not''' affect cooling speed of weapons such as the LAS-99 Quasar Cannon. '''2.''' Your ergonomics stat increases by 20 points, allowing you to snap between targets more quickly—especially noticeable when using heavier weapons like the Dominator, Eruptor, or most support weapons. == Armor List == == See Also == Other passives with similar effects: * * * * == Change History =="
+ },
+ "Unflinching": {
+  "page": "Unflinching",
+  "text": "Helps prevent Helldivers from flinching when hit. Provides a ''' higher armor rating '''. Markers placed on the map will generate radar scans every ''' 2.0s '''. '''''' is an armor passive in ''Helldivers 2''. ==Description== ==Explanation== '''1.''' It reduces “damage recoil” by 95% and tones down camera shakes when staggered. [https://imgur.com/a/0Ge3I0r Arrowhead Support] '''2.''' It increases the wearer's armor rating by 25 points, enhancing defense without further reducing speed or stamina regeneration. '''3.''' Your map marker scans enemies for you within its range every two seconds, at half the personal radar's frequency. ==Notes== *If the total body armor rating exceeds 100, the Helldiver takes less damage from headshots as well. *The map marker technique can be used to locate or avoid enemies, but not to discover POIs. *It reduces the delay before your Helldiver laughs maniacall"
+ }
+}

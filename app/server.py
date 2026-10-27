@@ -22,7 +22,7 @@ import pathlib
 
 import db
 import vision
-from warmind import coverage, kitrules, loader, oaths, stats
+from warmind import coverage, kitrules, loader, oaths, passives, stats
 from warmind.resolve import Player, Session, resolve_squad
 
 HERE = pathlib.Path(__file__).parent
@@ -243,6 +243,7 @@ def meta():
             "oaths": oaths.catalog(),
             "wiki": loader.wiki_map(),
             "kit_rules": list(_RULES.values()),
+            "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "vision": vision.status()}
 
 

@@ -16,7 +16,7 @@ import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import coverage, items as items_mod, kitrules, loader as loader_mod, modes, pressure as pressure_mod, roles as roles_mod, scoring
+from . import coverage, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -87,7 +87,7 @@ class Directive:
 # ---------------------------------------------------------------- kit filling
 
 def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=None,
-          cover_weight=0.3, exclude=frozenset(), squad_used=None):
+          cover_weight=0.3, exclude=frozenset(), squad_used=None, extra=None):
     """Highest-scoring item, with soft role preferences and a squad-duplicate penalty."""
     squad_used = squad_used or Counter()
     excl_owned = session_excluded(session)
@@ -100,6 +100,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         s += 0.4 * len(it.tags & pref_tags)
         if pref_cover and pref_cover in it.coverage:
             s += cover_weight
+        if extra:
+            s += extra(it)
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
@@ -166,7 +168,7 @@ def _growth_pick(strat_items, pstyle, session):
     """The strongest pick that sits OUTSIDE the player's comfort — the one unfamiliar
     element the coach deliberately exposes. None if nothing is off-comfort (fun mode
     expresses novelty differently and skips this)."""
-    if session.mode == "fun":
+    if session.mode in ("fun", "optimize"):  # optimize: no deliberate stretch on a must-win drop
         return None
     off = [s for s in strat_items if not (s.tags & pstyle.signature)]
     if not off:
@@ -330,9 +332,14 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     poor_intel = OP_POOR_INTEL in session.operation_modifiers
     # Stats-first: each diver gets the role that fits them. Mission coverage becomes
     # a set of suggested swaps the squad can opt into once everyone's confirmed.
-    role_map = _assign_roles_by_fit(players, session.mode)
     mission_ideal = roles_mod.select_roles(p, len(players), poor_intel=poor_intel)
-    swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
+    if session.mode == "optimize":
+        # the mission's ideal roles, each on the diver who fits it best — swaps already applied
+        role_map = _assign_roles(players, mission_ideal, "optimize")
+        swaps = []
+    else:
+        role_map = _assign_roles_by_fit(players, session.mode)
+        swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
 
     # Ownership: a diver's own equip slots are limited to the gear they own; boosters
     # (one per squad, carried by whoever owns it) are limited to what someone owns.
@@ -376,14 +383,11 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         hist = set(history.get(pl.id, []))
         ctx[pl.id] = (pl, role, pstyle, hist, _diver_excluded(pl))
         as_diver(pl)
-        # commando: no Heavy armor on a stealth op — cap at Medium
-        weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight
-        armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist)
         strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
                                  slots=COMMANDO_SLOTS if commando else None, no_static=commando)
         for it in strat:
             squad_used[it.name] += 1
-        phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "armor": armor, "strat": strat})
+        phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "strat": strat})
 
     # phase 2 — squad review: redundancy + coverage floors (anti-tank depth, chaff, structures)
     def review_pick(kit, cands):
@@ -392,12 +396,13 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         return _pick(cands, session, pstyle, hist, squad_used=squad_used)
     review = kitrules.review_squad(phase, pool, review_pick, session, commando)
 
+    passive_why = {}
     # phase 3 — carried weapons complement the final stratagems: an anti-tank support
     # weapon wants a chaff primary; no anti-tank support means the grenade brings it
     for kit in phase:
         pl, role, pstyle, hist, _ = ctx[kit["pid"]]
         as_diver(pl)
-        strat, armor = kit["strat"], kit["armor"]
+        strat = kit["strat"]
         main = kitrules.main_support(strat)
         has_at = bool(main and "at" in main.coverage) or any("at" in s.coverage for s in strat if s.category == "support")
         primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
@@ -405,6 +410,16 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         secondary = _pick(pool.secondaries, session, pstyle, hist)
         grenade = _pick(pool.grenades, session, pstyle, hist,
                         pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9)
+        # phase 4 — armour last, so its passive can answer the finished kit
+        # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
+        weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight  # commando: no Heavy
+        pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
+        # armour's value is mostly its passive: let mission pressure count 40% here so a
+        # passive that answers this kit beats one that merely shares a tag with the map
+        armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist,
+                      extra=lambda a: passives.bonus(a.passive, pk, session.faction)[0]
+                      - ARMOR_PRESSURE_DISCOUNT * scoring.pressure_dot(a, session._pressure))
+        passive_why[pl.id] = passives.bonus(armor.passive, pk, session.faction)[1]
         # armor counts toward coverage (Scout armour is a break-contact answer)
         kits_by_role[role.name] = [primary, secondary, grenade, armor] + strat
         assignments.append((pl, role, pstyle, primary, secondary, grenade, armor, strat))
@@ -417,6 +432,10 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         thin = coverage.thin_axes(kit)
         growth = _growth_pick(strat, pstyle, session)
         rationale, rparts = _rationale(role, pstyle, session, growth, thin, matrix, style_key=pl.play_style)
+        if passive_why.get(pl.id):
+            why = passive_why[pl.id][0]
+            rationale += f" {armor.name}'s {armor.passive} passive suits this kit ({PASSIVE_WHY_EN.get(why, why)})."
+            rparts.append({"k": "rat.passive", "p": {"armor": armor.name, "passive": armor.passive, "why": why}})
         if commando:
             rationale += (" Commando op: no statics — carry your support weapon, keep one strike "
                           "for each Super Destroyer window.")
@@ -442,6 +461,20 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         swaps=swaps, doctrine=doctrine, review=review,
         notes_i18n=[{"k": n["k"], "p": n["p"]} for n in note_phrases],
     )
+
+
+ARMOR_PRESSURE_DISCOUNT = 0.6
+
+PASSIVE_WHY_EN = {
+    "pw.secondary": "faster, steadier sidearm", "pw.primary_reload": "faster primary reloads",
+    "pw.ammo": "more ammo and faster reloads for an ammo-hungry primary", "pw.support_reload": "faster support-weapon reloads",
+    "pw.handling": "less drag on a heavy weapon", "pw.melee": "harder melee hits", "pw.throwables": "two extra throwables",
+    "pw.throw_range": "longer throws for grenades and beacons", "pw.fire": "shrugs off your own fire",
+    "pw.gas": "shrugs off your own gas", "pw.arc": "shrugs off arc splash", "pw.elemental": "resists your own fire, gas and arc",
+    "pw.explosive": "halves explosive damage from bot rockets", "pw.recoil": "less recoil when braced",
+    "pw.sway": "steadier aim for the marksman rifle", "pw.flinch": "no flinch while holding a sightline",
+    "pw.stealth": "harder to spot while picking targets",
+}
 
 
 def _role_key(role) -> str:

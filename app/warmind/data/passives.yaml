@@ -1,0 +1,168 @@
+# Armour passives and the kit they reward.
+#
+# Effects are quoted from each passive's helldivers.wiki.gg page (pulled into
+# sync/passives_wiki.json by `verify_wiki.py --passives`, refreshed weekly). The
+# `boosts` are our editorial reading of those effects: when a diver's finished kit
+# has the feature, armour with this passive scores higher (weights are small — under
+# one grade step each — so the passive breaks ties between armours of the right weight,
+# it never overrides the mission).
+#
+# Conditions (see warmind/passives.py):
+#   secondary_strong        secondary is explosive / anti-armour / A–S graded
+#   secondary_any           any sidearm (recoil help still matters)
+#   primary_tag:<tag>       the primary carries this kit tag
+#   kit_tag:<tag>           any carried weapon or stratagem carries this tag
+#   kit_name:<text>         any carried weapon/stratagem name contains text (case-insensitive)
+#   support / support_backpack   holds a support weapon / a backpack-fed one
+#   grenade_cover:<axis>    the grenade covers this axis (at/st/ch/bc)
+#   strikes                 per eagle/orbital stratagem carried (beacon throw range)
+#   faction:<faction>       fighting this faction
+# `why` is a translatable reason key (pw.*).
+
+passives:
+  Gunslinger:
+    effect: "Sidearm reload 40% faster, draw/holster 50% faster, sidearm recoil -70%."
+    boosts:
+      - {when: secondary_strong, w: 0.5, why: pw.secondary}
+      - {when: secondary_any, w: 0.15, why: pw.secondary}
+  "Concussive Padding, Hazmat":
+    effect: "50% explosive resistance, 25% gas resistance, sidearm recoil -30%."
+    boosts:
+      - {when: secondary_strong, w: 0.2, why: pw.secondary}
+      - {when: "kit_name:gas", w: 0.25, why: pw.gas}
+      - {when: "faction:automatons", w: 0.2, why: pw.explosive}
+  Siege-Ready:
+    effect: "Primary reload 30% faster; +20% ammo capacity for all weapons (not weapon backpacks)."
+    boosts:
+      - {when: "primary_tag:high_rof_ballistic", w: 0.4, why: pw.ammo}
+      - {when: "primary_tag:sustain_fire", w: 0.3, why: pw.ammo}
+      - {when: "primary_tag:strong_primary", w: 0.2, why: pw.primary_reload}
+  Reinforced Epaulettes:
+    effect: "Primary reload 30% faster, 50% chance to avoid limb injury, +20% melee damage."
+    boosts:
+      - {when: "primary_tag:strong_primary", w: 0.3, why: pw.primary_reload}
+      - {when: "primary_tag:high_rof_ballistic", w: 0.2, why: pw.primary_reload}
+  True Grit:
+    effect: "Support-weapon reload 30% faster (not assisted reloads); less weapon drag."
+    boosts:
+      - {when: support_backpack, w: 0.5, why: pw.support_reload}
+      - {when: support, w: 0.3, why: pw.support_reload}
+  Peak Physique:
+    effect: "+40% melee damage; better weapon handling with less drag."
+    boosts:
+      - {when: support_backpack, w: 0.3, why: pw.handling}
+      - {when: "kit_tag:sustain_fire", w: 0.3, why: pw.handling}
+      - {when: "primary_tag:melee", w: 0.4, why: pw.melee}
+  Rock Solid:
+    effect: "+40% melee damage; harder to knock prone."
+    boosts:
+      - {when: "primary_tag:melee", w: 0.4, why: pw.melee}
+      - {when: "primary_tag:close_quarters", w: 0.15, why: pw.melee}
+  Engineering Kit:
+    effect: "+2 throwables; recoil -30% when crouched or prone."
+    boosts:
+      - {when: "grenade_cover:at", w: 0.35, why: pw.throwables}
+      - {when: "grenade_cover:st", w: 0.25, why: pw.throwables}
+      - {when: "kit_tag:marksman", w: 0.15, why: pw.recoil}
+  "Concussive Padding, Grenadier":
+    effect: "50% explosive resistance; +2 throwables."
+    boosts:
+      - {when: "grenade_cover:at", w: 0.3, why: pw.throwables}
+      - {when: "grenade_cover:st", w: 0.2, why: pw.throwables}
+      - {when: "faction:automatons", w: 0.25, why: pw.explosive}
+  Integrated Explosives:
+    effect: "+2 throwables; the armour explodes 1.5s after the wearer dies."
+    boosts:
+      - {when: "grenade_cover:at", w: 0.25, why: pw.throwables}
+      - {when: "grenade_cover:st", w: 0.15, why: pw.throwables}
+  Fortified:
+    effect: "Recoil -30% when crouched or prone; 50% explosive resistance."
+    boosts:
+      - {when: "kit_tag:sustain_fire", w: 0.25, why: pw.recoil}
+      - {when: "kit_tag:static_position", w: 0.2, why: pw.recoil}
+      - {when: "faction:automatons", w: 0.25, why: pw.explosive}
+  Ballistic Padding:
+    effect: "25% chest and 25% explosive resistance; no bleeding from chest hemorrhage."
+    boosts:
+      - {when: "faction:automatons", w: 0.15, why: pw.explosive}
+  "Concussive Padding, Reinforced":
+    effect: "50% explosive resistance; higher armour rating."
+    boosts:
+      - {when: "faction:automatons", w: 0.25, why: pw.explosive}
+  Servo-Assisted:
+    effect: "Throw range +30% (including stratagem beacons); +50% limb health."
+    boosts:
+      - {when: strikes, w: 0.08, why: pw.throw_range}
+      - {when: "grenade_cover:at", w: 0.15, why: pw.throw_range}
+  Desert Stormer:
+    effect: "40% resistance to fire, gas, acid and arc; throw range +20%."
+    boosts:
+      - {when: "kit_tag:fire_kit", w: 0.25, why: pw.elemental}
+      - {when: "kit_name:gas", w: 0.2, why: pw.elemental}
+      - {when: "kit_name:arc", w: 0.2, why: pw.elemental}
+      - {when: strikes, w: 0.05, why: pw.throw_range}
+  Inflammable:
+    effect: "75% fire resistance."
+    boosts:
+      - {when: "kit_tag:fire_kit", w: 0.75, why: pw.fire}
+  Kinetic Displacement Mitigation:
+    effect: "50% fire resistance; 50% chance to avoid limb injury; 30% less impact damage."
+    boosts:
+      - {when: "kit_tag:fire_kit", w: 0.35, why: pw.fire}
+  Acclimated:
+    effect: "50% resistance to fire, gas, acid and arc."
+    boosts:
+      - {when: "kit_tag:fire_kit", w: 0.3, why: pw.elemental}
+      - {when: "kit_name:gas", w: 0.3, why: pw.elemental}
+      - {when: "kit_name:arc", w: 0.3, why: pw.elemental}
+  Advanced Filtration:
+    effect: "80% resistance to gas damage and effects."
+    boosts:
+      - {when: "kit_name:gas", w: 0.5, why: pw.gas}
+  Electrical Conduit:
+    effect: "95% resistance to arc damage."
+    boosts:
+      - {when: "kit_name:arc", w: 0.6, why: pw.arc}
+  Adreno-Defibrillator:
+    effect: "One-time revive on death (body intact); stims +2s; 50% arc resistance."
+    boosts:
+      - {when: "kit_name:arc", w: 0.3, why: pw.arc}
+  Stationary Shroud:
+    effect: "Weapon sway -35% while aiming; quieter; concealed while crouched or prone and still."
+    boosts:
+      - {when: "primary_tag:marksman", w: 0.45, why: pw.sway}
+      - {when: "kit_tag:marksman", w: 0.15, why: pw.sway}
+  Unflinching:
+    effect: "Prevents flinching when hit; higher armour rating; map markers radar-scan every 2s."
+    boosts:
+      - {when: "primary_tag:marksman", w: 0.3, why: pw.flinch}
+      - {when: "kit_tag:sustain_fire", w: 0.2, why: pw.flinch}
+  Scout:
+    effect: "Map markers radar-scan every 2s; enemy detection range -30%."
+    boosts:
+      - {when: "primary_tag:marksman", w: 0.15, why: pw.stealth}
+  Reduced Signature:
+    effect: "50% less movement noise; enemy detection range -40%."
+    boosts:
+      - {when: "primary_tag:marksman", w: 0.15, why: pw.stealth}
+  Feet First:
+    effect: "50% less movement noise; point-of-interest range +30%; immune to leg injuries."
+    boosts: []
+  Med-Kit:
+    effect: "+2 stims carried; stim effect +2s."
+    boosts: []
+  Democracy Protects:
+    effect: "50% chance to survive lethal damage; no bleeding from chest hemorrhage."
+    boosts: []
+  Extra Padding:
+    effect: "Higher armour rating."
+    boosts: []
+  Supplemental Adrenaline:
+    effect: "Regain stamina when damaged; higher armour rating."
+    boosts: []
+  Blunt-Force Mitigation:
+    effect: "Harder to knock prone; 30% less impact damage; higher armour rating."
+    boosts: []
+  Oxygenator:
+    effect: "Faster walking and running; longer, faster slides."
+    boosts: []

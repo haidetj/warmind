@@ -36,6 +36,7 @@
     const p = Object.assign({}, ph.p || {});
     if (p.style) p.style = styleLabel(p.style);
     if (p.axis) p.axis = t("axis." + p.axis);
+    if (p.why) p.why = t(p.why);
     return t(ph.k, p);
   }
   const styleLabel = k => (has("ps." + k + ".label") ? t("ps." + k + ".label") : k);
@@ -92,6 +93,19 @@
     setStatus(node, "working", ls[i]);
     const tm = setInterval(() => { i = (i + 1) % ls.length; const s = node.querySelector("span:not(.spin)"); if (s) s.textContent = ls[i]; }, 2400);
     return () => clearInterval(tm);
+  }
+  // full-screen "regenerating loadouts" screen: themed lines, held for at least `min` ms so it registers
+  async function regenScreen(work, min) {
+    const ov = el("div", { class: "regen", role: "status", "aria-live": "polite" }, [
+      el("div", { class: "box" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["⬡"]), el("div", { class: "rt" }, [t("regen.title")]), el("div", { class: "upstatus working" })])]);
+    document.body.appendChild(ov);
+    const stop = workTicker(ov.querySelector(".upstatus"), lines("tick.gen.", 6));
+    const t0 = Date.now();
+    try { return await work; }
+    finally {
+      await new Promise(r => setTimeout(r, Math.max(0, (min || 1500) - (Date.now() - t0))));
+      stop(); ov.remove();
+    }
   }
   // lock upload controls until the request succeeds or fails
   function lockControls(els, locked) {
@@ -255,6 +269,10 @@
     }
     const sig = JSON.stringify(s);
     if (sig === lastSig && STATE) return;   // nothing changed: leave the page (and any open folds) alone
+    if (STATE && s.directive && (JSON.stringify(STATE.mission) !== JSON.stringify(s.mission) || (STATE.reroll || 0) !== (s.reroll || 0))) {
+      busy = true;
+      try { await regenScreen(null, 1500); } finally { busy = false; }
+    }
     if (STATE) announce(STATE, s);
     lastSig = sig; STATE = s;
     try { liveRoot ? renderLive() : render(); } catch (e) { console.error("WARMIND render failed:", e); }
@@ -607,7 +625,7 @@
 
     // mode
     const modes = el("div", { class: "seg modes", role: "group", "aria-label": t("mis.mode") });
-    ["fun", "challenge", "improvement", "d100"].forEach(k => {
+    ["optimize", "fun", "challenge", "improvement", "d100"].forEach(k => {
       const b = el("button", { type: "button", class: k === "d100" ? "d100" : null, "aria-pressed": String(draft.mode === k) }, [t("mode." + k), el("span", { class: "sub" }, [t("mode." + k + ".s")])]);
       b.onclick = () => { draft.mode = k; modes.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
       modes.appendChild(b);
@@ -693,10 +711,11 @@
     save.onclick = async () => {
       if (busy) return; busy = true; save.disabled = true;
       try {
-        STATE = await jpost("/api/lobby/" + LID + "/mission", { mission: draft }, store.creator(LID));
+        const req = jpost("/api/lobby/" + LID + "/mission", { mission: draft }, store.creator(LID));
+        STATE = STATE && STATE.directive ? await regenScreen(req, 1500) : await req;
         lastSig = JSON.stringify(STATE); renderLive(); d.open = false;
         d.querySelector("summary").textContent = t("mis.edit"); d.classList.remove("attn");
-        toast(t("mis.saved"));
+        toast(STATE.directive ? t("toast.mission_changed") : t("mis.saved"));
       } catch (e) { toast(e.message); } finally { busy = false; save.disabled = false; }
     };
     const prefill = fileBtn("", t("mis.prefill"), false);
@@ -761,7 +780,7 @@
       const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {
         if (busy) return; busy = true; rb.disabled = true;
-        try { STATE = await jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled")); }
+        try { STATE = await regenScreen(jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)), 1200); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled")); }
         catch (e) { toast(e.message); } finally { busy = false; rb.disabled = false; }
       };
       rkids.push(el("div", { class: "btnrow" }, [rb]), el("div", { class: "hint" }, [t("roster.reroll.hint")]));
@@ -832,7 +851,11 @@
     kit.appendChild(row("card.primary", wk(a.primary)));
     kit.appendChild(row("card.secondary", wk(a.secondary)));
     kit.appendChild(row("card.grenade", wk(a.grenade)));
-    kit.appendChild(row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive));
+    const armorRow = row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive);
+    const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
+    if (eff) armorRow.querySelector(".vv").appendChild(el("small", { class: "eff" }, [eff]));   // the passive's wiki effect
+    kit.appendChild(armorRow);
     kit.appendChild(row("card.booster", wk(a.booster)));
     (a.stratagems || []).forEach((s, i) => kit.appendChild(el("li", {}, [
       el("span", { class: "sl" }, [i === 0 ? t("card.strats") : ""]),
