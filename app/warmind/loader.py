@@ -89,3 +89,19 @@ def kit_tag_vocabulary() -> set[str]:
     for rec in mission_tag_modifiers().values():
         vocab.update((rec.get("modifiers") or {}).keys())
     return vocab
+
+
+WIKI = "https://helldivers.wiki.gg/wiki/"
+
+
+def wiki_url(rec: dict) -> str:
+    """The item's wiki page: the verified `wiki` field when present, else derived from the name."""
+    if rec.get("wiki"):
+        return rec["wiki"]
+    import urllib.parse
+    return WIKI + urllib.parse.quote(rec["name"].replace(" ", "_"), safe="/_-'()")
+
+
+def wiki_map() -> dict:
+    raw = items()
+    return {r["name"]: wiki_url(r) for s in GATED_SLOTS for r in raw.get(s, [])}

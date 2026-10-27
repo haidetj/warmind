@@ -236,6 +236,7 @@ def meta():
             "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
             "warbonds": loader.warbond_catalog()["warbonds"],
             "oaths": oaths.catalog(),
+            "wiki": loader.wiki_map(),
             "vision": vision.status()}
 
 

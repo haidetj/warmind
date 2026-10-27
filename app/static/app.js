@@ -118,6 +118,8 @@
       el("div", { class: "ph" }, [el("span", { class: "pid" }, [pid]), el("span", { class: "pt" }, [title]), ps]),
     ].concat(kids || []));
   }
+  // item name -> wiki link (opens a new tab), so any diver can double-check a pick
+  const wk = name => { const u = META && META.wiki && META.wiki[name]; return u ? el("a", { class: "wk", href: u, target: "_blank", rel: "noopener" }, [name]) : name; };
   const tag = (cls, text, title) => el("span", { class: "tag " + (cls || ""), title: title }, [text]);
   const fileBtn = (cls, text, multiple) => el("label", { class: "btn filebtn " + (cls || "") }, [text, el("input", { type: "file", accept: "image/*", multiple: multiple ? "" : null })]);
 
@@ -545,7 +547,7 @@
       w.items.forEach(i => {
         const cb = el("input", { type: "checkbox" }); cb.checked = owned.has(i.name);
         cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); save(); };
-        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [i.name]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
+        items.appendChild(el("label", { class: "gearitem" }, [cb, el("span", {}, [wk(i.name)]), el("span", { class: "gs" }, [has("slot." + i.slot) ? t("slot." + i.slot) : i.slot])]));
       });
       const setSeg = v => { ["all", "some", "none"].forEach(k => { btns[k].classList.toggle("on", k === v); btns[k].setAttribute("aria-pressed", String(k === v)); }); items.style.display = v === "some" ? "grid" : "none"; };
       btns.all.onclick = () => { names.forEach(n => owned.add(n)); setSeg("all"); save(); };
@@ -809,14 +811,14 @@
     if (!a) return card;
     const kit = el("ul", { class: "kit" });
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
-    kit.appendChild(row("card.primary", a.primary));
-    kit.appendChild(row("card.secondary", a.secondary));
-    kit.appendChild(row("card.grenade", a.grenade));
-    kit.appendChild(row("card.armor", a.armor, (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive));
-    kit.appendChild(row("card.booster", a.booster));
+    kit.appendChild(row("card.primary", wk(a.primary)));
+    kit.appendChild(row("card.secondary", wk(a.secondary)));
+    kit.appendChild(row("card.grenade", wk(a.grenade)));
+    kit.appendChild(row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive));
+    kit.appendChild(row("card.booster", wk(a.booster)));
     (a.stratagems || []).forEach((s, i) => kit.appendChild(el("li", {}, [
       el("span", { class: "sl" }, [i === 0 ? t("card.strats") : ""]),
-      el("span", { class: "vv" }, [s, s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
+      el("span", { class: "vv" }, [wk(s), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
     ])));
     card.appendChild(kit);
     const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
