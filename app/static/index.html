@@ -138,8 +138,9 @@ select option{background:#08111a;color:var(--ink)}
 .seg>button[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(62,230,255,.1);box-shadow:inset 0 0 14px rgba(62,230,255,.18)}
 .seg>button.d100[aria-pressed="true"]{border-color:var(--red);color:var(--red);background:rgba(255,56,100,.1);box-shadow:inset 0 0 14px rgba(255,56,100,.2)}
 .seg.big>button{font-size:20px;min-height:54px;font-family:var(--head)}
-.seg.modes{grid-template-columns:repeat(4,1fr);grid-auto-flow:row}
-@media(max-width:560px){.seg.modes{grid-template-columns:repeat(2,1fr)}}
+.seg.modes{grid-template-columns:repeat(5,1fr);grid-auto-flow:row}
+@media(max-width:860px){.seg.modes{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.seg.modes{grid-template-columns:repeat(2,1fr)} .seg.modes button:first-child{grid-column:1/-1}}
 
 /* chips */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -378,6 +379,12 @@ ul.review .tx .tag{margin-left:6px}
 .src{display:block;margin-top:3px;font-family:var(--mono);font-size:11px;color:var(--muted);overflow-wrap:anywhere}
 .src a{color:var(--cyan);text-decoration:none} .src a:hover{text-decoration:underline}
 .gloss .gv .src{display:inline}
+.regen{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(2,4,7,.82);backdrop-filter:blur(3px);animation:bootin .2s ease-out both}
+.regen .box{width:min(420px,calc(100vw - 32px));padding:22px;border:1px solid var(--cyan);background:var(--panel);box-shadow:var(--glow-c);text-align:center}
+.regen .hex{font-size:40px;color:var(--amber);text-shadow:var(--glow-a);animation:spin 2.4s linear infinite;display:inline-block}
+.regen .rt{font-family:var(--head);font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);margin:8px 0 10px}
+.regen .upstatus{justify-content:center;text-align:left}
+.kit small.eff{display:block;color:var(--faint);font-size:11px;margin-top:2px;line-height:1.35}
 .wk{color:inherit;text-decoration:underline dotted rgba(62,230,255,.55);text-underline-offset:3px}
 .wk:hover{color:var(--cyan);text-decoration-color:var(--cyan)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);z-index:50;max-width:min(560px,calc(100vw - 32px));
