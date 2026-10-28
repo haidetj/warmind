@@ -29,18 +29,35 @@ jobs:
             # after a deploy, wait for the deployed commit ("commit":"" = Render didn't say; accept it);
             # otherwise any answering version will do
             if [ "$code" = "200" ] && { [ -z "$WANT" ] || grep -q "\"commit\":\"\(${WANT:0:12}\)\?\"" /tmp/h.json; }; then
+              # Render keeps answering some requests with 502 for a few seconds while it
+              # switches traffic over, so each check retries for up to a minute.
+              fail=0
               for path in / /icons/eagle-airstrike.svg /img/a-35-recon.webp /api/meta /api/war; do
-                echo "$path -> $(curl -s -o /tmp/r -w "%{http_code} %{content_type} %{size_download}B" --max-time 20 $B$path)"
+                for try in $(seq 1 10); do
+                  r=$(curl -s -o /tmp/r -w "%{http_code} %{content_type} %{size_download}B" --max-time 20 $B$path)
+                  [ "${r%% *}" = "200" ] && break; sleep 6
+                done
+                echo "$path -> $r (try $try)"; [ "${r%% *}" = "200" ] || fail=1
               done
+              [ $fail = 0 ] || { echo "::error::the app answered /health but not every page"; exit 1; }
               python3 - <<'PY'
-          import json, urllib.request
+          import json, time, urllib.request
           B = "https://warmind.onrender.com"
-          m = json.load(urllib.request.urlopen(B + "/api/meta", timeout=20))
+          def get(path):
+              for i in range(10):
+                  try:
+                      return json.load(urllib.request.urlopen(B + path, timeout=20))
+                  except Exception as e:
+                      last = e; time.sleep(6)
+              raise last
+          m = get("/api/meta")
           print("meta: pictures for", len(m.get("pics", {})), "items")
-          w = json.load(urllib.request.urlopen(B + "/api/war", timeout=20))
+          w = get("/api/war")
           print("war feed ok:", w.get("ok"), "| stale:", w.get("stale"), "| error:", w.get("error"))
           for o in w.get("orders", []):
-              print("  order:", o["title"], "| expires", o["expires"], "| tasks", o["tasks"])
+              print("  order:", o["title"], "| expires", o["expires"])
+              for t in o["tasks"]:
+                  print("     ", t)
           print("  planets:", len(w.get("planets", [])), "| MO planets:", [p["name"] for p in w.get("planets", []) if p["mo"]])
           PY
               echo "### WARMIND is up on the new version ($(date -u +%H:%M) UTC)" >> "$GITHUB_STEP_SUMMARY"
