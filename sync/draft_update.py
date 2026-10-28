@@ -34,6 +34,11 @@ from warmind import loader  # noqa: E402
 MODEL = os.environ.get("WARMIND_DRAFT_MODEL", "claude-opus-5-5")
 SUMMARY = SYNC / ".draft_summary.md"
 
+# Spend bounds for one draft (a patch is roughly weekly). Estimates use list prices
+# for the drafting model; the hard ceiling is the API key's monthly limit in the Console.
+MAX_CONTINUATIONS = 3
+PRICE_IN, PRICE_OUT, PRICE_SEARCH = 4.0, 20.0, 0.01   # $ per 1M in / 1M out / per search
+
 AXES = {"at", "st", "ch", "bc"}
 FACTIONS = {"terminids", "automatons", "illuminate"}
 GRADES = {"S", "A", "B", "C", "D"}
@@ -116,8 +121,10 @@ def ask_claude(prompt: str) -> str:
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": 12},
              {"type": "web_fetch_20260209", "name": "web_fetch", "max_uses": 8}]
     messages = [{"role": "user", "content": prompt}]
-    # server-side tool loops can pause; resend the turn so the server resumes it
-    for _ in range(6):
+    usage = {"in": 0, "out": 0, "searches": 0}
+    # server-side tool loops can pause; resend the turn so the server resumes it (bounded:
+    # every continuation re-sends the context, so this is the main cost lever)
+    for _ in range(MAX_CONTINUATIONS):
         with client.beta.messages.stream(
             model=MODEL, max_tokens=32000,
             thinking={"type": "adaptive"}, output_config={"effort": "high"},
@@ -125,11 +132,23 @@ def ask_claude(prompt: str) -> str:
             tools=tools, messages=messages,
         ) as stream:
             msg = stream.get_final_message()
+        u = msg.usage
+        usage["in"] += (u.input_tokens or 0) + (getattr(u, "cache_read_input_tokens", 0) or 0)
+        usage["out"] += u.output_tokens or 0
+        stu = getattr(u, "server_tool_use", None)
+        usage["searches"] += (getattr(stu, "web_search_requests", 0) or 0) if stu else 0
         if msg.stop_reason == "refusal":
             raise RuntimeError(f"model declined: {getattr(msg.stop_details, 'category', None)}")
         if msg.stop_reason != "pause_turn":
             break
         messages = [{"role": "user", "content": prompt}, {"role": "assistant", "content": msg.content}]
+    est = usage["in"] / 1e6 * PRICE_IN + usage["out"] / 1e6 * PRICE_OUT + usage["searches"] * PRICE_SEARCH
+    line = (f"Claude usage: {usage['in']:,} input + {usage['out']:,} output tokens, "
+            f"{usage['searches']} web searches, about ${est:.2f}")
+    log(line)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+            f.write(f"- {line}\n")
     if msg.stop_reason == "max_tokens":
         raise RuntimeError("reply hit max_tokens before the JSON block")
     return "".join(b.text for b in msg.content if b.type == "text")

@@ -1,0 +1,32 @@
+name: health
+
+# Polls the live app until it answers (or 6 minutes pass). Run after a deploy to
+# know when it's safe to tell the squad to refresh. Read-only: never deploys.
+
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/health.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for warmind.onrender.com
+        run: |
+          for i in $(seq 1 36); do
+            code=$(curl -s -o /tmp/h.json -w "%{http_code}" --max-time 15 https://warmind.onrender.com/health || echo 000)
+            echo "$(date -u +%H:%M:%S) /health -> $code $(head -c 200 /tmp/h.json 2>/dev/null)"
+            if [ "$code" = "200" ]; then
+              page=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://warmind.onrender.com/)
+              icon=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://warmind.onrender.com/icons/eagle-airstrike.svg)
+              echo "home page -> $page | stratagem icon -> $icon"
+              echo "### WARMIND is up ($(date -u +%H:%M) UTC)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::WARMIND did not come back within 6 minutes"; exit 1

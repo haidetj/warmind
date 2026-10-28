@@ -138,12 +138,18 @@ def armory_meta() -> dict:
     return json.loads(p.read_text()) if p.exists() else {}
 
 
+def pictures() -> dict:
+    """{item name: {"icon": stratagem icon, "img": render, "permit": stratagem permit}} for items with a picture."""
+    return {k: {x: v[x] for x in ("icon", "img", "permit") if v.get(x)} for k, v in armory_meta().items()
+            if v.get("icon") or v.get("img")}
+
+
 def armory() -> list:
     meta, raw, wb = armory_meta(), items(), warbond_catalog()["map"]
 
     def entry(rec):
         m = meta.get(rec["name"], {})
-        return {"name": rec["name"], "warbond": wb.get(rec["name"], ""), "icon": m.get("icon")}
+        return {"name": rec["name"], "warbond": wb.get(rec["name"], ""), "icon": m.get("icon"), "img": m.get("img")}
 
     out = []
     for slot in GATED_SLOTS:
