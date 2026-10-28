@@ -16,7 +16,7 @@ import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import coverage, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
+from . import coverage, handling, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -45,8 +45,9 @@ class Player:
     play_style: str = "by_the_book"
     unlocked_warbonds: list = field(default_factory=list)
     excluded_items: list = field(default_factory=list)
-    owned_items: list | None = None  # non-base gear this diver owns; None = owns everything
+    owned_items: list | None = None  # every item this diver owns; None = owns everything
     accent_hex: str = "#D9CBA3"
+    accuracy: float | None = None    # career shots hit / fired, when the diver uploaded stats
 
 
 @dataclass
@@ -87,8 +88,9 @@ class Directive:
 # ---------------------------------------------------------------- kit filling
 
 def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=None,
-          cover_weight=0.3, exclude=frozenset(), squad_used=None, extra=None):
-    """Highest-scoring item, with soft role preferences and a squad-duplicate penalty."""
+          cover_weight=0.3, exclude=frozenset(), squad_used=None, extra=None, owned_only=False):
+    """Highest-scoring item, with soft role preferences and a squad-duplicate penalty.
+    Unowned gear is a fallback so a slot never strands; owned_only=True returns None instead."""
     squad_used = squad_used or Counter()
     excl_owned = session_excluded(session)
     best, best_s = None, float("-inf")
@@ -113,7 +115,7 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
             continue
         if s > best_s:
             best, best_s = it, s
-    return best if best is not None else fb
+    return best if best is not None or owned_only else fb
 
 
 def _jitter(name: str, seed: int, salt: str) -> float:
@@ -150,14 +152,18 @@ def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=Non
                 and kitrules.diver_allows(c, picks, role.name, no_static)
                 and not (squad_rule and kitrules.squad_excludes(c, squad_names, session))]
 
+    anything = [s for s in pool.stratagems if s.category != "vehicle"]
     for slot in (slots or role.slots):
-        choice = _pick(legal(pool.stratagems_in(slot)), session, pstyle, history, squad_used=squad_used)
-        if choice is None:  # slot categories exhausted under the rules — widen to anything legal
-            choice = _pick(legal([s for s in pool.stratagems if s.category != "vehicle"]),
-                           session, pstyle, history, squad_used=squad_used)
-        if choice is None:  # pool exhausted (tiny ownership lists): a duplicate beats an empty slot
-            choice = _pick(legal([s for s in pool.stratagems if s.category != "vehicle"], squad_rule=False),
-                           session, pstyle, history, squad_used=squad_used)
+        # widen step by step, owned gear first: the role's category, then anything legal,
+        # then a squad duplicate; unowned gear only if the diver owns nothing legal at all
+        choice = None
+        for owned_only in (True, False):
+            for cands in (legal(pool.stratagems_in(slot)), legal(anything), legal(anything, squad_rule=False)):
+                choice = _pick(cands, session, pstyle, history, squad_used=squad_used, owned_only=owned_only)
+                if choice is not None:
+                    break
+            if choice is not None:
+                break
         if choice is None:
             continue
         picks.append(choice)
@@ -266,7 +272,7 @@ def _assign_boosters(divers, pool):
     """divers: [(role_name, excluded_names)] in role order. In the game every diver
     brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
     diver gets a unique booster they own, preferring the strong picks and their role's
-    bias. Base boosters are always owned, so a slot never strands."""
+    bias. A diver who owns no unused booster gets none."""
     chosen, used = {}, set()
     for role_name, excluded in divers:
         avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
@@ -340,13 +346,12 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
 
     # Ownership: a diver's own equip slots are limited to the gear they own; boosters
     # are limited to what the diver carrying them owns.
-    wb_of = loader_mod.warbond_catalog()["map"]
-    gated = {n for n, wb in wb_of.items() if not items_mod.is_base_warbond(wb)}
+    everything = set(loader_mod.warbond_catalog()["map"])
 
-    def _diver_excluded(pl):
+    def _diver_excluded(pl):   # owned_items lists every item the diver has (base gear included)
         if pl.owned_items is None:
             return set(pl.excluded_items or [])
-        return set(pl.excluded_items or []) | (gated - set(pl.owned_items))
+        return set(pl.excluded_items or []) | (everything - set(pl.owned_items))
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
@@ -383,7 +388,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     def review_pick(kit, cands):
         pl, role, pstyle, hist, _ = ctx[kit["pid"]]
         as_diver(pl)
-        return _pick(cands, session, pstyle, hist, squad_used=squad_used)
+        return _pick(cands, session, pstyle, hist, squad_used=squad_used, owned_only=True)   # never swap in unowned gear
     review = kitrules.review_squad(phase, pool, review_pick, session, commando)
 
     passive_why = {}
@@ -395,9 +400,12 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         strat = kit["strat"]
         main = kitrules.main_support(strat)
         has_at = bool(main and "at" in main.coverage) or any("at" in s.coverage for s in strat if s.category == "support")
+        # handling: recoil / rate / magazine from the wiki against the diver's accuracy and the mode
+        sk = handling.skill(pl.accuracy)
+        hfit = lambda it: handling.fit(it.name, sk, session.mode)
         primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
-                        pref_cover="ch" if has_at else None, cover_weight=0.4)
-        secondary = _pick(pool.secondaries, session, pstyle, hist)
+                        pref_cover="ch" if has_at else None, cover_weight=0.4, extra=hfit)
+        secondary = _pick(pool.secondaries, session, pstyle, hist, extra=hfit)
         grenade = _pick(pool.grenades, session, pstyle, hist,
                         pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9)
         # phase 4 — armour last, so its passive can answer the finished kit
@@ -426,6 +434,14 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
             why = passive_why[pl.id][0]
             rationale += f" {armor.name}'s {armor.passive} passive suits this kit ({PASSIVE_WHY_EN.get(why, why)})."
             rparts.append({"k": "rat.passive", "p": {"armor": armor.name, "passive": armor.passive, "why": why}})
+        sk = handling.skill(pl.accuracy)
+        for w in (primary, secondary):
+            hw = handling.why(w.name, sk, session.mode)
+            if hw:
+                acc = f"{pl.accuracy * 100:.0f}"
+                rationale += " " + HANDLING_WHY_EN[hw].format(weapon=w.name, acc=acc)
+                rparts.append({"k": "rat.handling." + hw, "p": {"weapon": w.name, "acc": acc}})
+                break
         if commando:
             rationale += (" Commando op: no statics — carry your support weapon, keep one strike "
                           "for each Super Destroyer window.")
@@ -464,6 +480,13 @@ PASSIVE_WHY_EN = {
     "pw.explosive": "halves explosive damage from bot rockets", "pw.recoil": "less recoil when braced",
     "pw.sway": "steadier aim for the marksman rifle", "pw.flinch": "no flinch while holding a sightline",
     "pw.stealth": "harder to spot while picking targets",
+}
+
+
+HANDLING_WHY_EN = {
+    "drill": "{weapon} kicks hard and wants every shot placed: an aim drill on purpose ({acc}% career accuracy).",
+    "forgiving": "{weapon} is forgiving (steady, deep magazine), so {acc}% career accuracy still lands hits.",
+    "precise": "{weapon} rewards precision, and {acc}% career accuracy is precise.",
 }
 
 

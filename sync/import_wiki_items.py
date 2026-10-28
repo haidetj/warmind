@@ -91,6 +91,8 @@ def throwable(row):
 
 
 def stratagem(row):
+    if row.get("template") == "Infobox Weapon":   # newer support-weapon pages use the plain weapon infobox
+        row = dict(row, stratagem_type="Support Weapon", traits=row.get("weapon_traits", ""))
     st, tr, title = row.get("stratagem_type", ""), _traits(row), row["title"]
     if st == "Support Weapon":
         cat = "support"
@@ -192,9 +194,14 @@ def main():
     cat = json.loads((ROOT / "sync" / "wiki_catalog.json").read_text())
     items = loader.items()
     have = {vw.norm(vw.page_title(r)) for s in vw.SECTIONS for r in items.get(s, [])}
-    lines, counts, used_override = {s: [] for s in vw.SECTIONS}, {}, 0
+    lines, counts, used_override, pending = {s: [] for s in vw.SECTIONS}, {}, 0, []
     for row in cat["items"]:
         if vw.norm(row["title"]) in have or row.get("stratagem_type") in ("Objective", "Ship", "Other"):
+            continue
+        if row.get("template") == "Infobox Mission":
+            continue
+        if not (row.get("source") or "").strip():   # page not filled in yet: import once the wiki says where it's from
+            pending.append(row["title"])
             continue
         sec, e = entry(row)
         if not e:
@@ -215,6 +222,8 @@ def main():
         counts[sec] = counts.get(sec, 0) + 1
     append_items(lines)
     print("added:", counts, "total", sum(counts.values()), "| researched overrides used:", used_override)
+    if pending:
+        print("waiting for the wiki to list a source:", ", ".join(pending))
 
 
 if __name__ == "__main__":

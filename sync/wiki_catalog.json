@@ -2074,7 +2074,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Meltagun Stratagem Icon Background.svg",
-   "weapon_image": "40-K Meltagun Support Render.png"
+   "weapon_image": "40-K Meltagun Support Render.png",
+   "damage": "notext",
+   "capacity": "3",
+   "reload_time": "3.75s 3.35s (Upgraded)",
+   "fire_rate": "50 rpm",
+   "spare_mags": "4"
   },
   {
    "title": "AC-8 Autocannon",
@@ -2089,7 +2094,12 @@
    "penetration": "AP (APHET) AP (Flak)",
    "permit_type": "Supply",
    "stratagem_image": "Autocannon Stratagem Icon Background.svg",
-   "weapon_image": "AC-8_Autocannon_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "AC-8_Autocannon_Weapon_and_Backpack_Support_Render.png",
+   "damage": "notext (APHET) 150 110 (Flak x30) 190",
+   "capacity": "10",
+   "fire_rate": "190 rpm",
+   "dps": "1,504.17",
+   "firing_modes": "Semi{{*}} Auto APHET {{*}} Flak"
   },
   {
    "title": "AMW-20 Apex",
@@ -2103,7 +2113,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Apex Stratagem Icon Background.svg",
-   "weapon_image": "AMW-20 Apex_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "AMW-20 Apex_Weapon_and_Backpack_Support_Render.png",
+   "damage": "1,550",
+   "capacity": "5",
+   "reload_time": "5.0s 4.55s (Upgraded) 3s (Assisted)",
+   "fire_rate": "50 rpm",
+   "dps": "1,291.67",
+   "spare_mags": "4",
+   "firing_modes": "Semi"
   },
   {
    "title": "APW-1 Anti-Materiel Rifle",
@@ -2117,7 +2134,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Anti-Materiel Rifle Stratagem Icon Background.svg",
-   "weapon_image": "APW-1 Anti-Materiel Rifle Support Render.png"
+   "weapon_image": "APW-1 Anti-Materiel Rifle Support Render.png",
+   "damage": "450",
+   "capacity": "7",
+   "reload_time": "3.05s 2.75s (Upgraded)",
+   "fire_rate": "400 rpm",
+   "dps": "3,000",
+   "spare_mags": "8",
+   "firing_modes": "Semi"
   },
   {
    "title": "ARC-3 Arc Thrower",
@@ -2131,7 +2155,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Arc Thrower Stratagem Icon Background.svg",
-   "weapon_image": "ARC-3 Arc Thrower Support Render.png"
+   "weapon_image": "ARC-3 Arc Thrower Support Render.png",
+   "damage": "250",
+   "capacity": "∞",
+   "fire_rate": "60 rpm",
+   "dps": "250"
   },
   {
    "title": "B/FLAM-80 Cremator",
@@ -2145,7 +2173,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Cremator Stratagem Icon Background.svg",
-   "weapon_image": "B_FLAM-80_Cremator_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "B_FLAM-80_Cremator_Weapon_and_Backpack_Support_Render.png",
+   "damage": "225 DPS",
+   "capacity": "500",
+   "dps": "225",
+   "firing_modes": "Auto"
   },
   {
    "title": "B/MD C4 Pack",
@@ -2159,7 +2191,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "C4 Pack Stratagem Icon Background.svg",
-   "weapon_image": "B MD C4 Pack Support Render.png"
+   "weapon_image": "B MD C4 Pack Support Render.png",
+   "damage": "2000",
+   "capacity": "1",
+   "reload_time": "1.1s 1s (Upgraded)",
+   "firing_modes": "Deploy {{*}} Detonate"
   },
   {
    "title": "CQC-1 One True Flag",
@@ -2173,7 +2209,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "One True Flag Stratagem Icon Background.svg",
-   "weapon_image": "CQC-1 One True Flag Support Render.png"
+   "weapon_image": "CQC-1 One True Flag Support Render.png",
+   "damage": "200",
+   "capacity": "N/A",
+   "recoil": "8",
+   "fire_rate": "117 rpm"
   },
   {
    "title": "CQC-20 Breaching Hammer",
@@ -2187,7 +2227,10 @@
    "penetration": "AP (Melee) AP (Explosion)",
    "permit_type": "Supply",
    "stratagem_image": "Breaching Hammer Stratagem Icon Background.svg",
-   "weapon_image": "CQC-20 Breaching Hammer Render.png"
+   "weapon_image": "CQC-20 Breaching Hammer Render.png",
+   "damage": "300 2,200",
+   "capacity": "1",
+   "reload_time": "1s 0.9s (Upgraded)"
   },
   {
    "title": "CQC-9 Defoliation Tool",
@@ -2201,7 +2244,9 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Defoliation Tool Stratagem Icon Background.svg",
-   "weapon_image": "CQC-9 Defoliation Tool Support Render.png"
+   "weapon_image": "CQC-9 Defoliation Tool Support Render.png",
+   "damage": "450/s",
+   "dps": "450"
   },
   {
    "title": "EAT-17 Expendable Anti-Tank",
@@ -2215,7 +2260,9 @@
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
    "stratagem_image": "Expendable Anti-Tank Stratagem Icon Background.svg",
-   "weapon_image": "EAT-17 Expendable Anti-Tank Support Render.png"
+   "weapon_image": "EAT-17 Expendable Anti-Tank Support Render.png",
+   "damage": "notext 150",
+   "capacity": "1"
   },
   {
    "title": "EAT-411 Leveller",
@@ -2229,7 +2276,10 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Leveller Stratagem Icon Background.svg",
-   "weapon_image": "EAT-411_Leveller_Support_Render.png"
+   "weapon_image": "EAT-411_Leveller_Support_Render.png",
+   "damage": "1,000 2,500",
+   "capacity": "1",
+   "fire_rate": "600 rpm"
   },
   {
    "title": "EAT-700 Expendable Napalm",
@@ -2243,7 +2293,10 @@
    "penetration": "AP (Bomblets)",
    "permit_type": "Supply",
    "stratagem_image": "Expendable Napalm Stratagem Icon Background.svg",
-   "weapon_image": "EAT-700 Expendable Napalm Support Render.png"
+   "weapon_image": "EAT-700 Expendable Napalm Support Render.png",
+   "damage": "500 (Projectile) 250 200 (Bomblets 50 x25)",
+   "capacity": "1",
+   "fire_rate": "600 rpm"
   },
   {
    "title": "FAF-14 Spear",
@@ -2257,7 +2310,12 @@
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
    "stratagem_image": "Spear Stratagem Icon Background.svg",
-   "weapon_image": "FAF-14 Spear Weapon and Backpack Support Render.png"
+   "weapon_image": "FAF-14 Spear Weapon and Backpack Support Render.png",
+   "damage": "notext 200",
+   "capacity": "1",
+   "reload_time": "4.65s 4.2s (Upgraded) 2.1s (Assisted)",
+   "fire_rate": "240 rpm",
+   "firing_modes": "Semi"
   },
   {
    "title": "FLAM-40 Flamethrower",
@@ -2271,7 +2329,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Flamethrower Stratagem Icon Background.svg",
-   "weapon_image": "FLAM-40 Flamethrower Support Render.png"
+   "weapon_image": "FLAM-40 Flamethrower Support Render.png",
+   "damage": "150 DPS",
+   "capacity": "150",
+   "reload_time": "4s 3.6s (Upgraded)",
+   "spare_mags": "5"
   },
   {
    "title": "GL-21 Grenade Launcher",
@@ -2285,7 +2347,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Grenade Launcher Stratagem Icon Background.svg",
-   "weapon_image": "GL-21 Grenade Launcher Support Render.png"
+   "weapon_image": "GL-21 Grenade Launcher Support Render.png",
+   "damage": "400",
+   "capacity": "10",
+   "reload_time": "3.55s 3.2s (Upgraded)",
+   "fire_rate": "160 RPM",
+   "dps": "1066.67",
+   "spare_mags": "3",
+   "firing_modes": "Semi {{*}} Auto"
   },
   {
    "title": "GL-28 Belt-Fed Grenade Launcher",
@@ -2299,7 +2368,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Belt-Fed Grenade Launcher Stratagem Icon Background.svg",
-   "weapon_image": "GL-28_Belt-Fed_Grenade_Launcher_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "GL-28_Belt-Fed_Grenade_Launcher_Weapon_and_Backpack_Support_Render.png",
+   "damage": "150",
+   "capacity": "120 (Backpack)",
+   "fire_rate": "160rpm {{*}} 240rpm {{*}} 320rpm",
+   "dps": "400 {{*}} 600 {{*}} 800",
+   "firing_modes": "Auto"
   },
   {
    "title": "GL-52 De-Escalator",
@@ -2313,7 +2387,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "De-Escalator Stratagem Icon Background.svg",
-   "weapon_image": "GL-52 De-Escalator Support Render.png"
+   "weapon_image": "GL-52 De-Escalator Support Render.png",
+   "damage": "100 (x10)",
+   "capacity": "6",
+   "fire_rate": "200 RPM",
+   "dps": "3,333.33",
+   "firing_modes": "Semi {{*}} Auto"
   },
   {
    "title": "GR-8 Recoilless Rifle",
@@ -2327,7 +2406,12 @@
    "penetration": "AP (HEAT) AP AP (HE) AP",
    "permit_type": "Supply",
    "stratagem_image": "Recoilless Rifle Stratagem Icon Background.svg",
-   "weapon_image": "GR-8_Recoilless_Rifle_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "GR-8_Recoilless_Rifle_Weapon_and_Backpack_Support_Render.png",
+   "damage": "notext (HEAT) 150 notext(HE) 800",
+   "capacity": "1",
+   "reload_time": "6.1s 5.5s (Upgraded) 1.7s (Assisted)",
+   "fire_rate": "600 rpm",
+   "firing_modes": "Semi {{*}} HEAT {{*}} HE"
   },
   {
    "title": "LAS-44 Nova",
@@ -2340,7 +2424,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Nova Stratagem Icon Background.svg",
-   "weapon_image": "LAS-44 Nova Support Render.png"
+   "weapon_image": "LAS-44 Nova Support Render.png",
+   "damage": "880",
+   "capacity": "∞",
+   "fire_rate": "30 rpm",
+   "dps": "440"
   },
   {
    "title": "LAS-98 Laser Cannon",
@@ -2354,7 +2442,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Laser Cannon Stratagem Icon Background.svg",
-   "weapon_image": "LAS-98 Laser Cannon Support Render.png"
+   "weapon_image": "LAS-98 Laser Cannon Support Render.png",
+   "damage": "350 DPS 100 DPS",
+   "capacity": "12.5s",
+   "reload_time": "3.65s 3.3s (Upgraded)",
+   "spare_mags": "2"
   },
   {
    "title": "LAS-99 Quasar Cannon",
@@ -2368,7 +2460,10 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Quasar Cannon Stratagem Icon Background.svg",
-   "weapon_image": "LAS-99 Quasar Cannon Support Render.png"
+   "weapon_image": "LAS-99 Quasar Cannon Support Render.png",
+   "damage": "notext 150",
+   "capacity": "∞",
+   "fire_rate": "~3.34 rpm"
   },
   {
    "title": "M-1000 Maxigun",
@@ -2382,7 +2477,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Maxigun Stratagem Icon Background.svg",
-   "weapon_image": "M-1000_Maxigun_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "M-1000_Maxigun_Weapon_and_Backpack_Support_Render.png",
+   "damage": "80",
+   "capacity": "1,000 (Backpack)",
+   "fire_rate": "1,500 rpm",
+   "dps": "2,000",
+   "firing_modes": "Auto"
   },
   {
    "title": "M-105 Stalwart",
@@ -2396,7 +2496,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Stalwart Stratagem Icon Background.svg",
-   "weapon_image": "M-105 Stalwart Support Render.png"
+   "weapon_image": "M-105 Stalwart Support Render.png",
+   "damage": "90",
+   "capacity": "250",
+   "reload_time": "5.9s 5.33s (Upgraded)",
+   "fire_rate": "700rpm {{*}} 850rpm {{*}} 1150rpm",
+   "dps": "1,050 {{*}} 1,275 {{*}} 1,725",
+   "spare_mags": "3",
+   "firing_modes": "Auto"
   },
   {
    "title": "MG-206 Heavy Machine Gun",
@@ -2410,7 +2517,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Heavy Machine Gun Stratagem Icon Background.svg",
-   "weapon_image": "MG-206 Heavy Machine Gun Support Render.png"
+   "weapon_image": "MG-206 Heavy Machine Gun Support Render.png",
+   "damage": "150",
+   "capacity": "100",
+   "reload_time": "5.55s 5s (Upgraded)",
+   "fire_rate": "450rpm {{*}} 600rpm {{*}} 750rpm",
+   "dps": "1,125 {{*}} 1,500 {{*}} 1,875",
+   "spare_mags": "2",
+   "firing_modes": "Auto"
   },
   {
    "title": "MG-43 Machine Gun",
@@ -2424,7 +2538,14 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Machine Gun Stratagem Icon Background.svg",
-   "weapon_image": "MG-43 Machine Gun Support Render.png"
+   "weapon_image": "MG-43 Machine Gun Support Render.png",
+   "damage": "90",
+   "capacity": "175",
+   "reload_time": "4.55s 4.1s (Upgraded)",
+   "fire_rate": "630rpm {{*}} 760rpm {{*}} 900rpm",
+   "dps": "945{{*}}1,140.3{{*}}1,350",
+   "spare_mags": "3",
+   "firing_modes": "Auto"
   },
   {
    "title": "MGX-42 Bullet Storm",
@@ -2438,7 +2559,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Bullet Storm Stratagem Icon Background.svg",
-   "weapon_image": "{{PAGENAME}} Support Render.png"
+   "weapon_image": "{{PAGENAME}} Support Render.png",
+   "damage": "100",
+   "capacity": "300",
+   "fire_rate": "1,300 rpm",
+   "dps": "2,166.67"
   },
   {
    "title": "MLS-4X Commando",
@@ -2452,7 +2577,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Commando Stratagem Icon Background.svg",
-   "weapon_image": "MLS-4X Commando Support Render.png"
+   "weapon_image": "MLS-4X Commando Support Render.png",
+   "damage": "notext 150",
+   "capacity": "4",
+   "fire_rate": "240 rpm",
+   "firing_modes": "Semi {{*}} Laser-guided {{*}} Dumb-Fire"
   },
   {
    "title": "MS-11 Solo Silo",
@@ -2466,7 +2595,8 @@
    "penetration": "AP (Main Explosion) AP (Impact Explosion)",
    "permit_type": "Supply",
    "stratagem_image": "Solo Silo Stratagem Icon Background.svg",
-   "weapon_image": "MS-11 Solo Silo Support Render.png"
+   "weapon_image": "MS-11 Solo Silo Support Render.png",
+   "damage": "2,500 (Main Explosion) 1,500 (Impact Explosion)"
   },
   {
    "title": "PLAS-45 Epoch",
@@ -2480,7 +2610,13 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Epoch Stratagem Icon Background.svg",
-   "weapon_image": "{{PAGENAME}} Support Render.png"
+   "weapon_image": "{{PAGENAME}} Support Render.png",
+   "damage": "notext 500 Uncharged Explosion notext 800 Charged Explosion",
+   "capacity": "3",
+   "reload_time": "5.15s 4.65s (Upgraded)",
+   "fire_rate": "600 rpm",
+   "dps": "1,600",
+   "spare_mags": "4"
   },
   {
    "title": "RL-77 Airburst Rocket Launcher",
@@ -2494,7 +2630,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Airburst Rocket Launcher Stratagem Icon Background.svg",
-   "weapon_image": "RL-77_Airburst_Rocket_Launcher_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "RL-77_Airburst_Rocket_Launcher_Weapon_and_Backpack_Support_Render.png",
+   "damage": "350 (Rocket) 150 150(Bomblets 500 x25)",
+   "capacity": "1",
+   "reload_time": "5.1s 4.6s (Upgraded) 1.8s (Assisted)",
+   "fire_rate": "16 rpm",
+   "firing_modes": "Cluster {{*}} Flak"
   },
   {
    "title": "RS-422 Railgun",
@@ -2508,7 +2649,12 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Railgun Stratagem Icon Background.svg",
-   "weapon_image": "RS-422 Railgun Support Render.png"
+   "weapon_image": "RS-422 Railgun Support Render.png",
+   "damage": "600-1500",
+   "capacity": "1",
+   "reload_time": "1.2s {{*}} 1.35s (Base)",
+   "fire_rate": "34 rpm",
+   "firing_modes": "Safe {{*}} Unsafe"
   },
   {
    "title": "S-11 Speargun",
@@ -2522,7 +2668,11 @@
    "penetration": "AP",
    "permit_type": "Supply",
    "stratagem_image": "Speargun Stratagem Icon Background.svg",
-   "weapon_image": "S-11 Speargun Support Render.png"
+   "weapon_image": "S-11 Speargun Support Render.png",
+   "damage": "notext notext 25 DPS",
+   "capacity": "1",
+   "reload_time": "2.5s 2.25s (Upgraded)",
+   "fire_rate": "60 rpm"
   },
   {
    "title": "StA-X3 W.A.S.P. Launcher",
@@ -2536,7 +2686,15 @@
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
    "stratagem_image": "W.A.S.P. Launcher Stratagem Icon Background.svg",
-   "weapon_image": "StA-X3_W.A.S.P._Launcher_Weapon_and_Backpack_Support_Render.png"
+   "weapon_image": "StA-X3_W.A.S.P._Launcher_Weapon_and_Backpack_Support_Render.png",
+   "damage": "notext 600",
+   "capacity": "7",
+   "recoil": "6",
+   "reload_time": "4.9s 4.4s (Upgraded) 3.33s (Assisted)",
+   "fire_rate": "500 rpm",
+   "dps": "6,666.66",
+   "spare_mags": "5 (Backpack)",
+   "firing_modes": "Burst {{*}} Artillery"
   },
   {
    "title": "TX-41 Sterilizer",
@@ -2550,7 +2708,10 @@
    "penetration": "5",
    "permit_type": "Supply",
    "stratagem_image": "Sterilizer Stratagem Icon Background.svg",
-   "weapon_image": "TX-41 Sterilizer Support Render.png"
+   "weapon_image": "TX-41 Sterilizer Support Render.png",
+   "damage": "30 DPS",
+   "capacity": "100",
+   "reload_time": "4s 3.6s (Upgraded)"
   },
   {
    "title": "G-10 Incendiary",
@@ -2559,7 +2720,9 @@
    "weapon_type": "Standard",
    "throwable_traits": "Incendiary {{*}} Explosive",
    "penetration": "AP",
-   "image": "G-10 Incendiary Throwable Render.png"
+   "image": "G-10 Incendiary Throwable Render.png",
+   "damage": "notext notext",
+   "capacity": "5"
   },
   {
    "title": "G-109 Urchin",
@@ -2568,7 +2731,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Sticky {{*}} Stun",
    "penetration": "6",
-   "image": "G-109_Urchin_Throwable_Render.png"
+   "image": "G-109_Urchin_Throwable_Render.png",
+   "damage": "0",
+   "capacity": "5"
   },
   {
    "title": "G-11 Caltrops",
@@ -2577,7 +2742,8 @@
    "weapon_type": "Special",
    "throwable_traits": "Stun {{*}} Sticky",
    "penetration": "AP",
-   "image": "G-11 Caltrops Throwable Render.png"
+   "image": "G-11 Caltrops Throwable Render.png",
+   "damage": "50"
   },
   {
    "title": "G-12 High Explosive",
@@ -2586,7 +2752,9 @@
    "weapon_type": "Standard",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
    "penetration": "AP",
-   "image": "G-12 High Explosive Throwable Render.png"
+   "image": "G-12 High Explosive Throwable Render.png",
+   "damage": "800",
+   "capacity": "5"
   },
   {
    "title": "G-123 Thermite",
@@ -2595,7 +2763,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Sticky",
    "penetration": "AV",
-   "image": "G-123 Thermite Throwable Render.png"
+   "image": "G-123 Thermite Throwable Render.png",
+   "damage": "150/s over 6.5s 2000",
+   "capacity": "3"
   },
   {
    "title": "G-13 Incendiary Impact",
@@ -2604,7 +2774,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Incendiary {{*}} Explosive",
    "penetration": "3",
-   "image": "{{PAGENAME}} Throwable Render.png"
+   "image": "{{PAGENAME}} Throwable Render.png",
+   "damage": "notext notext",
+   "capacity": "5"
   },
   {
    "title": "G-142 Pyrotech",
@@ -2613,7 +2785,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Incendiary {{*}} Explosive",
    "penetration": "AP",
-   "image": "G-142_Pyrotech_Throwable_Render.png"
+   "image": "G-142_Pyrotech_Throwable_Render.png",
+   "damage": "20 DPS 50",
+   "capacity": "6"
   },
   {
    "title": "G-16 Impact",
@@ -2622,7 +2796,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
    "penetration": "AV",
-   "image": "G-16 Impact Throwable Render.png"
+   "image": "G-16 Impact Throwable Render.png",
+   "damage": "400",
+   "capacity": "5"
   },
   {
    "title": "G-23 Stun",
@@ -2631,7 +2807,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Explosive {{*}} Stun",
    "penetration": "AV",
-   "image": "G-23 Stun Throwable Render.png"
+   "image": "G-23 Stun Throwable Render.png",
+   "damage": "notext",
+   "capacity": "5"
   },
   {
    "title": "G-3 Smoke",
@@ -2640,7 +2818,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
    "penetration": "AP",
-   "image": "G-3 Smoke Throwable Render.png"
+   "image": "G-3 Smoke Throwable Render.png",
+   "damage": "notext",
+   "capacity": "5"
   },
   {
    "title": "G-31 Arc",
@@ -2649,7 +2829,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Explosive {{*}} Arc",
    "penetration": "AP",
-   "image": "G-31_ARC_Throwable_Render.png"
+   "image": "G-31_ARC_Throwable_Render.png",
+   "damage": "100 (x10)",
+   "capacity": "5"
   },
   {
    "title": "G-4 Gas",
@@ -2658,7 +2840,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Caustic {{*}} Explosive",
    "penetration": "6",
-   "image": "G-4 Gas Throwable Render.png"
+   "image": "G-4 Gas Throwable Render.png",
+   "damage": "notext notext",
+   "capacity": "4"
   },
   {
    "title": "G-48 Giga Grenade",
@@ -2667,7 +2851,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
    "penetration": "AP",
-   "image": "G-48 Giga Grenade Throwable Render.png"
+   "image": "G-48 Giga Grenade Throwable Render.png",
+   "damage": "2,000",
+   "capacity": "2"
   },
   {
    "title": "G-50 Seeker",
@@ -2676,7 +2862,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} Guided",
    "penetration": "AV",
-   "image": "{{PAGENAME}} Throwable Render.png"
+   "image": "{{PAGENAME}} Throwable Render.png",
+   "damage": "text",
+   "capacity": "5"
   },
   {
    "title": "G-6 Frag",
@@ -2685,7 +2873,9 @@
    "weapon_type": "Standard",
    "throwable_traits": "Medium Armor Penetrating {{*}} Explosive",
    "penetration": "AV",
-   "image": "G-6 Frag Throwable Render.png"
+   "image": "G-6 Frag Throwable Render.png",
+   "damage": "notext notext (x35)",
+   "capacity": "6"
   },
   {
    "title": "G-60 Anti-Tank Seeker",
@@ -2694,7 +2884,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Explosive {{*}} Guided",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Throwable Render.png"
+   "image": "{{PAGENAME}} Throwable Render.png",
+   "damage": "1,800",
+   "capacity": "3"
   },
   {
    "title": "G-7 Pineapple",
@@ -2703,7 +2895,9 @@
    "weapon_type": "Standard",
    "throwable_traits": "Explosive",
    "penetration": "AP",
-   "image": "G-7 Pineapple Throwable Render.png"
+   "image": "G-7 Pineapple Throwable Render.png",
+   "damage": "300 (Grenade) 300 (Bomblets 100 x18)",
+   "capacity": "5"
   },
   {
    "title": "G-8 Immolation",
@@ -2712,7 +2906,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Incendiary",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Throwable Render.png"
+   "image": "{{PAGENAME}} Throwable Render.png",
+   "damage": "20",
+   "capacity": "6"
   },
   {
    "title": "G-89 Smokescreen",
@@ -2721,7 +2917,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Explosive",
    "penetration": "AP",
-   "image": "G-89_Smokescreen_Throwable_Render.png"
+   "image": "G-89_Smokescreen_Throwable_Render.png",
+   "damage": "0",
+   "capacity": "5"
   },
   {
    "title": "G/40-K Melta Mine",
@@ -2730,7 +2928,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank",
    "penetration": "AP",
-   "image": "G-40-K Melta Mine Throwable Render.png"
+   "image": "G-40-K Melta Mine Throwable Render.png",
+   "damage": "2,000 notext (x2)",
+   "capacity": "4"
   },
   {
    "title": "G/SH-39 Shield",
@@ -2739,7 +2939,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Sticky",
    "penetration": "AP",
-   "image": "G-SH-39 Shield Throwable Render.png"
+   "image": "G-SH-39 Shield Throwable Render.png",
+   "damage": "0",
+   "capacity": "4"
   },
   {
    "title": "K-2 Throwing Knife",
@@ -2748,7 +2950,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Medium Armor Penetrating",
    "penetration": "AV",
-   "image": "K-2 Throwing Knife Throwable Render.png"
+   "image": "K-2 Throwing Knife Throwable Render.png",
+   "damage": "300",
+   "capacity": "20"
   },
   {
    "title": "TED-63 Dynamite",
@@ -2757,7 +2961,9 @@
    "weapon_type": "Standard",
    "throwable_traits": "Heavy Armor Penetrating {{*}} Explosive",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Throwable Render.png"
+   "image": "{{PAGENAME}} Throwable Render.png",
+   "damage": "1,000",
+   "capacity": "4"
   },
   {
    "title": "TM-1 Lure Mine",
@@ -2766,7 +2972,9 @@
    "weapon_type": "Special",
    "throwable_traits": "Anti-Tank {{*}} Sticky {{*}} Explosive",
    "penetration": "AP (Explosion) AP (Shrapnel)",
-   "image": "TM-1 Lure Mine Throwable Render.png"
+   "image": "TM-1 Lure Mine Throwable Render.png",
+   "damage": "1,000 notext (x35)",
+   "capacity": "4"
   },
   {
    "title": "AR-11 Arbitrator",
@@ -2776,7 +2984,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP (4mm) AP (10g)",
-   "image": "AR-11 Arbitrator Primary Render.png"
+   "image": "AR-11 Arbitrator Primary Render.png",
+   "damage": "70 (4mm) 450 (10g)",
+   "capacity": "45 (4mm) 4 (10g)",
+   "recoil": "13",
+   "reload_time": "3.75s",
+   "fire_rate": "1,200 rpm",
+   "dps": "1,400 (4mm) 600 (10g)",
+   "spare_mags": "7",
+   "firing_modes": "Auto {{*}} Burst {{*}} 10g"
   },
   {
    "title": "AR-23 Liberator",
@@ -2786,7 +3002,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Primary Render.png"
+   "image": "{{PAGENAME}} Primary Render.png",
+   "damage": "90",
+   "capacity": "45",
+   "recoil": "11",
+   "reload_time": "3s",
+   "fire_rate": "640 rpm",
+   "dps": "960",
+   "spare_mags": "8",
+   "firing_modes": "Auto{{*}}Semi{{*}}Burst"
   },
   {
    "title": "AR-23A Liberator Carbine",
@@ -2796,7 +3020,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "AR-23A Liberator Carbine Primary Render.png"
+   "image": "AR-23A Liberator Carbine Primary Render.png",
+   "damage": "90",
+   "capacity": "45",
+   "recoil": "18",
+   "reload_time": "2.5s",
+   "fire_rate": "920 rpm",
+   "dps": "1,380",
+   "spare_mags": "8",
+   "firing_modes": "Auto {{*}} Semi {{*}} Burst"
   },
   {
    "title": "AR-23C Liberator Concussive",
@@ -2806,7 +3038,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "AR-23C Liberator Concussive Primary Render.png"
+   "image": "AR-23C Liberator Concussive Primary Render.png",
+   "damage": "75",
+   "capacity": "60",
+   "recoil": "22",
+   "reload_time": "3.5s",
+   "fire_rate": "400 rpm",
+   "dps": "500",
+   "spare_mags": "6",
+   "firing_modes": "Auto {{*}} Semi"
   },
   {
    "title": "AR-23L Liberator Legacy",
@@ -2816,7 +3056,14 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "AR-23L Liberator Primary Render.png"
+   "image": "AR-23L Liberator Primary Render.png",
+   "damage": "90",
+   "capacity": "45",
+   "recoil": "14",
+   "fire_rate": "660 rpm",
+   "dps": "990",
+   "spare_mags": "8",
+   "firing_modes": "Auto {{*}} Burst {{*}} Semi"
   },
   {
    "title": "AR-23P Liberator Penetrator",
@@ -2826,7 +3073,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "AR-23P Liberator Penetrator Primary Render.png"
+   "image": "AR-23P Liberator Penetrator Primary Render.png",
+   "damage": "65",
+   "capacity": "45",
+   "recoil": "12",
+   "reload_time": "3s",
+   "fire_rate": "640 rpm",
+   "dps": "693.33",
+   "spare_mags": "8",
+   "firing_modes": "Semi {{*}} Burst {{*}} Full"
   },
   {
    "title": "AR-59 Suppressor",
@@ -2836,7 +3091,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
    "penetration": "AP",
-   "image": "AR-59 Suppressor Primary Render.png"
+   "image": "AR-59 Suppressor Primary Render.png",
+   "damage": "80",
+   "capacity": "45",
+   "recoil": "13",
+   "reload_time": "3s",
+   "fire_rate": "850 rpm",
+   "dps": "1,133.34",
+   "spare_mags": "8",
+   "firing_modes": "Semi {{*}} Auto"
   },
   {
    "title": "AR-61 Tenderizer",
@@ -2846,7 +3109,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "AR-61 Tenderizer Primary Render.png"
+   "image": "AR-61 Tenderizer Primary Render.png",
+   "damage": "105",
+   "capacity": "35",
+   "recoil": "10",
+   "reload_time": "3.33s",
+   "fire_rate": "600 rpm {{*}} 850 rpm",
+   "dps": "1,050 {{*}} 1,487.5",
+   "spare_mags": "7",
+   "firing_modes": "Semi{{*}}Burst{{*}}Auto"
   },
   {
    "title": "ARC-12 Blitzer",
@@ -2856,7 +3127,13 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating {{*}} Arc",
    "penetration": "ap",
-   "image": "ARC-12 Blitzer Primary Render.png"
+   "image": "ARC-12 Blitzer Primary Render.png",
+   "damage": "250",
+   "capacity": "∞",
+   "recoil": "45",
+   "fire_rate": "45 rpm",
+   "dps": "187.5",
+   "firing_modes": "None"
   },
   {
    "title": "BR-14 Adjudicator",
@@ -2866,7 +3143,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "BR-14 Adjudicator Primary Render.png"
+   "image": "BR-14 Adjudicator Primary Render.png",
+   "damage": "95",
+   "capacity": "30",
+   "recoil": "24",
+   "reload_time": "3s",
+   "fire_rate": "550 rpm",
+   "dps": "870.83",
+   "spare_mags": "8",
+   "firing_modes": "Semi {{*}} Auto"
   },
   {
    "title": "CB-9 Exploding Crossbow",
@@ -2876,7 +3161,14 @@
    "weapon_type": "Explosives",
    "weapon_traits": "Explosive {{*}} One Handed",
    "penetration": "ap",
-   "image": "CB-9 Exploding Crossbow Primary Render.png"
+   "image": "CB-9 Exploding Crossbow Primary Render.png",
+   "damage": "notext 350",
+   "capacity": "5",
+   "recoil": "26",
+   "reload_time": "3.33s",
+   "fire_rate": "50 rpm",
+   "dps": "516",
+   "spare_mags": "8 Clips"
   },
   {
    "title": "CQC-19 Stun Lance",
@@ -2886,7 +3178,9 @@
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
    "penetration": "ap",
-   "image": "CQC-19 Stun Lance Secondary Render.png"
+   "image": "CQC-19 Stun Lance Secondary Render.png",
+   "damage": "165",
+   "recoil": "8"
   },
   {
    "title": "CQC-2 Saber",
@@ -2896,7 +3190,11 @@
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
    "penetration": "ap",
-   "image": "CQC-2 Saber Secondary Render.png"
+   "image": "CQC-2 Saber Secondary Render.png",
+   "damage": "188",
+   "capacity": "N/A",
+   "recoil": "6",
+   "fire_rate": "150"
   },
   {
    "title": "CQC-30 Stun Baton",
@@ -2906,7 +3204,11 @@
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Stun {{*}} Melee",
    "penetration": "ap",
-   "image": "CQC-30 Stun Baton Secondary Render.png"
+   "image": "CQC-30 Stun Baton Secondary Render.png",
+   "damage": "120",
+   "capacity": "N/A",
+   "recoil": "8",
+   "fire_rate": "N/A"
   },
   {
    "title": "CQC-42 Machete",
@@ -2916,7 +3218,10 @@
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
    "penetration": "AP",
-   "image": "CQC-42 Machete Secondary Render.png"
+   "image": "CQC-42 Machete Secondary Render.png",
+   "damage": "300",
+   "capacity": "N/A",
+   "fire_rate": "72"
   },
   {
    "title": "CQC-5 Combat Hatchet",
@@ -2926,7 +3231,11 @@
    "weapon_type": "Melee",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Melee",
    "penetration": "AP",
-   "image": "CQC-5 Combat Hatchet Secondary Render.png"
+   "image": "CQC-5 Combat Hatchet Secondary Render.png",
+   "damage": "240",
+   "capacity": "N/A",
+   "recoil": "8",
+   "fire_rate": "100"
   },
   {
    "title": "CQC-72 Entrenchment Tool",
@@ -2935,7 +3244,9 @@
    "weapon_type": "Melee",
    "weapon_traits": "Support Weapon {{*}} Melee {{*}} One Handed",
    "penetration": "AP",
-   "image": "CQC-72 Entrenchment Tool Support Render.png"
+   "image": "CQC-72 Entrenchment Tool Support Render.png",
+   "damage": "165",
+   "fire_rate": "150"
   },
   {
    "title": "CQC-73 Entrenchment Tool",
@@ -2944,7 +3255,10 @@
    "weapon_type": "Melee",
    "weapon_traits": "Melee {{*}} One Handed",
    "penetration": "AP",
-   "image": "CQC-73 Entrenchment Tool Secondary Render.png"
+   "image": "CQC-73 Entrenchment Tool Secondary Render.png",
+   "damage": "165",
+   "capacity": "N/A",
+   "fire_rate": "150"
   },
   {
    "title": "DBS-2 Double Freedom",
@@ -2954,7 +3268,14 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "DBS-2_Shotgun_Primary_Render.png"
+   "image": "DBS-2_Shotgun_Primary_Render.png",
+   "damage": "840",
+   "capacity": "2",
+   "recoil": "163",
+   "reload_time": "1.9s",
+   "fire_rate": "650 rpm",
+   "dps": "1,680",
+   "firing_modes": "Semi"
   },
   {
    "title": "FLAM-66 Torcher",
@@ -2964,7 +3285,13 @@
    "weapon_type": "Special",
    "weapon_traits": "Incendiary",
    "penetration": "4",
-   "image": "FLAM-66 Torcher Primary Render.png"
+   "image": "FLAM-66 Torcher Primary Render.png",
+   "damage": "150 DPS",
+   "capacity": "100",
+   "recoil": "1",
+   "reload_time": "3.25s",
+   "spare_mags": "6",
+   "firing_modes": "None"
   },
   {
    "title": "GL-15 Evictor",
@@ -2974,7 +3301,14 @@
    "weapon_type": "Explosives",
    "weapon_traits": "Medium Armor Penetrating {{*}} Explosive {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "GL-15 Evictor Primary Render.png"
+   "image": "GL-15 Evictor Primary Render.png",
+   "damage": "50 (Projectile) 440",
+   "capacity": "4",
+   "recoil": "83",
+   "reload_time": "2.67",
+   "fire_rate": "60 rpm",
+   "dps": "490",
+   "firing_modes": "Pump-Action"
   },
   {
    "title": "GP-20 Ultimatum",
@@ -2984,7 +3318,12 @@
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Explosive",
    "penetration": "AP",
-   "image": "GP-20 Ultimatum Secondary Render.png"
+   "image": "GP-20 Ultimatum Secondary Render.png",
+   "damage": "notext 2,000",
+   "capacity": "1",
+   "recoil": "31",
+   "reload_time": "3s",
+   "fire_rate": "900 rpm"
   },
   {
    "title": "GP-31 Grenade Pistol",
@@ -2994,7 +3333,12 @@
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Explosive",
    "penetration": "AP",
-   "image": "GP-31 Grenade Pistol Secondary Render.png"
+   "image": "GP-31 Grenade Pistol Secondary Render.png",
+   "damage": "notext Explosion",
+   "capacity": "1",
+   "recoil": "31",
+   "reload_time": "1.72s",
+   "fire_rate": "900 rpm"
   },
   {
    "title": "JAR-5 Dominator",
@@ -3004,7 +3348,15 @@
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "JAR-5 Dominator Primary Render.png"
+   "image": "JAR-5 Dominator Primary Render.png",
+   "damage": "275",
+   "capacity": "15",
+   "recoil": "58",
+   "reload_time": "3.8s",
+   "fire_rate": "250 rpm",
+   "dps": "1,145.83",
+   "spare_mags": "6",
+   "firing_modes": "Semi {{*}} Burst"
   },
   {
    "title": "LAS-12 Sai",
@@ -3014,7 +3366,13 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Heat",
    "penetration": "AP",
-   "image": "LAS-12 Sai Primary Render.png"
+   "image": "LAS-12 Sai Primary Render.png",
+   "damage": "80",
+   "capacity": "4s (53)",
+   "recoil": "11",
+   "reload_time": "2.00s",
+   "fire_rate": "800 rpm",
+   "dps": "1,066.67"
   },
   {
    "title": "LAS-13 Trident",
@@ -3024,7 +3382,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Heat",
    "penetration": "AP",
-   "image": "LAS-13 Trident Primary Render.png"
+   "image": "LAS-13 Trident Primary Render.png",
+   "damage": "360",
+   "capacity": "2s (10)",
+   "recoil": "2",
+   "reload_time": "2.9s",
+   "fire_rate": "300 rpm",
+   "dps": "1,800",
+   "spare_mags": "3",
+   "firing_modes": "Auto"
   },
   {
    "title": "LAS-16 Sickle",
@@ -3034,7 +3400,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Heat",
    "penetration": "ap",
-   "image": "LAS-16 Sickle Primary Render.png"
+   "image": "LAS-16 Sickle Primary Render.png",
+   "damage": "60",
+   "capacity": "8s (105)",
+   "recoil": "2",
+   "reload_time": "2.25s",
+   "fire_rate": "750 rpm",
+   "dps": "750",
+   "spare_mags": "3",
+   "firing_modes": "Automatic"
   },
   {
    "title": "LAS-17 Double-Edge Sickle",
@@ -3044,7 +3418,14 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Medium Armor Penetrating {{*}} Heavy Armor Penetrating {{*}} Heat",
    "penetration": "ap",
-   "image": "LAS-17 Double-Edge Sickle Primary Render.png"
+   "image": "LAS-17 Double-Edge Sickle Primary Render.png",
+   "damage": "notext",
+   "capacity": "15s (175) (Fires Indefinitely)",
+   "recoil": "2",
+   "fire_rate": "700 rpm",
+   "dps": "700 (0-25% heat) {{*}} 641.67 (26-50% heat) {{*}} 816.67 (51-100% heat)",
+   "spare_mags": "3",
+   "firing_modes": "Automatic"
   },
   {
    "title": "LAS-5 Scythe",
@@ -3054,7 +3435,12 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Beam {{*}} Heat",
    "penetration": "ap",
-   "image": "LAS-5 Scythe Primary Render.png"
+   "image": "LAS-5 Scythe Primary Render.png",
+   "damage": "350 DPS 100 DPS",
+   "capacity": "8s",
+   "recoil": "0",
+   "reload_time": "3s",
+   "spare_mags": "4"
   },
   {
    "title": "LAS-58 Talon",
@@ -3064,7 +3450,15 @@
    "weapon_type": "Special",
    "weapon_traits": "{{*}}One Handed {{*}}Heat {{*}} Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Secondary Render.png"
+   "image": "{{PAGENAME}} Secondary Render.png",
+   "damage": "200",
+   "capacity": "7",
+   "recoil": "2",
+   "reload_time": "2.4s",
+   "fire_rate": "750 rpm",
+   "dps": "2,500",
+   "spare_mags": "3",
+   "firing_modes": "Semi"
   },
   {
    "title": "LAS-7 Dagger",
@@ -3074,7 +3468,12 @@
    "weapon_type": "Special",
    "weapon_traits": "{{*}}Light Armor Penetrating {{*}}One Handed {{*}} Beam {{*}}Heat",
    "penetration": "AP",
-   "image": "LAS-7 Dagger Secondary Render.png"
+   "image": "LAS-7 Dagger Secondary Render.png",
+   "damage": "250 DPS 100 DPS",
+   "capacity": "6.67s",
+   "recoil": "0",
+   "reload_time": "1.85s",
+   "spare_mags": "3"
   },
   {
    "title": "M6C/SOCOM Pistol",
@@ -3084,7 +3483,15 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
    "penetration": "AP",
-   "image": "M6C-SOCOM Pistol Secondary Render.png"
+   "image": "M6C-SOCOM Pistol Secondary Render.png",
+   "damage": "125",
+   "capacity": "12",
+   "recoil": "20",
+   "reload_time": "1.5s",
+   "fire_rate": "900 rpm",
+   "dps": "1,875",
+   "spare_mags": "10",
+   "firing_modes": "Semi"
   },
   {
    "title": "M7S SMG",
@@ -3094,7 +3501,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Suppressed",
    "penetration": "AP",
-   "image": "M7S_SMG_Primary_Render.png"
+   "image": "M7S_SMG_Primary_Render.png",
+   "damage": "90",
+   "capacity": "48",
+   "recoil": "8",
+   "reload_time": "3s",
+   "fire_rate": "872 rpm",
+   "dps": "1,308",
+   "spare_mags": "7",
+   "firing_modes": "Full {{*}} Semi {{*}} Burst"
   },
   {
    "title": "M90A Shotgun",
@@ -3104,7 +3519,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "M90A_Shotgun_Primary_Render.png"
+   "image": "M90A_Shotgun_Primary_Render.png",
+   "damage": "726",
+   "capacity": "6",
+   "recoil": "83",
+   "fire_rate": "80 rpm",
+   "dps": "967.99",
+   "firing_modes": "Semi"
   },
   {
    "title": "MA5C Assault Rifle",
@@ -3114,7 +3535,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "MA5C_Assault_Rifle_Primary_Render.png"
+   "image": "MA5C_Assault_Rifle_Primary_Render.png",
+   "damage": "90",
+   "capacity": "32",
+   "recoil": "19",
+   "reload_time": "3.15s",
+   "fire_rate": "640 rpm",
+   "dps": "960",
+   "spare_mags": "8",
+   "firing_modes": "Semi {{*}} Burst {{*}} Full"
   },
   {
    "title": "MP-98 Knight",
@@ -3124,7 +3553,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
    "penetration": "ap",
-   "image": "MP-98 Knight Primary Render.png"
+   "image": "MP-98 Knight Primary Render.png",
+   "damage": "90",
+   "capacity": "50",
+   "recoil": "12",
+   "reload_time": "2.5s",
+   "fire_rate": "1,380 rpm",
+   "dps": "2,070",
+   "spare_mags": "7",
+   "firing_modes": "Auto {{*}} Semi {{*}} Burst"
   },
   {
    "title": "P-11 Stim Pistol",
@@ -3134,7 +3571,13 @@
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Rounds Reload {{*}} Stimulative",
    "penetration": "AP",
-   "image": "P-11 Stim Pistol Secondary Render.png"
+   "image": "P-11 Stim Pistol Secondary Render.png",
+   "damage": "0",
+   "capacity": "6",
+   "recoil": "6",
+   "reload_time": "2.66s",
+   "fire_rate": "70 rpm",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-113 Verdict",
@@ -3144,7 +3587,15 @@
    "weapon_type": "Pistols",
    "weapon_traits": "{{*}} Medium Armor Penetrating {{*}} One Handed",
    "penetration": "ap",
-   "image": "P-113 Verdict Secondary Render.png"
+   "image": "P-113 Verdict Secondary Render.png",
+   "damage": "140",
+   "capacity": "10",
+   "recoil": "31",
+   "reload_time": "2s",
+   "fire_rate": "450 rpm",
+   "dps": "1,050",
+   "spare_mags": "10",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-19 Redeemer",
@@ -3154,7 +3605,15 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
    "penetration": "AP",
-   "image": "P-19 Redeemer Secondary Render.png"
+   "image": "P-19 Redeemer Secondary Render.png",
+   "damage": "70",
+   "capacity": "31",
+   "recoil": "14",
+   "reload_time": "2.15s",
+   "fire_rate": "1,100 rpm",
+   "dps": "1,283.33",
+   "spare_mags": "6",
+   "firing_modes": "Auto&nbsp;{{*}}&nbsp;Semi"
   },
   {
    "title": "P-2 Peacemaker",
@@ -3164,7 +3623,14 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
    "penetration": "AP",
-   "image": "P-2 Peacemaker Secondary Render.png"
+   "image": "P-2 Peacemaker Secondary Render.png",
+   "capacity": "15",
+   "recoil": "20",
+   "reload_time": "1.8s",
+   "fire_rate": "900 rpm",
+   "dps": "1,500",
+   "spare_mags": "8",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-33 Missile Pistol",
@@ -3174,7 +3640,14 @@
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating {{*}} Anti-Tank {{*}} One Handed {{*}} Guided {{*}} Explosive",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "image": "P-33 Missile Pistol Secondary Render.png"
+   "image": "P-33 Missile Pistol Secondary Render.png",
+   "damage": "notext 300",
+   "capacity": "1",
+   "recoil": "313",
+   "reload_time": "2.7s",
+   "fire_rate": "60 rpm",
+   "dps": "1,300",
+   "firing_modes": "Guided {{*}} Non-Guided"
   },
   {
    "title": "P-34 Breacher",
@@ -3184,7 +3657,12 @@
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Anti-Tank {{*}} Sticky {{*}} Explosive",
    "penetration": "AP",
-   "image": "P-34 Breacher Secondary Render.png"
+   "image": "P-34 Breacher Secondary Render.png",
+   "damage": "60 2,000 150/s over 4s",
+   "capacity": "1",
+   "recoil": "313",
+   "reload_time": "2.68s",
+   "fire_rate": "20"
   },
   {
    "title": "P-35 Re-Educator",
@@ -3194,7 +3672,15 @@
    "weapon_type": "Special",
    "weapon_traits": "One Handed {{*}} Caustic {{*}} Heavy Armor Penetrating",
    "penetration": "AP",
-   "image": "P-35 Re-Educator Secondary Render.png"
+   "image": "P-35 Re-Educator Secondary Render.png",
+   "damage": "60",
+   "capacity": "6",
+   "recoil": "10",
+   "reload_time": "3s",
+   "fire_rate": "110 rpm",
+   "dps": "110",
+   "spare_mags": "2",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-4 Senator",
@@ -3204,7 +3690,14 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Heavy Armor Penetrating {{*}}One Handed {{*}}Rounds Reload",
    "penetration": "AP",
-   "image": "P-4 Senator Secondary Render.png"
+   "image": "P-4 Senator Secondary Render.png",
+   "damage": "225",
+   "capacity": "6",
+   "recoil": "31",
+   "reload_time": "2.3s",
+   "fire_rate": "200 rpm",
+   "dps": "749.99",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-44 Mist",
@@ -3214,7 +3707,15 @@
    "weapon_type": "Pistols",
    "weapon_traits": "One Handed {{*}} Light Armor Penetrating",
    "penetration": "AP",
-   "image": "P-44 Mist Secondary Render.png"
+   "image": "P-44 Mist Secondary Render.png",
+   "damage": "110",
+   "capacity": "25",
+   "recoil": "17",
+   "reload_time": "2.3s",
+   "fire_rate": "400 rpm",
+   "dps": "733.34",
+   "spare_mags": "5",
+   "firing_modes": "Auto {{*}} Semi"
   },
   {
    "title": "P-69 Veto",
@@ -3224,7 +3725,13 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Secondary Icon.png"
+   "image": "{{PAGENAME}} Secondary Icon.png",
+   "damage": "105",
+   "capacity": "12",
+   "recoil": "30",
+   "fire_rate": "750 rpm",
+   "dps": "1,312.5",
+   "firing_modes": "Semi"
   },
   {
    "title": "P-72 Crisper",
@@ -3234,7 +3741,12 @@
    "weapon_type": "Special",
    "weapon_traits": "Incendiary {{*}} One Handed",
    "penetration": "AP",
-   "image": "P-72 Crisper Secondary Render.png"
+   "image": "P-72 Crisper Secondary Render.png",
+   "damage": "150 DPS",
+   "capacity": "50",
+   "recoil": "2",
+   "reload_time": "2.35s",
+   "spare_mags": "4"
   },
   {
    "title": "P-92 Warrant",
@@ -3244,7 +3756,15 @@
    "weapon_type": "Pistols",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed {{*}} Guided",
    "penetration": "ap",
-   "image": "P-92_Warrant_Secondary_Render.png"
+   "image": "P-92_Warrant_Secondary_Render.png",
+   "damage": "80",
+   "capacity": "13",
+   "recoil": "31",
+   "reload_time": "2s",
+   "fire_rate": "450 rpm",
+   "dps": "600",
+   "spare_mags": "8",
+   "firing_modes": "Guided {{*}} Non-Guided"
   },
   {
    "title": "P/40-K Bolt Pistol",
@@ -3254,7 +3774,15 @@
    "weapon_type": "Special",
    "weapon_traits": "Heavy Armor Penetrating {{*}} Explosive {{*}} One Handed",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "image": "P-40-K Bolt Pistol Secondary Render.png"
+   "image": "P-40-K Bolt Pistol Secondary Render.png",
+   "damage": "325 175",
+   "capacity": "6",
+   "recoil": "325",
+   "reload_time": "2.45s",
+   "fire_rate": "150 rpm",
+   "dps": "1,250",
+   "spare_mags": "4",
+   "firing_modes": "Semi"
   },
   {
    "title": "PLAS-1 Scorcher",
@@ -3264,7 +3792,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Light Armor Penetrating {{*}} Explosive",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "image": "PLAS-1 Scorcher Primary Render.png"
+   "image": "PLAS-1 Scorcher Primary Render.png",
+   "damage": "100 100",
+   "capacity": "20",
+   "recoil": "16",
+   "reload_time": "2.5s",
+   "fire_rate": "350 rpm",
+   "dps": "1,166",
+   "spare_mags": "5",
+   "firing_modes": "Semi {{*}} Auto"
   },
   {
    "title": "PLAS-101 Purifier",
@@ -3274,7 +3810,14 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Chargeup {{*}} Explosive {{*}} Medium Armor Penetrating",
    "penetration": "ap",
-   "image": "PLAS-101 Purifier Primary Render.png"
+   "image": "PLAS-101 Purifier Primary Render.png",
+   "damage": "notext 75 Uncharged notext 300 Charged",
+   "capacity": "15",
+   "recoil": "16",
+   "reload_time": "2.5s",
+   "fire_rate": "1,000 rpm",
+   "dps": "2916",
+   "spare_mags": "6"
   },
   {
    "title": "PLAS-15 Loyalist",
@@ -3284,7 +3827,13 @@
    "weapon_type": "Special",
    "weapon_traits": "Medium Armor Penetrating{{*}} One Handed{{*}} Explosive{{*}} Chargeup",
    "penetration": "ap",
-   "image": "PLAS-15 Loyalist Secondary Render.png"
+   "image": "PLAS-15 Loyalist Secondary Render.png",
+   "damage": "75-150 75-225",
+   "capacity": "8",
+   "recoil": "6",
+   "reload_time": "1.9s",
+   "fire_rate": "1000 rpm",
+   "spare_mags": "5"
   },
   {
    "title": "PLAS-39 Accelerator Rifle",
@@ -3294,7 +3843,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Explosive {{*}} Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "PLAS-39 Accelerator Rifle Primary Render.png"
+   "image": "PLAS-39 Accelerator Rifle Primary Render.png",
+   "damage": "250 100",
+   "capacity": "9",
+   "recoil": "3",
+   "reload_time": "2.7s",
+   "fire_rate": "550 rpm",
+   "dps": "3,208.33",
+   "spare_mags": "8",
+   "firing_modes": "Burst Fire"
   },
   {
    "title": "R-2 Amendment",
@@ -3304,7 +3861,14 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "R-2 Amendment Primary Render.png"
+   "image": "R-2 Amendment Primary Render.png",
+   "damage": "200",
+   "capacity": "20",
+   "recoil": "29",
+   "reload_time": "3.5s",
+   "fire_rate": "480 rpm",
+   "dps": "1,600",
+   "firing_modes": "Semi • Burst"
   },
   {
    "title": "R-2124 Constitution",
@@ -3314,7 +3878,14 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "R-2124 Constitution Primary Render.png"
+   "image": "R-2124 Constitution Primary Render.png",
+   "damage": "180",
+   "capacity": "5",
+   "recoil": "30",
+   "reload_time": "1.3s",
+   "fire_rate": "60 rpm",
+   "dps": "180",
+   "firing_modes": "Bolt-Action"
   },
   {
    "title": "R-36 Eruptor",
@@ -3324,7 +3895,15 @@
    "weapon_type": "Explosives",
    "weapon_traits": "Explosive {{*}} Heavy Armor Penetrating",
    "penetration": "AP (Projectile) AP (Explosion)",
-   "image": "R-36 Eruptor Primary Render.png"
+   "image": "R-36 Eruptor Primary Render.png",
+   "damage": "notext 225 notext (x30)",
+   "capacity": "5",
+   "recoil": "58",
+   "reload_time": "4.67s",
+   "fire_rate": "32 rpm",
+   "dps": "~592",
+   "spare_mags": "6",
+   "firing_modes": "Bolt-Action"
   },
   {
    "title": "R-4 Hyena",
@@ -3334,7 +3913,15 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating {{*}} Incendiary",
    "penetration": "AP",
-   "image": "R-4 Hyena Primary Render.png"
+   "image": "R-4 Hyena Primary Render.png",
+   "damage": "220 100 DPS",
+   "capacity": "15",
+   "recoil": "54",
+   "reload_time": "2.5s",
+   "fire_rate": "190 rpm",
+   "dps": "696.67",
+   "spare_mags": "5",
+   "firing_modes": "Semi"
   },
   {
    "title": "R-40 Sightliner",
@@ -3344,7 +3931,15 @@
    "weapon_type": "Sniper Rifles",
    "weapon_traits": "Heavy Armor Penetrating",
    "penetration": "AP",
-   "image": "R-40 Sightliner Primary Render.png"
+   "image": "R-40 Sightliner Primary Render.png",
+   "damage": "350",
+   "capacity": "10",
+   "recoil": "76",
+   "reload_time": "3s",
+   "fire_rate": "40 rpm",
+   "dps": "233.33",
+   "spare_mags": "8",
+   "firing_modes": "Bolt-Action"
   },
   {
    "title": "R-6 Deadeye",
@@ -3354,7 +3949,13 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Rounds Reload {{*}} Medium Armor Penetrating",
    "penetration": "ap",
-   "image": "R-6 Deadeye Primary Render.png"
+   "image": "R-6 Deadeye Primary Render.png",
+   "damage": "300",
+   "capacity": "8",
+   "recoil": "83",
+   "fire_rate": "100 rpm",
+   "dps": "500",
+   "firing_modes": "Lever-Action"
   },
   {
    "title": "R-63 Diligence",
@@ -3364,7 +3965,15 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "R-63 Diligence Primary Render.png"
+   "image": "R-63 Diligence Primary Render.png",
+   "damage": "165",
+   "capacity": "25",
+   "recoil": "26",
+   "reload_time": "2.83s",
+   "fire_rate": "350 rpm",
+   "dps": "962",
+   "spare_mags": "8",
+   "firing_modes": "Semi"
   },
   {
    "title": "R-63CS Diligence Counter Sniper",
@@ -3374,7 +3983,15 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "ap",
-   "image": "R-63CS Diligence Counter Sniper Primary Render.png"
+   "image": "R-63CS Diligence Counter Sniper Primary Render.png",
+   "damage": "200",
+   "capacity": "15",
+   "recoil": "33",
+   "reload_time": "3s",
+   "fire_rate": "350 rpm",
+   "dps": "1,166.67",
+   "spare_mags": "6",
+   "firing_modes": "Semi"
   },
   {
    "title": "R-72 Censor",
@@ -3384,7 +4001,15 @@
    "weapon_type": "Marksman Rifles",
    "weapon_traits": "Light Armor Penetrating {{*}} Suppressed",
    "penetration": "AP",
-   "image": "R-72 Censor Primary Render.png"
+   "image": "R-72 Censor Primary Render.png",
+   "damage": "165",
+   "capacity": "20",
+   "recoil": "13",
+   "reload_time": "2.5s",
+   "fire_rate": "400 rpm",
+   "dps": "1,100",
+   "spare_mags": "8",
+   "firing_modes": "Semi"
   },
   {
    "title": "R/40-K Hot-Shot Marksman Rifle",
@@ -3394,7 +4019,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "AP",
-   "image": "R-40-K Hot-Shot Primary Render.png"
+   "image": "R-40-K Hot-Shot Primary Render.png",
+   "damage": "275",
+   "capacity": "12",
+   "recoil": "19",
+   "reload_time": "2.9s",
+   "fire_rate": "210 rpm",
+   "dps": "962.50",
+   "spare_mags": "7",
+   "firing_modes": "Semi"
   },
   {
    "title": "SG-20 Halt",
@@ -3404,7 +4037,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "{{*}}Light Armor Penetrating {{*}}Medium Armor Penetrating {{*}}Rounds Reload",
    "penetration": "ap (Flechette) ap (Stun)",
-   "image": "SG-20 Halt Primary Render.png"
+   "image": "SG-20 Halt Primary Render.png",
+   "damage": "385 (Flechette) 120 (Stun)",
+   "capacity": "8 (x2)",
+   "recoil": "120",
+   "fire_rate": "80 rpm",
+   "dps": "513 (Flechette) 160 (Stun)",
+   "firing_modes": "{{*}}Semi"
   },
   {
    "title": "SG-22 Bushwhacker",
@@ -3414,7 +4053,13 @@
    "weapon_type": "Special",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Rounds Reload",
    "penetration": "ap",
-   "image": "SG-22 Bushwhacker Secondary Render.png"
+   "image": "SG-22 Bushwhacker Secondary Render.png",
+   "damage": "486",
+   "capacity": "3",
+   "recoil": "108",
+   "fire_rate": "650 rpm",
+   "dps": "1,620",
+   "firing_modes": "Semi {{*}} All Barrel"
   },
   {
    "title": "SG-225 Breaker",
@@ -3424,7 +4069,15 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "SG-225 Breaker Primary Render.png"
+   "image": "SG-225 Breaker Primary Render.png",
+   "damage": "396",
+   "capacity": "16",
+   "recoil": "43",
+   "reload_time": "2.5s",
+   "fire_rate": "300 rpm",
+   "dps": "1,980",
+   "spare_mags": "7",
+   "firing_modes": "Auto {{*}} Semi"
   },
   {
    "title": "SG-225IE Breaker Incendiary",
@@ -3434,7 +4087,15 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Incendiary",
    "penetration": "ap",
-   "image": "SG-225IE Breaker Incendiary Primary Render.png"
+   "image": "SG-225IE Breaker Incendiary Primary Render.png",
+   "damage": "240 100 DPS",
+   "capacity": "26",
+   "recoil": "41",
+   "reload_time": "3s",
+   "fire_rate": "300 rpm",
+   "dps": "1,200",
+   "spare_mags": "4",
+   "firing_modes": "Burst {{*}} Semi"
   },
   {
    "title": "SG-225SP Breaker Spray&Pray",
@@ -3444,7 +4105,15 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "ap",
-   "image": "SG-225SP Breaker Spray&Pray Primary Render.png"
+   "image": "SG-225SP Breaker Spray&Pray Primary Render.png",
+   "damage": "288",
+   "capacity": "26",
+   "recoil": "45",
+   "reload_time": "3s",
+   "fire_rate": "330 rpm",
+   "dps": "1,584",
+   "spare_mags": "8",
+   "firing_modes": "Auto {{*}} Semi"
   },
   {
    "title": "SG-451 Cookout",
@@ -3454,7 +4123,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating {{*}} Rounds Reload {{*}} Incendiary",
    "penetration": "ap",
-   "image": "SG-451 Cookout Primary Render.png"
+   "image": "SG-451 Cookout Primary Render.png",
+   "damage": "320",
+   "capacity": "16",
+   "recoil": "100",
+   "fire_rate": "80 rpm",
+   "dps": "426.67",
+   "firing_modes": "Semi"
   },
   {
    "title": "SG-8 Punisher",
@@ -3464,7 +4139,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Light Armor Penetrating{{*}}Rounds Reload",
    "penetration": "AP",
-   "image": "SG-8 Punisher Primary Render.png"
+   "image": "SG-8 Punisher Primary Render.png",
+   "damage": "486",
+   "capacity": "16",
+   "recoil": "83",
+   "fire_rate": "80 rpm",
+   "dps": "647.99",
+   "firing_modes": "Semi"
   },
   {
    "title": "SG-88 Break-Action Shotgun",
@@ -3473,7 +4154,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Support Weapon {{*}} Light Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "SG-88 Break-Action Shotgun Support Render.png"
+   "image": "SG-88 Break-Action Shotgun Support Render.png",
+   "damage": "585",
+   "capacity": "2",
+   "reload_time": "1.55s",
+   "fire_rate": "600 rpm",
+   "dps": "1,170",
+   "firing_modes": "Semi {{*}} Volley"
   },
   {
    "title": "SG-8P Punisher Plasma",
@@ -3483,7 +4170,15 @@
    "weapon_type": "Energy-Based",
    "weapon_traits": "Explosive",
    "penetration": "ap",
-   "image": "SG-8P Punisher Plasma Primary Render.png"
+   "image": "SG-8P Punisher Plasma Primary Render.png",
+   "damage": "225",
+   "capacity": "10",
+   "recoil": "78",
+   "reload_time": "2.5s",
+   "fire_rate": "80 rpm",
+   "dps": "299.99",
+   "spare_mags": "8",
+   "firing_modes": "Semi-automatic"
   },
   {
    "title": "SG-8S Slugger",
@@ -3493,7 +4188,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "SG-8S Slugger Primary Render.png"
+   "image": "SG-8S Slugger Primary Render.png",
+   "damage": "330",
+   "capacity": "16",
+   "recoil": "83",
+   "fire_rate": "80 rpm",
+   "dps": "440",
+   "firing_modes": "Semi"
   },
   {
    "title": "SG-97 Sweeper",
@@ -3503,7 +4204,13 @@
    "weapon_type": "Shotguns",
    "weapon_traits": "Medium Armor Penetrating {{*}} Rounds Reload",
    "penetration": "AP",
-   "image": "SG-97_Shotgun_Primary_Render.png"
+   "image": "SG-97_Shotgun_Primary_Render.png",
+   "damage": "504",
+   "capacity": "7",
+   "recoil": "76",
+   "fire_rate": "150 rpm",
+   "dps": "1,260",
+   "firing_modes": "Auto"
   },
   {
    "title": "SMG-203 Gallant",
@@ -3513,7 +4220,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Medium Armor Penetrating {{*}} One Handed",
    "penetration": "ap",
-   "image": "SMG-203 Gallant Primary Render.png"
+   "image": "SMG-203 Gallant Primary Render.png",
+   "damage": "65",
+   "capacity": "50",
+   "recoil": "15",
+   "reload_time": "2.5s",
+   "fire_rate": "1,380 rpm",
+   "dps": "1,495",
+   "spare_mags": "7",
+   "firing_modes": "Auto {{*}} Semi {{*}} Burst"
   },
   {
    "title": "SMG-32 Reprimand",
@@ -3523,7 +4238,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Medium Armor Penetrating",
    "penetration": "ap",
-   "image": "SMG-32 Reprimand Primary Render.png"
+   "image": "SMG-32 Reprimand Primary Render.png",
+   "damage": "140",
+   "capacity": "25",
+   "recoil": "32",
+   "reload_time": "3.55s",
+   "fire_rate": "490 rpm",
+   "dps": "1,143.33",
+   "spare_mags": "9",
+   "firing_modes": "Auto{{*}}Burst{{*}}Semi"
   },
   {
    "title": "SMG-37 Defender",
@@ -3533,7 +4256,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
    "penetration": "AP",
-   "image": "SMG-37 Defender Primary Render.png"
+   "image": "SMG-37 Defender Primary Render.png",
+   "damage": "110",
+   "capacity": "45",
+   "recoil": "9",
+   "reload_time": "2.8s",
+   "fire_rate": "520 rpm",
+   "dps": "953.34",
+   "spare_mags": "7",
+   "firing_modes": "Auto {{*}} Semi {{*}} Burst"
   },
   {
    "title": "SMG-72 Pummeler",
@@ -3543,7 +4274,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed",
    "penetration": "ap",
-   "image": "SMG-72 Pummeler Primary Render.png"
+   "image": "SMG-72 Pummeler Primary Render.png",
+   "damage": "85",
+   "capacity": "45",
+   "recoil": "9",
+   "reload_time": "2.8s",
+   "fire_rate": "475 rpm",
+   "dps": "672.91",
+   "spare_mags": "7",
+   "firing_modes": "Auto{{*}}Burst{{*}}Semi"
   },
   {
    "title": "SMG/FLAM-34 Stoker",
@@ -3553,7 +4292,14 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating {{*}} One Handed {{*}} Incendiary",
    "penetration": "AP (12mm) AP (Flamethrower)",
-   "image": "SMGFLAM-34 Stoker Primary Icon.png"
+   "image": "SMGFLAM-34 Stoker Primary Icon.png",
+   "damage": "130 150 DPS",
+   "capacity": "45",
+   "recoil": "9",
+   "reload_time": "2.8s (12mm) 2.3s (Flamethrower)",
+   "fire_rate": "420 rpm",
+   "dps": "910",
+   "spare_mags": "5"
   },
   {
    "title": "StA-11 SMG",
@@ -3563,7 +4309,15 @@
    "weapon_type": "Submachine Guns",
    "weapon_traits": "Light Armor Penetrating{{*}}One Handed",
    "penetration": "AP",
-   "image": "StA-11 SMG Primary Render.png"
+   "image": "StA-11 SMG Primary Render.png",
+   "damage": "100",
+   "capacity": "48",
+   "recoil": "11",
+   "reload_time": "2.6s",
+   "fire_rate": "1,050 rpm",
+   "dps": "1,750",
+   "spare_mags": "7",
+   "firing_modes": "Auto"
   },
   {
    "title": "StA-52 Assault Rifle",
@@ -3573,7 +4327,15 @@
    "weapon_type": "Assault Rifles",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "{{PAGENAME}} Primary Render.png"
+   "image": "{{PAGENAME}} Primary Render.png",
+   "damage": "90",
+   "capacity": "56",
+   "recoil": "14",
+   "reload_time": "4.2s",
+   "fire_rate": "790 rpm",
+   "dps": "1,185",
+   "spare_mags": "6",
+   "firing_modes": "Auto {{*}} Semi"
   },
   {
    "title": "VG-70 Variable",
@@ -3583,7 +4345,15 @@
    "weapon_type": "Special",
    "weapon_traits": "Light Armor Penetrating",
    "penetration": "AP",
-   "image": "VG-70_Variable_Primary_Render.png"
+   "image": "VG-70_Variable_Primary_Render.png",
+   "damage": "85",
+   "capacity": "49",
+   "recoil": "7",
+   "reload_time": "3.58s",
+   "fire_rate": "300 rpm {{*}} 550 rpm {{*}} 750rpm",
+   "dps": "425 {{*}} 779.16 {{*}} 1,062.5",
+   "spare_mags": "7",
+   "firing_modes": "Total {{*}} Volley {{*}} Auto"
   }
  ]
 }

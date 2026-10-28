@@ -114,7 +114,10 @@ TEMPLATES = ["Infobox Weapon", "Infobox Throwable", "Infobox Armor", "Infobox Bo
              "Infobox Vehicle", "Infobox Exosuit", "Infobox Defensive"]
 KEEP = ("type", "passive", "source", "weapon_category", "weapon_type", "weapon_traits", "throwable_traits",
         "stratagem_type", "traits", "base_cooldown", "penetration", "permit_type", "description", "armor", "speed",
-        "stratagem_image", "image", "weapon_image")
+        "stratagem_image", "image", "weapon_image",
+        # weapon handling stats (Infobox Weapon / Support Weapon / Throwable)
+        "damage", "capacity", "recoil", "reload_time", "fire_rate", "dps", "spare_mags", "firing_modes",
+        "fuse_time", "blast_radius", "outer_radius", "inner_radius")
 
 
 def embedded_in(template: str) -> list[str]:
@@ -184,7 +187,8 @@ def traits(row: dict) -> set:
 def wiki_section(row: dict):
     if row["template"] == "Infobox Weapon":
         cat = norm(row.get("weapon_category"))
-        return "primaries" if cat.startswith("primary") else "secondaries" if cat.startswith("secondary") else None
+        return ("primaries" if cat.startswith("primary") else "secondaries" if cat.startswith("secondary")
+                else "stratagems" if cat.startswith("support") else None)   # newer support-weapon pages
     return SECTION_OF.get(row["template"])
 
 
@@ -338,6 +342,26 @@ def _fetch_files(want: dict, dest_dir: pathlib.Path, url_prefix: str, width: int
     return out
 
 
+def _num(v) -> float | None:
+    """'640 rpm' -> 640, '1,050' -> 1050, '3.5s' -> 3.5, '' -> None."""
+    m = re.search(r"\d[\d,]*(?:\.\d+)?", str(v or ""))
+    return float(m.group(0).replace(",", "")) if m else None
+
+
+STAT_KEYS = {"damage": "damage", "capacity": "capacity", "recoil": "recoil", "reload_time": "reload",
+             "fire_rate": "rpm", "dps": "dps", "spare_mags": "mags"}
+
+
+def weapon_stats(row: dict) -> dict:
+    """Numbers off the wiki infobox that say how a weapon handles (recoil, rate, magazine...)."""
+    out = {k: _num(row.get(src)) for src, k in STAT_KEYS.items()}
+    out = {k: (int(v) if v is not None and v == int(v) else v) for k, v in out.items() if v is not None}
+    modes = [m.strip() for m in re.split(r"\{\{\*\}\}|,", row.get("firing_modes") or "") if m.strip()]
+    if modes:
+        out["modes"] = modes
+    return out
+
+
 def armory() -> dict:
     """For each of our items: its group in the in-game loadout menu, the stratagem permit
     colour + icon, and a picture (weapon/armour render, booster icon) from the wiki."""
@@ -365,6 +389,9 @@ def armory() -> dict:
                 row.get("image") if sec != "stratagems" else None)
             if pic:
                 want_imgs[rec["name"]] = pic.replace("{{PAGENAME}}", row.get("title", rec["name"])).strip()
+            st = weapon_stats(row)
+            if st:
+                e["stats"] = st
             out[rec["name"]] = e
     for name, path in _fetch_files(want_icons, ICONS, "/icons/", 64).items():
         out[name]["icon"] = path

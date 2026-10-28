@@ -82,6 +82,11 @@ def warbond_catalog() -> dict:
     return {"warbonds": warbonds, "map": flat}
 
 
+def is_base(wb: str) -> bool:
+    """Base game / requisition / the free Helldivers Mobilize warbond."""
+    return (wb or "").strip() in _BASE
+
+
 SPECIAL_GROUP = "Events & special unlocks"
 SPECIAL_HINTS = ("Liberty Day", "Pre-Order", "Super Citizen", "Anniversary", "Downloadable", "Gift")
 
@@ -144,18 +149,50 @@ def pictures() -> dict:
             if v.get("icon") or v.get("img")}
 
 
+BASE_SOURCE = "Base game"
+MOBILIZE = "Helldivers Mobilize"
+
+
+def sources() -> dict:
+    """Where each item comes from, for the gear filter: {"of": {item: source},
+    "list": [{"name", "kind", "n"}...]} in menu order: base game, the free warbond,
+    premium warbonds, Superstore, one-off events."""
+    cat = warbond_catalog()
+    of = {}
+    for name, wb in cat["map"].items():
+        wb = (wb or "").strip()
+        of[name] = MOBILIZE if wb == MOBILIZE else BASE_SOURCE if is_base(wb) else None
+    for w in cat["warbonds"]:
+        for i in w["items"]:
+            of[i["name"]] = w["name"]
+    novelty = {r["name"] for s in GATED_SLOTS for r in items().get(s, []) if r.get("novelty")}
+    counts: dict = {}
+    for n, sname in of.items():
+        if n not in novelty:
+            counts[sname] = counts.get(sname, 0) + 1
+    kinds = {w["name"]: w["kind"] for w in cat["warbonds"]}
+    kinds.update({BASE_SOURCE: "base", MOBILIZE: "base"})
+    order = {"base": 0, "warbond": 1, "superstore": 2, "special": 3}
+    lst = sorted(({"name": k, "kind": kinds.get(k, "warbond"), "n": v} for k, v in counts.items()),
+                 key=lambda x: (order[x["kind"]], x["name"] != BASE_SOURCE, x["name"]))
+    return {"of": of, "list": lst}
+
+
 def armory() -> list:
-    meta, raw, wb = armory_meta(), items(), warbond_catalog()["map"]
+    meta, raw, src = armory_meta(), items(), sources()["of"]
 
     def entry(rec):
         m = meta.get(rec["name"], {})
-        return {"name": rec["name"], "warbond": wb.get(rec["name"], ""), "icon": m.get("icon"), "img": m.get("img")}
+        e = {"name": rec["name"], "source": src.get(rec["name"], BASE_SOURCE), "icon": m.get("icon"), "img": m.get("img")}
+        if m.get("stats"):
+            e["stats"] = m["stats"]
+        return e
 
     out = []
     for slot in GATED_SLOTS:
-        gated = [r for r in raw.get(slot, []) if (wb.get(r["name"]) or "") not in _BASE and not r.get("novelty")]
+        listed = [r for r in raw.get(slot, []) if not r.get("novelty")]   # the whole library, base gear included
         groups: dict = {}
-        for r in gated:
+        for r in listed:
             m = meta.get(r["name"], {})
             if slot == "stratagems":
                 pm = (m.get("permit") or "Supply").strip().title()
