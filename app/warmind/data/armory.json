@@ -2,16 +2,16 @@
  "40-K Meltagun": {
   "group": "Support Weapons",
   "icon": "/icons/40-k-meltagun.svg",
-  "img": "/img/40-k-meltagun.png",
+  "img": "/img/40-k-meltagun.webp",
   "permit": "Supply"
  },
  "A-35 Recon": {
   "group": "Medium",
-  "img": "/img/a-35-recon.png"
+  "img": "/img/a-35-recon.webp"
  },
  "A-9 Helljumper": {
   "group": "Medium",
-  "img": "/img/a-9-helljumper.png"
+  "img": "/img/a-9-helljumper.webp"
  },
  "A/AC-8 Autocannon Sentry": {
   "group": "Sentries",
@@ -65,98 +65,98 @@
  },
  "AC-1 Dutiful": {
   "group": "Medium",
-  "img": "/img/ac-1-dutiful.png"
+  "img": "/img/ac-1-dutiful.webp"
  },
  "AC-2 Obedient": {
   "group": "Light",
-  "img": "/img/ac-2-obedient.png"
+  "img": "/img/ac-2-obedient.webp"
  },
  "AC-8 Autocannon": {
   "group": "Support Weapons",
   "icon": "/icons/ac-8-autocannon.svg",
-  "img": "/img/ac-8-autocannon.png",
+  "img": "/img/ac-8-autocannon.webp",
   "permit": "Supply"
  },
  "AD-11 Livewire": {
   "group": "Light",
-  "img": "/img/ad-11-livewire.png"
+  "img": "/img/ad-11-livewire.webp"
  },
  "AD-26 Bleeding Edge": {
   "group": "Medium",
-  "img": "/img/ad-26-bleeding-edge.png"
+  "img": "/img/ad-26-bleeding-edge.webp"
  },
  "AD-49 Apollonian": {
   "group": "Heavy",
-  "img": "/img/ad-49-apollonian.png"
+  "img": "/img/ad-49-apollonian.webp"
  },
  "AF-02 Haz-Master": {
   "group": "Medium",
-  "img": "/img/af-02-haz-master.png"
+  "img": "/img/af-02-haz-master.webp"
  },
  "AF-50 Noxious Ranger": {
   "group": "Light",
-  "img": "/img/af-50-noxious-ranger.png"
+  "img": "/img/af-50-noxious-ranger.webp"
  },
  "AF-52 Lockdown": {
   "group": "Heavy",
-  "img": "/img/af-52-lockdown.png"
+  "img": "/img/af-52-lockdown.webp"
  },
  "AF-91 Field Chemist": {
   "group": "Medium",
-  "img": "/img/af-91-field-chemist.png"
+  "img": "/img/af-91-field-chemist.webp"
  },
  "AMW-20 Apex": {
   "group": "Support Weapons",
   "icon": "/icons/amw-20-apex.svg",
-  "img": "/img/amw-20-apex.png",
+  "img": "/img/amw-20-apex.webp",
   "permit": "Supply"
  },
  "APW-1 Anti-Materiel Rifle": {
   "group": "Support Weapons",
   "icon": "/icons/apw-1-anti-materiel-rifle.svg",
-  "img": "/img/apw-1-anti-materiel-rifle.png",
+  "img": "/img/apw-1-anti-materiel-rifle.webp",
   "permit": "Supply"
  },
  "AR-11 Arbitrator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-11-arbitrator.png"
+  "img": "/img/ar-11-arbitrator.webp"
  },
  "AR-23 Liberator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23-liberator.png"
+  "img": "/img/ar-23-liberator.webp"
  },
  "AR-23A Liberator Carbine": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23a-liberator-carbine.png"
+  "img": "/img/ar-23a-liberator-carbine.webp"
  },
  "AR-23C Liberator Concussive": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23c-liberator-concussive.png"
+  "img": "/img/ar-23c-liberator-concussive.webp"
  },
  "AR-23L Liberator Legacy": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23l-liberator-legacy.png"
+  "img": "/img/ar-23l-liberator-legacy.webp"
  },
  "AR-23P Liberator Penetrator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23p-liberator-penetrator.png"
+  "img": "/img/ar-23p-liberator-penetrator.webp"
  },
  "AR-59 Suppressor": {
   "group": "Assault Rifles",
-  "img": "/img/ar-59-suppressor.png"
+  "img": "/img/ar-59-suppressor.webp"
  },
  "AR-61 Tenderizer": {
   "group": "Assault Rifles",
-  "img": "/img/ar-61-tenderizer.png"
+  "img": "/img/ar-61-tenderizer.webp"
  },
  "ARC-12 Blitzer": {
   "group": "Energy-Based",
-  "img": "/img/arc-12-blitzer.png"
+  "img": "/img/arc-12-blitzer.webp"
  },
  "ARC-3 Arc Thrower": {
   "group": "Support Weapons",
   "icon": "/icons/arc-3-arc-thrower.svg",
-  "img": "/img/arc-3-arc-thrower.png",
+  "img": "/img/arc-3-arc-thrower.webp",
   "permit": "Supply"
  },
  "AX/AR-23 Guard Dog": {
@@ -189,11 +189,11 @@
  },
  "B-01 Tactical": {
   "group": "Medium",
-  "img": "/img/b-01-tactical.png"
+  "img": "/img/b-01-tactical.webp"
  },
  "B-08 Light Gunner": {
   "group": "Light",
-  "img": "/img/b-08-light-gunner.png"
+  "img": "/img/b-08-light-gunner.webp"
  },
  "B-1 Supply Pack": {
   "group": "Backpacks",
@@ -207,220 +207,220 @@
  },
  "B-22 Model Citizen": {
   "group": "Medium",
-  "img": "/img/b-22-model-citizen.png"
+  "img": "/img/b-22-model-citizen.webp"
  },
  "B-24 Enforcer": {
   "group": "Medium",
-  "img": "/img/b-24-enforcer.png"
+  "img": "/img/b-24-enforcer.webp"
  },
  "B-27 Fortified Commando": {
   "group": "Heavy",
-  "img": "/img/b-27-fortified-commando.png"
+  "img": "/img/b-27-fortified-commando.webp"
  },
  "B/FLAM-80 Cremator": {
   "group": "Support Weapons",
   "icon": "/icons/b-flam-80-cremator.svg",
-  "img": "/img/b-flam-80-cremator.png",
+  "img": "/img/b-flam-80-cremator.webp",
   "permit": "Supply"
  },
  "B/MD C4 Pack": {
   "group": "Support Weapons",
   "icon": "/icons/b-md-c4-pack.svg",
-  "img": "/img/b-md-c4-pack.png",
+  "img": "/img/b-md-c4-pack.webp",
   "permit": "Supply"
  },
  "BFM-16 Tanker": {
   "group": "Light",
-  "img": "/img/bfm-16-tanker.png"
+  "img": "/img/bfm-16-tanker.webp"
  },
  "BFM-220 Ironclad": {
   "group": "Heavy",
-  "img": "/img/bfm-220-ironclad.png"
+  "img": "/img/bfm-220-ironclad.webp"
  },
  "BFM-77 Reformer": {
   "group": "Medium",
-  "img": "/img/bfm-77-reformer.png"
+  "img": "/img/bfm-77-reformer.webp"
  },
  "BP-20 Correct Officer": {
   "group": "Medium",
-  "img": "/img/bp-20-correct-officer.png"
+  "img": "/img/bp-20-correct-officer.webp"
  },
  "BP-32 Jackboot": {
   "group": "Light",
-  "img": "/img/bp-32-jackboot.png"
+  "img": "/img/bp-32-jackboot.webp"
  },
  "BP-77 Grand Juror": {
   "group": "Heavy",
-  "img": "/img/bp-77-grand-juror.png"
+  "img": "/img/bp-77-grand-juror.webp"
  },
  "BR-14 Adjudicator": {
   "group": "Assault Rifles",
-  "img": "/img/br-14-adjudicator.png"
+  "img": "/img/br-14-adjudicator.webp"
  },
  "CB-9 Exploding Crossbow": {
   "group": "Explosives",
-  "img": "/img/cb-9-exploding-crossbow.png"
+  "img": "/img/cb-9-exploding-crossbow.webp"
  },
  "CE-07 Demolition Specialist": {
   "group": "Light",
-  "img": "/img/ce-07-demolition-specialist.png"
+  "img": "/img/ce-07-demolition-specialist.webp"
  },
  "CE-101 Guerilla Gorilla": {
   "group": "Heavy",
-  "img": "/img/ce-101-guerilla-gorilla.png"
+  "img": "/img/ce-101-guerilla-gorilla.webp"
  },
  "CE-27 Ground Breaker": {
   "group": "Medium",
-  "img": "/img/ce-27-ground-breaker.png"
+  "img": "/img/ce-27-ground-breaker.webp"
  },
  "CE-35 Trench Engineer": {
   "group": "Medium",
-  "img": "/img/ce-35-trench-engineer.png"
+  "img": "/img/ce-35-trench-engineer.webp"
  },
  "CE-64 Grenadier": {
   "group": "Heavy",
-  "img": "/img/ce-64-grenadier.png"
+  "img": "/img/ce-64-grenadier.webp"
  },
  "CE-67 Titan": {
   "group": "Light",
-  "img": "/img/ce-67-titan.png"
+  "img": "/img/ce-67-titan.webp"
  },
  "CE-74 Breaker": {
   "group": "Light",
-  "img": "/img/ce-74-breaker.png"
+  "img": "/img/ce-74-breaker.webp"
  },
  "CE-81 Juggernaut": {
   "group": "Medium",
-  "img": "/img/ce-81-juggernaut.png"
+  "img": "/img/ce-81-juggernaut.webp"
  },
  "CM-09 Bonesnapper": {
   "group": "Medium",
-  "img": "/img/cm-09-bonesnapper.png"
+  "img": "/img/cm-09-bonesnapper.webp"
  },
  "CM-10 Clinician": {
   "group": "Medium",
-  "img": "/img/cm-10-clinician.png"
+  "img": "/img/cm-10-clinician.webp"
  },
  "CM-14 Physician": {
   "group": "Medium",
-  "img": "/img/cm-14-physician.png"
+  "img": "/img/cm-14-physician.webp"
  },
  "CM-17 Butcher": {
   "group": "Heavy",
-  "img": "/img/cm-17-butcher.png"
+  "img": "/img/cm-17-butcher.webp"
  },
  "CM-21 Trench Paramedic": {
   "group": "Light",
-  "img": "/img/cm-21-trench-paramedic.png"
+  "img": "/img/cm-21-trench-paramedic.webp"
  },
  "CPG-48 Sapper": {
   "group": "Medium",
-  "img": "/img/cpg-48-sapper.png"
+  "img": "/img/cpg-48-sapper.webp"
  },
  "CPH-26 Commandant": {
   "group": "Light",
-  "img": "/img/cph-26-commandant.png"
+  "img": "/img/cph-26-commandant.webp"
  },
  "CPR-80 Bulwark": {
   "group": "Heavy",
-  "img": "/img/cpr-80-bulwark.png"
+  "img": "/img/cpr-80-bulwark.webp"
  },
  "CQC-1 One True Flag": {
   "group": "Support Weapons",
   "icon": "/icons/cqc-1-one-true-flag.svg",
-  "img": "/img/cqc-1-one-true-flag.png",
+  "img": "/img/cqc-1-one-true-flag.webp",
   "permit": "Supply"
  },
  "CQC-19 Stun Lance": {
   "group": "Melee",
-  "img": "/img/cqc-19-stun-lance.png"
+  "img": "/img/cqc-19-stun-lance.webp"
  },
  "CQC-2 Saber": {
   "group": "Melee",
-  "img": "/img/cqc-2-saber.png"
+  "img": "/img/cqc-2-saber.webp"
  },
  "CQC-20 Breaching Hammer": {
   "group": "Support Weapons",
   "icon": "/icons/cqc-20-breaching-hammer.svg",
-  "img": "/img/cqc-20-breaching-hammer.png",
+  "img": "/img/cqc-20-breaching-hammer.webp",
   "permit": "Supply"
  },
  "CQC-30 Stun Baton": {
   "group": "Melee",
-  "img": "/img/cqc-30-stun-baton.png"
+  "img": "/img/cqc-30-stun-baton.webp"
  },
  "CQC-42 Machete": {
   "group": "Melee",
-  "img": "/img/cqc-42-machete.png"
+  "img": "/img/cqc-42-machete.webp"
  },
  "CQC-5 Combat Hatchet": {
   "group": "Melee",
-  "img": "/img/cqc-5-combat-hatchet.png"
+  "img": "/img/cqc-5-combat-hatchet.webp"
  },
  "CQC-73 Entrenchment Tool": {
   "group": "Melee",
-  "img": "/img/cqc-73-entrenchment-tool.png"
+  "img": "/img/cqc-73-entrenchment-tool.webp"
  },
  "CQC-9 Defoliation Tool": {
   "group": "Support Weapons",
   "icon": "/icons/cqc-9-defoliation-tool.svg",
-  "img": "/img/cqc-9-defoliation-tool.png",
+  "img": "/img/cqc-9-defoliation-tool.webp",
   "permit": "Supply"
  },
  "CW-22 Kodiak": {
   "group": "Heavy",
-  "img": "/img/cw-22-kodiak.png"
+  "img": "/img/cw-22-kodiak.webp"
  },
  "CW-36 Winter Warrior": {
   "group": "Heavy",
-  "img": "/img/cw-36-winter-warrior.png"
+  "img": "/img/cw-36-winter-warrior.webp"
  },
  "CW-4 Arctic Ranger": {
   "group": "Light",
-  "img": "/img/cw-4-arctic-ranger.png"
+  "img": "/img/cw-4-arctic-ranger.webp"
  },
  "CW-9 White Wolf": {
   "group": "Medium",
-  "img": "/img/cw-9-white-wolf.png"
+  "img": "/img/cw-9-white-wolf.webp"
  },
  "Concealed Insertion": {
   "img": "/img/concealed-insertion.svg"
  },
  "DBS-2 Double Freedom": {
   "group": "Shotguns",
-  "img": "/img/dbs-2-double-freedom.png"
+  "img": "/img/dbs-2-double-freedom.webp"
  },
  "DP-00 Tactical": {
   "group": "Medium",
-  "img": "/img/dp-00-tactical.png"
+  "img": "/img/dp-00-tactical.webp"
  },
  "DP-11 Champion of the People": {
   "group": "Medium",
-  "img": "/img/dp-11-champion-of-the-people.png"
+  "img": "/img/dp-11-champion-of-the-people.webp"
  },
  "DP-40 Hero of the Federation": {
   "group": "Medium",
-  "img": "/img/dp-40-hero-of-the-federation.png"
+  "img": "/img/dp-40-hero-of-the-federation.webp"
  },
  "DP-53 Savior of the Free": {
   "group": "Medium",
-  "img": "/img/dp-53-savior-of-the-free.png"
+  "img": "/img/dp-53-savior-of-the-free.webp"
  },
  "DP-8 Mountain-Scaled": {
   "group": "Medium",
-  "img": "/img/dp-8-mountain-scaled.png"
+  "img": "/img/dp-8-mountain-scaled.webp"
  },
  "DS-10 Big Game Hunter": {
   "group": "Light",
-  "img": "/img/ds-10-big-game-hunter.png"
+  "img": "/img/ds-10-big-game-hunter.webp"
  },
  "DS-191 Scorpion": {
   "group": "Medium",
-  "img": "/img/ds-191-scorpion.png"
+  "img": "/img/ds-191-scorpion.webp"
  },
  "DS-42 Federation's Blade": {
   "group": "Heavy",
-  "img": "/img/ds-42-federation-s-blade.png"
+  "img": "/img/ds-42-federation-s-blade.webp"
  },
  "Dead Sprint": {
   "img": "/img/dead-sprint.svg"
@@ -443,32 +443,32 @@
  "EAT-17 Expendable Anti-Tank": {
   "group": "Support Weapons",
   "icon": "/icons/eat-17-expendable-anti-tank.svg",
-  "img": "/img/eat-17-expendable-anti-tank.png",
+  "img": "/img/eat-17-expendable-anti-tank.webp",
   "permit": "Supply"
  },
  "EAT-411 Leveller": {
   "group": "Support Weapons",
   "icon": "/icons/eat-411-leveller.svg",
-  "img": "/img/eat-411-leveller.png",
+  "img": "/img/eat-411-leveller.webp",
   "permit": "Supply"
  },
  "EAT-700 Expendable Napalm": {
   "group": "Support Weapons",
   "icon": "/icons/eat-700-expendable-napalm.svg",
-  "img": "/img/eat-700-expendable-napalm.png",
+  "img": "/img/eat-700-expendable-napalm.webp",
   "permit": "Supply"
  },
  "EX-00 Prototype X": {
   "group": "Light",
-  "img": "/img/ex-00-prototype-x.png"
+  "img": "/img/ex-00-prototype-x.webp"
  },
  "EX-03 Prototype 3": {
   "group": "Medium",
-  "img": "/img/ex-03-prototype-3.png"
+  "img": "/img/ex-03-prototype-3.webp"
  },
  "EX-16 Prototype 16": {
   "group": "Medium",
-  "img": "/img/ex-16-prototype-16.png"
+  "img": "/img/ex-16-prototype-16.webp"
  },
  "EXO-45 Patriot Exosuit": {
   "group": "Vehicles",
@@ -544,50 +544,50 @@
  "FAF-14 Spear": {
   "group": "Support Weapons",
   "icon": "/icons/faf-14-spear.svg",
-  "img": "/img/faf-14-spear.png",
+  "img": "/img/faf-14-spear.webp",
   "permit": "Supply"
  },
  "FLAM-40 Flamethrower": {
   "group": "Support Weapons",
   "icon": "/icons/flam-40-flamethrower.svg",
-  "img": "/img/flam-40-flamethrower.png",
+  "img": "/img/flam-40-flamethrower.webp",
   "permit": "Supply"
  },
  "FLAM-66 Torcher": {
   "group": "Special",
-  "img": "/img/flam-66-torcher.png"
+  "img": "/img/flam-66-torcher.webp"
  },
  "FS-05 Marksman": {
   "group": "Heavy",
-  "img": "/img/fs-05-marksman.png"
+  "img": "/img/fs-05-marksman.webp"
  },
  "FS-11 Executioner": {
   "group": "Heavy",
-  "img": "/img/fs-11-executioner.png"
+  "img": "/img/fs-11-executioner.webp"
  },
  "FS-23 Battle Master": {
   "group": "Heavy",
-  "img": "/img/fs-23-battle-master.png"
+  "img": "/img/fs-23-battle-master.webp"
  },
  "FS-34 Exterminator": {
   "group": "Medium",
-  "img": "/img/fs-34-exterminator.png"
+  "img": "/img/fs-34-exterminator.webp"
  },
  "FS-37 Ravager": {
   "group": "Light",
-  "img": "/img/fs-37-ravager.png"
+  "img": "/img/fs-37-ravager.webp"
  },
  "FS-38 Eradicator": {
   "group": "Light",
-  "img": "/img/fs-38-eradicator.png"
+  "img": "/img/fs-38-eradicator.webp"
  },
  "FS-55 Devastator": {
   "group": "Heavy",
-  "img": "/img/fs-55-devastator.png"
+  "img": "/img/fs-55-devastator.webp"
  },
  "FS-61 Dreadnought": {
   "group": "Heavy",
-  "img": "/img/fs-61-dreadnought.png"
+  "img": "/img/fs-61-dreadnought.webp"
  },
  "FX-12 Shield Generator Relay": {
   "group": "Emplacements",
@@ -602,166 +602,166 @@
  },
  "G-10 Incendiary": {
   "group": "Standard",
-  "img": "/img/g-10-incendiary.png"
+  "img": "/img/g-10-incendiary.webp"
  },
  "G-109 Urchin": {
   "group": "Special",
-  "img": "/img/g-109-urchin.png"
+  "img": "/img/g-109-urchin.webp"
  },
  "G-11 Caltrops": {
   "group": "Special",
-  "img": "/img/g-11-caltrops.png"
+  "img": "/img/g-11-caltrops.webp"
  },
  "G-12 High Explosive": {
   "group": "Standard",
-  "img": "/img/g-12-high-explosive.png"
+  "img": "/img/g-12-high-explosive.webp"
  },
  "G-123 Thermite": {
   "group": "Special",
-  "img": "/img/g-123-thermite.png"
+  "img": "/img/g-123-thermite.webp"
  },
  "G-13 Incendiary Impact": {
   "group": "Special",
-  "img": "/img/g-13-incendiary-impact.png"
+  "img": "/img/g-13-incendiary-impact.webp"
  },
  "G-142 Pyrotech": {
   "group": "Special",
-  "img": "/img/g-142-pyrotech.png"
+  "img": "/img/g-142-pyrotech.webp"
  },
  "G-16 Impact": {
   "group": "Special",
-  "img": "/img/g-16-impact.png"
+  "img": "/img/g-16-impact.webp"
  },
  "G-23 Stun": {
   "group": "Special",
-  "img": "/img/g-23-stun.png"
+  "img": "/img/g-23-stun.webp"
  },
  "G-3 Smoke": {
   "group": "Special",
-  "img": "/img/g-3-smoke.png"
+  "img": "/img/g-3-smoke.webp"
  },
  "G-31 Arc": {
   "group": "Special",
-  "img": "/img/g-31-arc.png"
+  "img": "/img/g-31-arc.webp"
  },
  "G-4 Gas": {
   "group": "Special",
-  "img": "/img/g-4-gas.png"
+  "img": "/img/g-4-gas.webp"
  },
  "G-48 Giga Grenade": {
   "group": "Special",
-  "img": "/img/g-48-giga-grenade.png"
+  "img": "/img/g-48-giga-grenade.webp"
  },
  "G-50 Seeker": {
   "group": "Special",
-  "img": "/img/g-50-seeker.png"
+  "img": "/img/g-50-seeker.webp"
  },
  "G-6 Frag": {
   "group": "Standard",
-  "img": "/img/g-6-frag.png"
+  "img": "/img/g-6-frag.webp"
  },
  "G-60 Anti-Tank Seeker": {
   "group": "Special",
-  "img": "/img/g-60-anti-tank-seeker.png"
+  "img": "/img/g-60-anti-tank-seeker.webp"
  },
  "G-7 Pineapple": {
   "group": "Standard",
-  "img": "/img/g-7-pineapple.png"
+  "img": "/img/g-7-pineapple.webp"
  },
  "G-8 Immolation": {
   "group": "Special",
-  "img": "/img/g-8-immolation.png"
+  "img": "/img/g-8-immolation.webp"
  },
  "G-89 Smokescreen": {
   "group": "Special",
-  "img": "/img/g-89-smokescreen.png"
+  "img": "/img/g-89-smokescreen.webp"
  },
  "G/40-K Melta Mine": {
   "group": "Special",
-  "img": "/img/g-40-k-melta-mine.png"
+  "img": "/img/g-40-k-melta-mine.webp"
  },
  "G/SH-39 Shield": {
   "group": "Special",
-  "img": "/img/g-sh-39-shield.png"
+  "img": "/img/g-sh-39-shield.webp"
  },
  "GL-15 Evictor": {
   "group": "Explosives",
-  "img": "/img/gl-15-evictor.png"
+  "img": "/img/gl-15-evictor.webp"
  },
  "GL-21 Grenade Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/gl-21-grenade-launcher.svg",
-  "img": "/img/gl-21-grenade-launcher.png",
+  "img": "/img/gl-21-grenade-launcher.webp",
   "permit": "Supply"
  },
  "GL-28 Belt-Fed Grenade Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/gl-28-belt-fed-grenade-launcher.svg",
-  "img": "/img/gl-28-belt-fed-grenade-launcher.png",
+  "img": "/img/gl-28-belt-fed-grenade-launcher.webp",
   "permit": "Supply"
  },
  "GL-52 De-Escalator": {
   "group": "Support Weapons",
   "icon": "/icons/gl-52-de-escalator.svg",
-  "img": "/img/gl-52-de-escalator.png",
+  "img": "/img/gl-52-de-escalator.webp",
   "permit": "Supply"
  },
  "GP-20 Ultimatum": {
   "group": "Special",
-  "img": "/img/gp-20-ultimatum.png"
+  "img": "/img/gp-20-ultimatum.webp"
  },
  "GP-31 Grenade Pistol": {
   "group": "Special",
-  "img": "/img/gp-31-grenade-pistol.png"
+  "img": "/img/gp-31-grenade-pistol.webp"
  },
  "GR-8 Recoilless Rifle": {
   "group": "Support Weapons",
   "icon": "/icons/gr-8-recoilless-rifle.svg",
-  "img": "/img/gr-8-recoilless-rifle.png",
+  "img": "/img/gr-8-recoilless-rifle.webp",
   "permit": "Supply"
  },
  "GS-11 Democracy's Deputy": {
   "group": "Light",
-  "img": "/img/gs-11-democracy-s-deputy.png"
+  "img": "/img/gs-11-democracy-s-deputy.webp"
  },
  "GS-17 Frontier Marshal": {
   "group": "Medium",
-  "img": "/img/gs-17-frontier-marshal.png"
+  "img": "/img/gs-17-frontier-marshal.webp"
  },
  "GS-66 Lawmaker": {
   "group": "Heavy",
-  "img": "/img/gs-66-lawmaker.png"
+  "img": "/img/gs-66-lawmaker.webp"
  },
  "Hellpod Space Optimization": {
   "img": "/img/hellpod-space-optimization.svg"
  },
  "I-09 Heatseeker": {
   "group": "Light",
-  "img": "/img/i-09-heatseeker.png"
+  "img": "/img/i-09-heatseeker.webp"
  },
  "I-102 Draconaught": {
   "group": "Medium",
-  "img": "/img/i-102-draconaught.png"
+  "img": "/img/i-102-draconaught.webp"
  },
  "I-44 Salamander": {
   "group": "Heavy",
-  "img": "/img/i-44-salamander.png"
+  "img": "/img/i-44-salamander.webp"
  },
  "I-92 Fire Fighter": {
   "group": "Medium",
-  "img": "/img/i-92-fire-fighter.png"
+  "img": "/img/i-92-fire-fighter.webp"
  },
  "IE-12 Righteous": {
   "group": "Medium",
-  "img": "/img/ie-12-righteous.png"
+  "img": "/img/ie-12-righteous.webp"
  },
  "IE-3 Martyr": {
   "group": "Medium",
-  "img": "/img/ie-3-martyr.png"
+  "img": "/img/ie-3-martyr.webp"
  },
  "IE-57 Hell-Bent": {
   "group": "Light",
-  "img": "/img/ie-57-hell-bent.png"
+  "img": "/img/ie-57-hell-bent.webp"
  },
  "Increased Reinforcement Budget": {
   "img": "/img/increased-reinforcement-budget.svg"
@@ -771,60 +771,60 @@
  },
  "JAR-5 Dominator": {
   "group": "Special",
-  "img": "/img/jar-5-dominator.png"
+  "img": "/img/jar-5-dominator.webp"
  },
  "K-2 Throwing Knife": {
   "group": "Special",
-  "img": "/img/k-2-throwing-knife.png"
+  "img": "/img/k-2-throwing-knife.webp"
  },
  "KDM-500 Outrider": {
   "group": "Heavy",
-  "img": "/img/kdm-500-outrider.png"
+  "img": "/img/kdm-500-outrider.webp"
  },
  "LAS-12 Sai": {
   "group": "Energy-Based",
-  "img": "/img/las-12-sai.png"
+  "img": "/img/las-12-sai.webp"
  },
  "LAS-13 Trident": {
   "group": "Energy-Based",
-  "img": "/img/las-13-trident.png"
+  "img": "/img/las-13-trident.webp"
  },
  "LAS-16 Sickle": {
   "group": "Energy-Based",
-  "img": "/img/las-16-sickle.png"
+  "img": "/img/las-16-sickle.webp"
  },
  "LAS-17 Double-Edge Sickle": {
   "group": "Energy-Based",
-  "img": "/img/las-17-double-edge-sickle.png"
+  "img": "/img/las-17-double-edge-sickle.webp"
  },
  "LAS-44 Nova": {
   "group": "Support Weapons",
   "icon": "/icons/las-44-nova.svg",
-  "img": "/img/las-44-nova.png",
+  "img": "/img/las-44-nova.webp",
   "permit": "Supply"
  },
  "LAS-5 Scythe": {
   "group": "Energy-Based",
-  "img": "/img/las-5-scythe.png"
+  "img": "/img/las-5-scythe.webp"
  },
  "LAS-58 Talon": {
   "group": "Special",
-  "img": "/img/las-58-talon.png"
+  "img": "/img/las-58-talon.webp"
  },
  "LAS-7 Dagger": {
   "group": "Special",
-  "img": "/img/las-7-dagger.png"
+  "img": "/img/las-7-dagger.webp"
  },
  "LAS-98 Laser Cannon": {
   "group": "Support Weapons",
   "icon": "/icons/las-98-laser-cannon.svg",
-  "img": "/img/las-98-laser-cannon.png",
+  "img": "/img/las-98-laser-cannon.webp",
   "permit": "Supply"
  },
  "LAS-99 Quasar Cannon": {
   "group": "Support Weapons",
   "icon": "/icons/las-99-quasar-cannon.svg",
-  "img": "/img/las-99-quasar-cannon.png",
+  "img": "/img/las-99-quasar-cannon.webp",
   "permit": "Supply"
  },
  "LIFT-182 Warp Pack": {
@@ -848,7 +848,7 @@
  "M-1000 Maxigun": {
   "group": "Support Weapons",
   "icon": "/icons/m-1000-maxigun.svg",
-  "img": "/img/m-1000-maxigun.png",
+  "img": "/img/m-1000-maxigun.webp",
   "permit": "Supply"
  },
  "M-102 Gunner FRV": {
@@ -869,24 +869,24 @@
  "M-105 Stalwart": {
   "group": "Support Weapons",
   "icon": "/icons/m-105-stalwart.svg",
-  "img": "/img/m-105-stalwart.png",
+  "img": "/img/m-105-stalwart.webp",
   "permit": "Supply"
  },
  "M6C/SOCOM Pistol": {
   "group": "Pistols",
-  "img": "/img/m6c-socom-pistol.png"
+  "img": "/img/m6c-socom-pistol.webp"
  },
  "M7S SMG": {
   "group": "Submachine Guns",
-  "img": "/img/m7s-smg.png"
+  "img": "/img/m7s-smg.webp"
  },
  "M90A Shotgun": {
   "group": "Shotguns",
-  "img": "/img/m90a-shotgun.png"
+  "img": "/img/m90a-shotgun.webp"
  },
  "MA5C Assault Rifle": {
   "group": "Assault Rifles",
-  "img": "/img/ma5c-assault-rifle.png"
+  "img": "/img/ma5c-assault-rifle.webp"
  },
  "MD-17 Anti-Tank Mines": {
   "group": "Emplacements",
@@ -911,35 +911,35 @@
  "MG-206 Heavy Machine Gun": {
   "group": "Support Weapons",
   "icon": "/icons/mg-206-heavy-machine-gun.svg",
-  "img": "/img/mg-206-heavy-machine-gun.png",
+  "img": "/img/mg-206-heavy-machine-gun.webp",
   "permit": "Supply"
  },
  "MG-43 Machine Gun": {
   "group": "Support Weapons",
   "icon": "/icons/mg-43-machine-gun.svg",
-  "img": "/img/mg-43-machine-gun.png",
+  "img": "/img/mg-43-machine-gun.webp",
   "permit": "Supply"
  },
  "MGX-42 Bullet Storm": {
   "group": "Support Weapons",
   "icon": "/icons/mgx-42-bullet-storm.svg",
-  "img": "/img/mgx-42-bullet-storm.png",
+  "img": "/img/mgx-42-bullet-storm.webp",
   "permit": "Supply"
  },
  "MLS-4X Commando": {
   "group": "Support Weapons",
   "icon": "/icons/mls-4x-commando.svg",
-  "img": "/img/mls-4x-commando.png",
+  "img": "/img/mls-4x-commando.webp",
   "permit": "Supply"
  },
  "MP-98 Knight": {
   "group": "Submachine Guns",
-  "img": "/img/mp-98-knight.png"
+  "img": "/img/mp-98-knight.webp"
  },
  "MS-11 Solo Silo": {
   "group": "Support Weapons",
   "icon": "/icons/ms-11-solo-silo.svg",
-  "img": "/img/ms-11-solo-silo.png",
+  "img": "/img/ms-11-solo-silo.webp",
   "permit": "Supply"
  },
  "Motivational Shocks": {
@@ -950,15 +950,15 @@
  },
  "O-2 Heavy Operator": {
   "group": "Heavy",
-  "img": "/img/o-2-heavy-operator.png"
+  "img": "/img/o-2-heavy-operator.webp"
  },
  "O-3 Free Spirit": {
   "group": "Light",
-  "img": "/img/o-3-free-spirit.png"
+  "img": "/img/o-3-free-spirit.webp"
  },
  "O-44 Bonded Pilot": {
   "group": "Medium",
-  "img": "/img/o-44-bonded-pilot.png"
+  "img": "/img/o-44-bonded-pilot.webp"
  },
  "Orbital 120mm HE Barrage": {
   "group": "Orbital",
@@ -1027,263 +1027,263 @@
  },
  "P-11 Stim Pistol": {
   "group": "Special",
-  "img": "/img/p-11-stim-pistol.png"
+  "img": "/img/p-11-stim-pistol.webp"
  },
  "P-113 Verdict": {
   "group": "Pistols",
-  "img": "/img/p-113-verdict.png"
+  "img": "/img/p-113-verdict.webp"
  },
  "P-19 Redeemer": {
   "group": "Pistols",
-  "img": "/img/p-19-redeemer.png"
+  "img": "/img/p-19-redeemer.webp"
  },
  "P-2 Peacemaker": {
   "group": "Pistols",
-  "img": "/img/p-2-peacemaker.png"
+  "img": "/img/p-2-peacemaker.webp"
  },
  "P-33 Missile Pistol": {
   "group": "Special",
-  "img": "/img/p-33-missile-pistol.png"
+  "img": "/img/p-33-missile-pistol.webp"
  },
  "P-34 Breacher": {
   "group": "Special",
-  "img": "/img/p-34-breacher.png"
+  "img": "/img/p-34-breacher.webp"
  },
  "P-35 Re-Educator": {
   "group": "Special",
-  "img": "/img/p-35-re-educator.png"
+  "img": "/img/p-35-re-educator.webp"
  },
  "P-4 Senator": {
   "group": "Pistols",
-  "img": "/img/p-4-senator.png"
+  "img": "/img/p-4-senator.webp"
  },
  "P-44 Mist": {
   "group": "Pistols",
-  "img": "/img/p-44-mist.png"
+  "img": "/img/p-44-mist.webp"
  },
  "P-69 Veto": {
   "group": "Pistols",
-  "img": "/img/p-69-veto.png"
+  "img": "/img/p-69-veto.webp"
  },
  "P-72 Crisper": {
   "group": "Special",
-  "img": "/img/p-72-crisper.png"
+  "img": "/img/p-72-crisper.webp"
  },
  "P-92 Warrant": {
   "group": "Pistols",
-  "img": "/img/p-92-warrant.png"
+  "img": "/img/p-92-warrant.webp"
  },
  "P/40-K Bolt Pistol": {
   "group": "Special",
-  "img": "/img/p-40-k-bolt-pistol.png"
+  "img": "/img/p-40-k-bolt-pistol.webp"
  },
  "PH-202 Twigsnapper": {
   "group": "Heavy",
-  "img": "/img/ph-202-twigsnapper.png"
+  "img": "/img/ph-202-twigsnapper.webp"
  },
  "PH-56 Jaguar": {
   "group": "Medium",
-  "img": "/img/ph-56-jaguar.png"
+  "img": "/img/ph-56-jaguar.webp"
  },
  "PH-9 Predator": {
   "group": "Light",
-  "img": "/img/ph-9-predator.png"
+  "img": "/img/ph-9-predator.webp"
  },
  "PLAS-1 Scorcher": {
   "group": "Energy-Based",
-  "img": "/img/plas-1-scorcher.png"
+  "img": "/img/plas-1-scorcher.webp"
  },
  "PLAS-101 Purifier": {
   "group": "Energy-Based",
-  "img": "/img/plas-101-purifier.png"
+  "img": "/img/plas-101-purifier.webp"
  },
  "PLAS-15 Loyalist": {
   "group": "Special",
-  "img": "/img/plas-15-loyalist.png"
+  "img": "/img/plas-15-loyalist.webp"
  },
  "PLAS-39 Accelerator Rifle": {
   "group": "Energy-Based",
-  "img": "/img/plas-39-accelerator-rifle.png"
+  "img": "/img/plas-39-accelerator-rifle.webp"
  },
  "PLAS-45 Epoch": {
   "group": "Support Weapons",
   "icon": "/icons/plas-45-epoch.svg",
-  "img": "/img/plas-45-epoch.png",
+  "img": "/img/plas-45-epoch.webp",
   "permit": "Supply"
  },
  "R-2 Amendment": {
   "group": "Marksman Rifles",
-  "img": "/img/r-2-amendment.png"
+  "img": "/img/r-2-amendment.webp"
  },
  "R-2124 Constitution": {
   "group": "Marksman Rifles",
-  "img": "/img/r-2124-constitution.png"
+  "img": "/img/r-2124-constitution.webp"
  },
  "R-36 Eruptor": {
   "group": "Explosives",
-  "img": "/img/r-36-eruptor.png"
+  "img": "/img/r-36-eruptor.webp"
  },
  "R-4 Hyena": {
   "group": "Marksman Rifles",
-  "img": "/img/r-4-hyena.png"
+  "img": "/img/r-4-hyena.webp"
  },
  "R-40 Sightliner": {
   "group": "Sniper Rifles",
-  "img": "/img/r-40-sightliner.png"
+  "img": "/img/r-40-sightliner.webp"
  },
  "R-6 Deadeye": {
   "group": "Marksman Rifles",
-  "img": "/img/r-6-deadeye.png"
+  "img": "/img/r-6-deadeye.webp"
  },
  "R-63 Diligence": {
   "group": "Marksman Rifles",
-  "img": "/img/r-63-diligence.png"
+  "img": "/img/r-63-diligence.webp"
  },
  "R-63CS Diligence Counter Sniper": {
   "group": "Marksman Rifles",
-  "img": "/img/r-63cs-diligence-counter-sniper.png"
+  "img": "/img/r-63cs-diligence-counter-sniper.webp"
  },
  "R-72 Censor": {
   "group": "Marksman Rifles",
-  "img": "/img/r-72-censor.png"
+  "img": "/img/r-72-censor.webp"
  },
  "R/40-K Hot-Shot Marksman Rifle": {
   "group": "Energy-Based",
-  "img": "/img/r-40-k-hot-shot-marksman-rifle.png"
+  "img": "/img/r-40-k-hot-shot-marksman-rifle.webp"
  },
  "RE-1861 Parade Commander": {
   "group": "Light",
-  "img": "/img/re-1861-parade-commander.png"
+  "img": "/img/re-1861-parade-commander.webp"
  },
  "RE-2310 Honorary Guard": {
   "group": "Medium",
-  "img": "/img/re-2310-honorary-guard.png"
+  "img": "/img/re-2310-honorary-guard.webp"
  },
  "RE-824 Bearer of the Standard": {
   "group": "Heavy",
-  "img": "/img/re-824-bearer-of-the-standard.png"
+  "img": "/img/re-824-bearer-of-the-standard.webp"
  },
  "RL-77 Airburst Rocket Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/rl-77-airburst-rocket-launcher.svg",
-  "img": "/img/rl-77-airburst-rocket-launcher.png",
+  "img": "/img/rl-77-airburst-rocket-launcher.webp",
   "permit": "Supply"
  },
  "RS-100 Sanctioner": {
   "group": "Light",
-  "img": "/img/rs-100-sanctioner.png"
+  "img": "/img/rs-100-sanctioner.webp"
  },
  "RS-20 Constrictor": {
   "group": "Light",
-  "img": "/img/rs-20-constrictor.png"
+  "img": "/img/rs-20-constrictor.webp"
  },
  "RS-40 Beast of Prey": {
   "group": "Heavy",
-  "img": "/img/rs-40-beast-of-prey.png"
+  "img": "/img/rs-40-beast-of-prey.webp"
  },
  "RS-422 Railgun": {
   "group": "Support Weapons",
   "icon": "/icons/rs-422-railgun.svg",
-  "img": "/img/rs-422-railgun.png",
+  "img": "/img/rs-422-railgun.webp",
   "permit": "Supply"
  },
  "RS-6 Fiend Destroyer": {
   "group": "Medium",
-  "img": "/img/rs-6-fiend-destroyer.png"
+  "img": "/img/rs-6-fiend-destroyer.webp"
  },
  "RS-67 Null Cipher": {
   "group": "Medium",
-  "img": "/img/rs-67-null-cipher.png"
+  "img": "/img/rs-67-null-cipher.webp"
  },
  "RS-89 Shadow Paragon": {
   "group": "Light",
-  "img": "/img/rs-89-shadow-paragon.png"
+  "img": "/img/rs-89-shadow-paragon.webp"
  },
  "S-11 Speargun": {
   "group": "Support Weapons",
   "icon": "/icons/s-11-speargun.svg",
-  "img": "/img/s-11-speargun.png",
+  "img": "/img/s-11-speargun.webp",
   "permit": "Supply"
  },
  "SA-04 Combat Technician": {
   "group": "Medium",
-  "img": "/img/sa-04-combat-technician.png"
+  "img": "/img/sa-04-combat-technician.webp"
  },
  "SA-12 Servo Assisted": {
   "group": "Medium",
-  "img": "/img/sa-12-servo-assisted.png"
+  "img": "/img/sa-12-servo-assisted.webp"
  },
  "SA-25 Steel Trooper": {
   "group": "Medium",
-  "img": "/img/sa-25-steel-trooper.png"
+  "img": "/img/sa-25-steel-trooper.webp"
  },
  "SA-32 Dynamo": {
   "group": "Heavy",
-  "img": "/img/sa-32-dynamo.png"
+  "img": "/img/sa-32-dynamo.webp"
  },
  "SA-7 Headfirst": {
   "group": "Medium",
-  "img": "/img/sa-7-headfirst.png"
+  "img": "/img/sa-7-headfirst.webp"
  },
  "SA-8 Ram": {
   "group": "Heavy",
-  "img": "/img/sa-8-ram.png"
+  "img": "/img/sa-8-ram.webp"
  },
  "SC-15 Drone Master": {
   "group": "Medium",
-  "img": "/img/sc-15-drone-master.png"
+  "img": "/img/sc-15-drone-master.webp"
  },
  "SC-30 Trailblazer Scout": {
   "group": "Light",
-  "img": "/img/sc-30-trailblazer-scout.png"
+  "img": "/img/sc-30-trailblazer-scout.webp"
  },
  "SC-34 Infiltrator": {
   "group": "Light",
-  "img": "/img/sc-34-infiltrator.png"
+  "img": "/img/sc-34-infiltrator.webp"
  },
  "SC-37 Legionnaire": {
   "group": "Light",
-  "img": "/img/sc-37-legionnaire.png"
+  "img": "/img/sc-37-legionnaire.webp"
  },
  "SG-20 Halt": {
   "group": "Shotguns",
-  "img": "/img/sg-20-halt.png"
+  "img": "/img/sg-20-halt.webp"
  },
  "SG-22 Bushwhacker": {
   "group": "Special",
-  "img": "/img/sg-22-bushwhacker.png"
+  "img": "/img/sg-22-bushwhacker.webp"
  },
  "SG-225 Breaker": {
   "group": "Shotguns",
-  "img": "/img/sg-225-breaker.png"
+  "img": "/img/sg-225-breaker.webp"
  },
  "SG-225IE Breaker Incendiary": {
   "group": "Shotguns",
-  "img": "/img/sg-225ie-breaker-incendiary.png"
+  "img": "/img/sg-225ie-breaker-incendiary.webp"
  },
  "SG-225SP Breaker Spray&Pray": {
   "group": "Shotguns",
-  "img": "/img/sg-225sp-breaker-spray-pray.png"
+  "img": "/img/sg-225sp-breaker-spray-pray.webp"
  },
  "SG-451 Cookout": {
   "group": "Shotguns",
-  "img": "/img/sg-451-cookout.png"
+  "img": "/img/sg-451-cookout.webp"
  },
  "SG-8 Punisher": {
   "group": "Shotguns",
-  "img": "/img/sg-8-punisher.png"
+  "img": "/img/sg-8-punisher.webp"
  },
  "SG-8P Punisher Plasma": {
   "group": "Energy-Based",
-  "img": "/img/sg-8p-punisher-plasma.png"
+  "img": "/img/sg-8p-punisher-plasma.webp"
  },
  "SG-8S Slugger": {
   "group": "Shotguns",
-  "img": "/img/sg-8s-slugger.png"
+  "img": "/img/sg-8s-slugger.webp"
  },
  "SG-97 Sweeper": {
   "group": "Shotguns",
-  "img": "/img/sg-97-sweeper.png"
+  "img": "/img/sg-97-sweeper.webp"
  },
  "SH-20 Ballistic Shield Backpack": {
   "group": "Backpacks",
@@ -1302,47 +1302,47 @@
  },
  "SMG-203 Gallant": {
   "group": "Submachine Guns",
-  "img": "/img/smg-203-gallant.png"
+  "img": "/img/smg-203-gallant.webp"
  },
  "SMG-32 Reprimand": {
   "group": "Submachine Guns",
-  "img": "/img/smg-32-reprimand.png"
+  "img": "/img/smg-32-reprimand.webp"
  },
  "SMG-37 Defender": {
   "group": "Submachine Guns",
-  "img": "/img/smg-37-defender.png"
+  "img": "/img/smg-37-defender.webp"
  },
  "SMG-72 Pummeler": {
   "group": "Submachine Guns",
-  "img": "/img/smg-72-pummeler.png"
+  "img": "/img/smg-72-pummeler.webp"
  },
  "SMG/FLAM-34 Stoker": {
   "group": "Submachine Guns",
-  "img": "/img/smg-flam-34-stoker.png"
+  "img": "/img/smg-flam-34-stoker.webp"
  },
  "SR-18 Roadblock": {
   "group": "Heavy",
-  "img": "/img/sr-18-roadblock.png"
+  "img": "/img/sr-18-roadblock.webp"
  },
  "SR-24 Street Scout": {
   "group": "Light",
-  "img": "/img/sr-24-street-scout.png"
+  "img": "/img/sr-24-street-scout.webp"
  },
  "SR-64 Cinderblock": {
   "group": "Heavy",
-  "img": "/img/sr-64-cinderblock.png"
+  "img": "/img/sr-64-cinderblock.webp"
  },
  "SS-15 Focal Point": {
   "group": "Medium",
-  "img": "/img/ss-15-focal-point.png"
+  "img": "/img/ss-15-focal-point.webp"
  },
  "SS-33 Mimetic Marshal": {
   "group": "Light",
-  "img": "/img/ss-33-mimetic-marshal.png"
+  "img": "/img/ss-33-mimetic-marshal.webp"
  },
  "SS-500 Pale Prosecutor": {
   "group": "Light",
-  "img": "/img/ss-500-pale-prosecutor.png"
+  "img": "/img/ss-500-pale-prosecutor.webp"
  },
  "Sample Extricator": {
   "img": "/img/sample-extricator.svg"
@@ -1352,16 +1352,16 @@
  },
  "StA-11 SMG": {
   "group": "Submachine Guns",
-  "img": "/img/sta-11-smg.png"
+  "img": "/img/sta-11-smg.webp"
  },
  "StA-52 Assault Rifle": {
   "group": "Assault Rifles",
-  "img": "/img/sta-52-assault-rifle.png"
+  "img": "/img/sta-52-assault-rifle.webp"
  },
  "StA-X3 W.A.S.P. Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/sta-x3-w-a-s-p-launcher.svg",
-  "img": "/img/sta-x3-w-a-s-p-launcher.png",
+  "img": "/img/sta-x3-w-a-s-p-launcher.webp",
   "permit": "Supply"
  },
  "Stamina Enhancement": {
@@ -1385,44 +1385,44 @@
  },
  "TED-63 Dynamite": {
   "group": "Standard",
-  "img": "/img/ted-63-dynamite.png"
+  "img": "/img/ted-63-dynamite.webp"
  },
  "TG-122 Demo-Trooper": {
   "group": "Heavy",
-  "img": "/img/tg-122-demo-trooper.png"
+  "img": "/img/tg-122-demo-trooper.webp"
  },
  "TG-8 Sharpshooter": {
   "group": "Medium",
-  "img": "/img/tg-8-sharpshooter.png"
+  "img": "/img/tg-8-sharpshooter.webp"
  },
  "TM-1 Lure Mine": {
   "group": "Special",
-  "img": "/img/tm-1-lure-mine.png"
+  "img": "/img/tm-1-lure-mine.webp"
  },
  "TR-117 Alpha Commander": {
   "group": "Medium",
-  "img": "/img/tr-117-alpha-commander.png"
+  "img": "/img/tr-117-alpha-commander.webp"
  },
  "TR-40 Gold Eagle": {
   "group": "Medium",
-  "img": "/img/tr-40-gold-eagle.png"
+  "img": "/img/tr-40-gold-eagle.webp"
  },
  "TR-62 Knight": {
   "group": "Heavy",
-  "img": "/img/tr-62-knight.png"
+  "img": "/img/tr-62-knight.webp"
  },
  "TR-7 Ambassador of the Brand": {
   "group": "Medium",
-  "img": "/img/tr-7-ambassador-of-the-brand.png"
+  "img": "/img/tr-7-ambassador-of-the-brand.webp"
  },
  "TR-9 Cavalier of Democracy": {
   "group": "Medium",
-  "img": "/img/tr-9-cavalier-of-democracy.png"
+  "img": "/img/tr-9-cavalier-of-democracy.webp"
  },
  "TX-41 Sterilizer": {
   "group": "Support Weapons",
   "icon": "/icons/tx-41-sterilizer.svg",
-  "img": "/img/tx-41-sterilizer.png",
+  "img": "/img/tx-41-sterilizer.webp",
   "permit": "Supply"
  },
  "UAV Recon Booster": {
@@ -1430,19 +1430,19 @@
  },
  "UF-16 Inspector": {
   "group": "Light",
-  "img": "/img/uf-16-inspector.png"
+  "img": "/img/uf-16-inspector.webp"
  },
  "UF-50 Bloodhound": {
   "group": "Medium",
-  "img": "/img/uf-50-bloodhound.png"
+  "img": "/img/uf-50-bloodhound.webp"
  },
  "UF-84 Doubt Killer": {
   "group": "Medium",
-  "img": "/img/uf-84-doubt-killer.png"
+  "img": "/img/uf-84-doubt-killer.webp"
  },
  "VG-70 Variable": {
   "group": "Special",
-  "img": "/img/vg-70-variable.png"
+  "img": "/img/vg-70-variable.webp"
  },
  "Vitality Enhancement": {
   "img": "/img/vitality-enhancement.svg"
