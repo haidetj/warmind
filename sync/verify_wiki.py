@@ -114,7 +114,7 @@ TEMPLATES = ["Infobox Weapon", "Infobox Throwable", "Infobox Armor", "Infobox Bo
              "Infobox Vehicle", "Infobox Exosuit", "Infobox Defensive"]
 KEEP = ("type", "passive", "source", "weapon_category", "weapon_type", "weapon_traits", "throwable_traits",
         "stratagem_type", "traits", "base_cooldown", "penetration", "permit_type", "description", "armor", "speed",
-        "stratagem_image", "image")
+        "stratagem_image", "image", "weapon_image")
 
 
 def embedded_in(template: str) -> list[str]:
@@ -273,13 +273,55 @@ def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+IMAGES = ROOT / "app" / "static" / "img"
+
+
+def _fetch_files(want: dict, dest_dir: pathlib.Path, url_prefix: str, width: int) -> dict:
+    """want: {item name: wiki file name}. Resolves each file (a width-px thumbnail for
+    raster files; SVGs come back as originals), downloads it, returns {item: url path}."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    files = sorted(set(want.values()))
+    urls = {}
+    for i in range(0, len(files), 40):
+        d = api(action="query", prop="imageinfo", iiprop="url", iiurlwidth=width,
+                titles="|".join("File:" + f for f in files[i:i + 40]))
+        norm_map = {n["to"]: n["from"] for n in d.get("query", {}).get("normalized", [])}
+        for pg in d.get("query", {}).get("pages", {}).values():
+            ii = (pg.get("imageinfo") or [{}])[0]
+            src = norm_map.get(pg["title"], pg["title"]).split(":", 1)[-1]
+            if ii.get("thumburl") or ii.get("url"):
+                urls[src] = ii.get("thumburl") or ii.get("url")
+        time.sleep(0.5)
+    out = {}
+    for name, f in want.items():
+        u = urls.get(f) or urls.get(f.replace("_", " "))
+        if not u:
+            continue
+        path = u.split("?")[0].lower()
+        ext = ".svg" if path.endswith(".svg") else ".webp" if path.endswith(".webp") else ".jpg" if path.endswith((".jpg", ".jpeg")) else ".png"
+        dest = dest_dir / (slug(name) + ext)
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = r.read()
+            ok = (data[:4] == b"\x89PNG" or data[:3] == b"\xff\xd8\xff" or data[8:12] == b"WEBP"
+                  or (ext == ".svg" and b"<svg" in data[:2000] and b"<script" not in data.lower()))
+            if ok:
+                dest.write_bytes(data)
+                out[name] = url_prefix + dest.name
+        except Exception as e:  # noqa: BLE001 — a missing picture just falls back to text
+            print(f"file failed for {name}: {e}")
+        time.sleep(0.15)
+    return out
+
+
 def armory() -> dict:
-    """For each of our items: its group in the in-game loadout menu, and for stratagems the
-    permit colour (Offensive/Supply/Defensive) and a 64px icon downloaded from the wiki."""
+    """For each of our items: its group in the in-game loadout menu, the stratagem permit
+    colour + icon, and a picture (weapon/armour render, booster icon) from the wiki."""
     cat = json.loads((ROOT / "sync" / "wiki_catalog.json").read_text())
     by_title = {norm(r["title"]): r for r in cat["items"]}
     raw = loader.items()
-    out, want_icons = {}, {}
+    out, want_icons, want_imgs = {}, {}, {}
     for sec in SECTIONS:
         for rec in raw.get(sec, []):
             row = by_title.get(norm(page_title(rec))) or {}
@@ -295,41 +337,20 @@ def armory() -> dict:
                 img = (row.get("stratagem_image") or (row.get("image") if row.get("template") == "Infobox Stratagem" else "") or "").strip()
                 if img:
                     want_icons[rec["name"]] = img
+            # the picture: weapon / throwable / armour renders, booster icons, support-weapon renders
+            pic = row.get("weapon_image") if row.get("template") == "Infobox Support Weapon" else (
+                row.get("image") if sec != "stratagems" else None)
+            if pic:
+                want_imgs[rec["name"]] = pic.replace("{{PAGENAME}}", row.get("title", rec["name"])).strip()
             out[rec["name"]] = e
-    # resolve icon files in batches (the wiki serves SVG originals), then download them
-    ICONS.mkdir(parents=True, exist_ok=True)
-    files = sorted(set(want_icons.values()))
-    urls = {}
-    for i in range(0, len(files), 40):
-        d = api(action="query", prop="imageinfo", iiprop="url", iiurlwidth=64,
-                titles="|".join("File:" + f for f in files[i:i + 40]))
-        norm_map = {n["to"]: n["from"] for n in d.get("query", {}).get("normalized", [])}
-        for pg in d.get("query", {}).get("pages", {}).values():
-            ii = (pg.get("imageinfo") or [{}])[0]
-            src = norm_map.get(pg["title"], pg["title"]).split(":", 1)[-1]
-            if ii.get("thumburl") or ii.get("url"):
-                urls[src] = ii.get("thumburl") or ii.get("url")
-        time.sleep(0.5)
-    got = 0
-    for name, f in want_icons.items():
-        u = urls.get(f) or urls.get(f.replace("_", " "))
-        if not u:
-            continue
-        ext = ".svg" if u.split("?")[0].lower().endswith(".svg") else ".png"
-        dest = ICONS / (slug(name) + ext)
-        try:
-            req = urllib.request.Request(u, headers={"User-Agent": UA})
-            with urllib.request.urlopen(req, timeout=30) as r:
-                data = r.read()
-            ok = data[:4] == b"\x89PNG" or (ext == ".svg" and b"<svg" in data[:2000] and b"<script" not in data.lower())
-            if ok:
-                dest.write_bytes(data)
-                out[name]["icon"] = "/icons/" + dest.name
-                got += 1
-        except Exception as e:  # noqa: BLE001 — a missing icon just falls back to text
-            print(f"icon failed for {name}: {e}")
-        time.sleep(0.2)
-    print(f"armory: {len(out)} items, {got}/{len(want_icons)} stratagem icons")
+    for name, path in _fetch_files(want_icons, ICONS, "/icons/", 64).items():
+        out[name]["icon"] = path
+    for name, path in _fetch_files(want_imgs, IMAGES, "/img/", 200).items():
+        out[name]["img"] = path
+    n_icons = sum(1 for v in out.values() if v.get("icon"))
+    n_imgs = sum(1 for v in out.values() if v.get("img"))
+    size = sum(f.stat().st_size for f in IMAGES.glob("*")) // 1024
+    print(f"armory: {len(out)} items, {n_icons}/{len(want_icons)} stratagem icons, {n_imgs}/{len(want_imgs)} pictures ({size} KB)")
     return out
 
 
