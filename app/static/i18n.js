@@ -8661,3 +8661,86 @@ for (const [l, d] of Object.entries({
   "kv.list": "Ship's log"
  }
 })) Object.assign(window.WM_I18N.dict[l], d);
+// Major Order task labels
+for (const [l, d] of Object.entries({
+ "en": {
+  "war.k.kill": "Eliminate {who}",
+  "war.k.liberate": "Liberate {who}",
+  "war.k.hold": "Hold {who}"
+ },
+ "es": {
+  "war.k.kill": "Eliminar a {who}",
+  "war.k.liberate": "Liberar {who}",
+  "war.k.hold": "Mantener {who}"
+ },
+ "pt": {
+  "war.k.kill": "Eliminar {who}",
+  "war.k.liberate": "Libertar {who}",
+  "war.k.hold": "Manter {who}"
+ },
+ "fr": {
+  "war.k.kill": "Éliminer {who}",
+  "war.k.liberate": "Libérer {who}",
+  "war.k.hold": "Tenir {who}"
+ },
+ "de": {
+  "war.k.kill": "{who} eliminieren",
+  "war.k.liberate": "{who} befreien",
+  "war.k.hold": "{who} halten"
+ },
+ "it": {
+  "war.k.kill": "Elimina {who}",
+  "war.k.liberate": "Libera {who}",
+  "war.k.hold": "Mantieni {who}"
+ },
+ "pl": {
+  "war.k.kill": "Eliminuj {who}",
+  "war.k.liberate": "Wyzwól {who}",
+  "war.k.hold": "Utrzymaj {who}"
+ },
+ "ru": {
+  "war.k.kill": "Уничтожить {who}",
+  "war.k.liberate": "Освободить {who}",
+  "war.k.hold": "Удержать {who}"
+ },
+ "ja": {
+  "war.k.kill": "{who}を殲滅",
+  "war.k.liberate": "{who}を解放",
+  "war.k.hold": "{who}を防衛"
+ },
+ "ko": {
+  "war.k.kill": "{who} 섬멸",
+  "war.k.liberate": "{who} 해방",
+  "war.k.hold": "{who} 사수"
+ },
+ "zh": {
+  "war.k.kill": "歼灭{who}",
+  "war.k.liberate": "解放{who}",
+  "war.k.hold": "守住{who}"
+ },
+ "hu": {
+  "war.k.kill": "{who} elpusztítása",
+  "war.k.liberate": "{who} felszabadítása",
+  "war.k.hold": "{who} megtartása"
+ },
+ "sv": {
+  "war.k.kill": "Eliminera {who}",
+  "war.k.liberate": "Befria {who}",
+  "war.k.hold": "Håll {who}"
+ },
+ "nl": {
+  "war.k.kill": "Elimineer {who}",
+  "war.k.liberate": "Bevrijd {who}",
+  "war.k.hold": "Houd {who}"
+ },
+ "tl": {
+  "war.k.kill": "Puksain ang {who}",
+  "war.k.liberate": "Palayain ang {who}",
+  "war.k.hold": "Hawakan ang {who}"
+ },
+ "pirate": {
+  "war.k.kill": "Send {who} to Davy Jones",
+  "war.k.liberate": "Plunder {who} back",
+  "war.k.hold": "Hold {who} fast"
+ }
+})) Object.assign(window.WM_I18N.dict[l], d);
