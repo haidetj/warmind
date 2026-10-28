@@ -438,9 +438,19 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
         db.set_confidence(pid, confidence)
     if source == "screenshot":
         db.remember_callsign(callsign_final, snapshot, confidence, play_style, note)
+    # remembered gear: a returning callsign starts from the gear they set last time
+    gear_restored = None
+    mem = db.recall_callsign(callsign_final)
+    if mem and mem.get("gear_set"):
+        owned = json.loads(mem["owned_json"]) if mem.get("owned_json") else None
+        if owned is not None:  # drop names that no longer exist in the catalog
+            valid = set(loader.warbond_catalog()["map"].keys())
+            owned = [n for n in owned if n in valid]
+        db.set_owned(pid, owned)
+        gear_restored = len(owned) if owned is not None else "all"
     return {"player_id": pid, "player_token": token, "play_style": play_style,
             "style_note": note, "style_source": source, "vision_error": vision_error,
-            "over_budget": over_budget, "restored": restored}
+            "over_budget": over_budget, "restored": restored, "gear_restored": gear_restored}
 
 
 def _require_player(pid, token):
@@ -479,7 +489,7 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
 def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     """Set which non-base gear this diver owns. Body: {"owned": [name,...]} or
     {"owned": null} to mean 'owns everything'. Loadouts then avoid unowned gear."""
-    _require_player(pid, x_token)
+    p = _require_player(pid, x_token)
     owned = payload.get("owned", None)
     if owned is not None:
         if not isinstance(owned, list):
@@ -487,6 +497,7 @@ def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         valid = set(loader.warbond_catalog()["map"].keys())
         owned = [n for n in owned if isinstance(n, str) and n in valid]
     db.set_owned(pid, owned)
+    db.remember_gear(p["callsign"], owned)  # the next war table under this callsign starts from it
     return {"ok": True}
 
 

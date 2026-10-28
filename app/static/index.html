@@ -403,6 +403,41 @@ ul.review .tx .tag{margin-left:6px}
 .tile .tn{min-width:0;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere}
 .tile .tn small{display:block;color:var(--faint);font-size:10.5px;margin-top:1px}
 .mrow .rm{padding:2px 8px;min-height:28px;font-size:13px}
+/* tabbed views */
+.tabbar{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr) auto;gap:4px;padding:6px;margin:0 -2px;
+  background:rgba(3,6,10,.92);backdrop-filter:blur(4px);border:1px solid var(--line-2);box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.tabbar .tab{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;align-items:center;text-align:left;
+  min-width:0;padding:7px 9px;cursor:pointer;background:rgba(2,5,8,.75);border:1px solid var(--line);color:var(--muted)}
+.tabbar .tab .led{grid-row:1/3;width:8px;height:8px;border-radius:50%;background:#1d2a33;box-shadow:inset 0 0 2px #000}
+.tabbar .tab .tn{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--faint)}
+.tabbar .tab b{font-family:var(--head);font-size:12.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-2);font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tabbar .tab.done .led{background:var(--green);box-shadow:0 0 8px var(--green)}
+.tabbar .tab.live .led{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:pulse 1.6s ease-in-out infinite}
+.tabbar .tab.manual .led{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.tabbar .tab[aria-selected="true"]{border-color:var(--cyan);background:rgba(62,230,255,.09);box-shadow:inset 0 -2px 0 var(--cyan),inset 0 0 18px rgba(62,230,255,.12)}
+.tabbar .tab[aria-selected="true"] b{color:var(--cyan);text-shadow:var(--glow-c)}
+.tabbar .tab.dot::after{content:"";position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red)}
+.tabbar .tab:hover{border-color:var(--line-3)}
+@keyframes pulse{50%{opacity:.35}}
+.view[hidden]{display:none}
+.view.scanin{animation:scanin .35s ease-out both}
+@keyframes scanin{from{opacity:0;clip-path:inset(0 0 100% 0);filter:brightness(1.6)}to{opacity:1;clip-path:inset(0 0 0 0);filter:none}}
+.subtabs{grid-template-columns:repeat(3,1fr);grid-auto-flow:row;position:sticky;top:64px;z-index:20;background:rgba(3,6,10,.92);padding:4px 0}
+.uplink{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;padding-top:9px;border-top:1px dashed var(--line);font-family:var(--mono);
+  font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint)}
+.uplink .ok{color:var(--green);text-shadow:0 0 6px rgba(77,255,161,.5)}
+.sect .tt::after{content:"_";margin-left:3px;color:var(--amber);animation:blink 1.1s steps(1) infinite}
+.fmbtn{border-color:rgba(62,230,255,.5)}
+.fmfold>summary{font-size:13px}
+@media(max-width:560px){
+  .tabbar{grid-template-columns:repeat(5,1fr);gap:3px;padding:4px}
+  .tabbar .tab{grid-template-columns:1fr;grid-template-rows:auto auto;padding:6px 4px;text-align:center;justify-items:center}
+  .tabbar .tab .led{grid-row:auto;position:absolute;top:5px;left:5px;width:6px;height:6px}
+  .tabbar .tab b{font-size:9.5px;letter-spacing:.5px}
+  .subtabs{top:58px}
+}
+@media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .wk{color:inherit;text-decoration:underline dotted rgba(62,230,255,.55);text-underline-offset:3px}
 .wk:hover{color:var(--cyan);text-decoration-color:var(--cyan)}
 .toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);z-index:50;max-width:min(560px,calc(100vw - 32px));

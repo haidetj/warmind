@@ -192,6 +192,9 @@
     ]));
     app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
       el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
+    const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
+    fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
+    app.appendChild(fmFold);
     renderMyLobbies();
     if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
     bootSequence(term);
@@ -316,32 +319,71 @@
     return s;
   }
 
+  // Tabbed views instead of one long scroll. The tab bar follows the squad's progress
+  // (assemble -> mission -> briefing -> debrief) until the viewer picks a tab; after that
+  // a dot marks tabs that changed. The choice is remembered per war table.
+  let curTab = null, tabPinned = false, lastTarget = null, curSub = "loadouts";
+  const tabDots = {};
+  const TAB_KEY = () => "wm_tab_" + LID;
+  try { const v = parseInt(localStorage.getItem(TAB_KEY()), 10); if (v >= 1 && v <= 5) { curTab = v; tabPinned = true; } } catch (e) {}
+
   function render() {
-    const y = window.scrollY;
     app.innerHTML = ""; app.className = "stack boot";
     R = {};
     if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
     R.cmd = el("div"); app.appendChild(R.cmd);
+    R.tabbar = el("nav", { class: "tabbar", role: "tablist", "aria-label": t("tabs.label") }); app.appendChild(R.tabbar);
+    R.views = {};
+    for (let i = 1; i <= 5; i++) { R.views[i] = el("div", { class: "view stack", role: "tabpanel", id: "v" + i }); app.appendChild(R.views[i]); }
 
     // 01 ASSEMBLE — join (static form), manifest + my setup (live)
-    R.s1 = sect(1); app.appendChild(R.s1);
-    if (!myPlayer()) app.appendChild(joinPanel());
-    R.live1 = el("div", { class: "stack" }); app.appendChild(R.live1);
-
+    R.s1 = sect(1); R.views[1].appendChild(R.s1);
+    if (!myPlayer()) R.views[1].appendChild(joinPanel());
+    R.live1 = el("div", { class: "stack" }); R.views[1].appendChild(R.live1);
     // 02 MISSION — readout (live) + editor (static, creator)
-    R.s2 = sect(2); app.appendChild(R.s2);
-    app.appendChild(missionPanel());
-
-    // 03 BRIEFING, 04 DEBRIEF — live
-    R.s3 = sect(3); app.appendChild(R.s3);
-    R.live3 = el("div", { class: "stack" }); app.appendChild(R.live3);
-    R.s4 = sect(4); app.appendChild(R.s4);
-    R.live4 = el("div", { class: "stack" }); app.appendChild(R.live4);
-
-    app.appendChild(glossaryPanel());
+    R.s2 = sect(2); R.views[2].appendChild(R.s2); R.views[2].appendChild(missionPanel());
+    // 03 BRIEFING (with sub-tabs), 04 DEBRIEF — live
+    R.s3 = sect(3); R.views[3].appendChild(R.s3);
+    R.live3 = el("div", { class: "stack" }); R.views[3].appendChild(R.live3);
+    R.s4 = sect(4); R.views[4].appendChild(R.s4);
+    R.live4 = el("div", { class: "stack" }); R.views[4].appendChild(R.live4);
+    // FIELD MANUAL — its own tab
+    R.views[5].appendChild(el("div", { class: "sect", id: "s5" }, [
+      el("div", { class: "num", "aria-hidden": "true" }, ["FM"]),
+      el("div", {}, [el("div", { class: "tt" }, [t("gl.title")]), el("div", { class: "ss" }, [t("gl.teaser")])]),
+      el("div", { class: "bar" })]));
+    R.views[5].appendChild(manualPanel());
     liveRoot = app;
     renderLive();
-    window.scrollTo(0, y);
+  }
+
+  function setTab(i, pin) {
+    if (pin) { tabPinned = true; try { localStorage.setItem(TAB_KEY(), String(i)); } catch (e) {} }
+    const changed = curTab !== i;
+    curTab = i; delete tabDots[i];
+    for (let k = 1; k <= 5; k++) R.views[k].hidden = k !== i;
+    paintTabs();
+    if (changed && pin) {
+      R.views[i].classList.remove("scanin"); void R.views[i].offsetWidth; R.views[i].classList.add("scanin");
+      const top = R.tabbar.getBoundingClientRect().top + window.scrollY - 6;
+      if (window.scrollY > top) window.scrollTo(0, top);
+    }
+  }
+
+  function paintTabs() {
+    const ph = phases();
+    R.tabbar.innerHTML = "";
+    [1, 2, 3, 4, 5].forEach(i => {
+      const done = i <= 4 && ph.done[i - 1], active = i <= 4 && ph.active === i - 1;
+      const b = el("button", { type: "button", role: "tab", "aria-selected": String(curTab === i),
+        class: "tab" + (done ? " done" : "") + (active ? " live" : "") + (i === 5 ? " manual" : "") + (tabDots[i] ? " dot" : "") }, [
+        el("span", { class: "led", "aria-hidden": "true" }),
+        el("span", { class: "tn" }, [i === 5 ? "FM" : "0" + i]),
+        el("b", {}, [i === 5 ? t("gl.short") : t("phase." + i)]),
+      ]);
+      b.onclick = () => setTab(i, true);
+      R.tabbar.appendChild(b);
+    });
   }
 
   function phases() {
@@ -364,9 +406,37 @@
     R.cmd.innerHTML = ""; R.cmd.appendChild(commandPanel(ph));
     R.live1.innerHTML = ""; R.live1.appendChild(manifestPanel()); const me = myPlayer(); if (me) R.live1.appendChild(setupPanel(me));
     updateMissionReadout();
-    R.live3.innerHTML = ""; briefing().forEach(n => R.live3.appendChild(n));
+    R.live3.innerHTML = ""; briefingView().forEach(n => R.live3.appendChild(n));
     R.live4.innerHTML = ""; R.live4.appendChild(debriefPanel());
+    // which tab: follow the squad's phase until the viewer picks one; then flag what changed
+    // not joined yet: Assemble, where the join form is (a late joiner must not land on Debrief)
+    const target = !myPlayer() ? 1 : ph.active < 0 ? 4 : ph.active + 1;
+    if (curTab === null) curTab = target;
+    if (!tabPinned && curTab !== target && lastTarget !== null) { setTab(target, false); toast(t("tabs.moved", { tab: t("phase." + target) })); }
+    else { if (tabPinned && lastTarget !== null && target !== lastTarget && target !== curTab) tabDots[target] = true; setTab(curTab, false); }
+    lastTarget = target;
     window.scrollTo(0, y);
+  }
+
+  // Briefing sub-tabs: Loadouts / Squad review / Plan — the long briefing in focused pieces
+  function briefingView() {
+    const nodes = briefing();
+    if (!STATE.directive) return nodes;
+    const subs = [["loadouts", t("sub.loadouts")], ["review", t("sub.review")], ["plan", t("sub.plan")]];
+    const bar = el("div", { class: "seg subtabs", role: "tablist" });
+    const show = () => {
+      bar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.sub === curSub)));
+      nodes.forEach(n => { n.hidden = !!n.dataset.sub && n.dataset.sub !== curSub; });
+    };
+    subs.forEach(([k, label]) => {
+      if (!nodes.some(n => n.dataset.sub === k)) return;
+      const b = el("button", { type: "button", "data-sub": k }, [label]);
+      b.onclick = () => { curSub = k; show(); };
+      bar.appendChild(b);
+    });
+    if (!nodes.some(n => n.dataset.sub === curSub)) curSub = "loadouts";
+    show();
+    return [bar].concat(nodes);
   }
 
   // ----------------------------------------------------------------- command header
@@ -375,17 +445,21 @@
     const inv = el("button", { class: "btn primary", type: "button" }, [t("cmd.invite")]);
     inv.onclick = () => copy(link, t("common.copied"));
     const role = isCreator() ? tag("amber", t("common.creator")) : myPlayer() ? tag("cyan", t("common.diver")) : null;
-    const rail = el("nav", { class: "rail", "aria-label": "Phases" }, [1, 2, 3, 4].map(i =>
-      el("a", { href: "#s" + i, class: (ph.done[i - 1] ? "done" : "") + (ph.active === i - 1 ? " active" : ""), "aria-current": ph.active === i - 1 ? "step" : null },
-        ["0" + i + (ph.done[i - 1] ? " ✓" : ""), el("b", {}, [t("phase." + i)])])));
+    const fm = el("button", { class: "btn sm fmbtn", type: "button" }, ["▤ " + t("gl.short")]);
+    fm.onclick = () => setTab(5, true);
     const status = ph.active < 0 ? t("phase.4") + " ✓" : t("phase." + (ph.active + 1));
     return panel(t("cmd.pid"), t("cmd.title"), { status: status, statusKind: ph.active < 0 ? "ok" : "warn" }, [
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
           el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
-        el("div", { class: "acts" }, [role, inv, el("a", { class: "btn sm", href: "/" }, [t("cmd.home")])]),
+        el("div", { class: "acts" }, [role, inv, fm, el("a", { class: "btn sm", href: "/" }, [t("cmd.home")])]),
       ])]),
-      rail,
+      el("div", { class: "uplink", "aria-hidden": "true" }, [
+        el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
+        el("span", {}, ["SEC-" + LID.slice(0, 4).toUpperCase()]),
+        el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
+        el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
+      ]),
     ]);
   }
 
@@ -405,6 +479,7 @@
       status,
       el("div", { class: "hint" }, [t("join.hint")]),
       el("div", { class: "hint" }, [t("join.hint.return")]),
+      STATE && STATE.players.length ? el("div", { class: "hint linked" }, [t("join.linked")]) : null,
     ]);
   }
   async function doJoin(callsign, files, status, controls) {
@@ -421,6 +496,13 @@
       stop();
       STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE);
       render();
+      if (r.gear_restored == null) {   // not remembered by callsign: fall back to this device's last gear
+        let dev = null; try { dev = JSON.parse(localStorage.getItem("wm_gear")); } catch (e) {}
+        if (dev && ("owned" in dev)) {
+          try { await jpost("/api/lobby/" + LID + "/player/" + r.player_id + "/owned", dev, r.player_token); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); render(); r.gear_restored = "device"; } catch (e) {}
+        }
+      }
+      if (r.gear_restored != null) setTimeout(() => toast(r.gear_restored === "device" ? t("toast.gear_device") : t("toast.gear_restored")), 2800);
       const st = styleLabel(r.play_style);
       toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err") : r.restored ? t("toast.joined.restored", { style: st })
         : list.length ? (list.length > 1 ? t("toast.joined.reads", { style: st, n: list.length }) : t("toast.joined.read", { style: st })) : t("toast.joined.plain"));
@@ -581,6 +663,7 @@
         try {
           const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
           await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
+          try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
           busy = false; await refresh(); toast(t("gear.saved"));
         } catch (e) { toast(e.message); } finally { busy = false; }
       }, now ? 0 : 700);
@@ -652,9 +735,12 @@
     body.appendChild(pane);
     showTab(cur);
 
-    const confirm = el("button", { class: "btn primary", type: "button" }, [unset ? t("gear.confirm") : t("gear.everything")]);
-    confirm.onclick = () => { if (!unset) allNames.forEach(n => owned.add(n)); delete gearOpen[p.id]; sync(); save(true); };
-    body.appendChild(el("div", { class: "btnrow" }, [confirm]));
+    const saveBtn = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("gear.save")]);
+    saveBtn.onclick = () => { delete gearOpen[p.id]; save(true); };
+    const allBtn = el("button", { class: "btn sm", type: "button" }, [t("gear.everything")]);
+    allBtn.onclick = () => { if (!window.confirm(t("gear.everything.confirm"))) return; allNames.forEach(n => owned.add(n)); sync(); save(true); };
+    body.appendChild(el("div", { class: "btnrow" }, [saveBtn, allBtn]));
+    body.appendChild(el("div", { class: "hint" }, [t("gear.remembered")]));
     return d;
   }
 
@@ -815,6 +901,7 @@
   }
 
   // ----------------------------------------------------------------- 03: briefing
+  const sub = (k, node) => { node.dataset.sub = k; return node; };
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
     if (!d) return [r.mission_set
@@ -831,22 +918,22 @@
       line.appendChild(document.createTextNode(a)); line.appendChild(el("b", {}, [d.pressure.driver])); line.appendChild(document.createTextNode(b || ""));
       readKids.push(line);
     }
-    out.push(panel(t("read.pid"), t("read.title"), {}, readKids));
+    out.push(sub("plan", panel(t("read.pid"), t("read.title"), {}, readKids)));
 
     // doctrine (e.g. Commando)
     if (d.doctrine) {
       const k = d.doctrine.kind, orders = d.doctrine.orders || [];
       const ol = el("ol", { class: "orders" }, orders.map((o, i) => el("li", {}, [has("doctrine." + k + "." + (i + 1)) ? t("doctrine." + k + "." + (i + 1)) : o])));
-      out.push(panel(t("doc.pid"), has("doctrine." + k + ".title") ? t("doctrine." + k + ".title") : d.doctrine.title, { status: k, statusKind: "info" }, [ol]));
+      out.push(sub("plan", panel(t("doc.pid"), has("doctrine." + k + ".title") ? t("doctrine." + k + ".title") : d.doctrine.title, { status: k, statusKind: "info" }, [ol])));
     }
 
     // mission-coverage swaps
     if (d.swaps && d.swaps.length) {
-      out.push(panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
+      out.push(sub("review", panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
         d.swaps.map(s => el("div", { class: "swap" }, [
           el("div", { class: "mv" }, [s.callsign + ": ", el("b", {}, [s.from_role]), " → ", el("b", {}, [s.to_role])]),
           el("div", { class: "why" }, [t("swap.why", { to: s.to_role, callsign: s.callsign, from: s.from_role })]),
-        ])))));
+        ]))))));
     }
 
     // loadouts
@@ -862,7 +949,7 @@
       };
       rkids.push(el("div", { class: "btnrow" }, [rb]), el("div", { class: "hint" }, [t("roster.reroll.hint")]));
     }
-    out.push(panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids));
+    out.push(sub("loadouts", panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids)));
 
     // squad review: redundancy + impact, each line with its research sources
     if (d.review && d.review.length) {
@@ -878,8 +965,8 @@
         ]),
       ])));
       const fixed = d.review.some(r => r.status === "fixed"), gap = d.review.some(r => r.status === "gap");
-      out.push(panel(t("rev.pid"), t("rev.title"), { status: gap ? t("rev.gap") : fixed ? t("rev.fixed") : "OK", statusKind: gap ? "bad" : fixed ? "warn" : "ok" },
-        [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("rev.hint")]), lines, el("div", { class: "hint" }, [t("rev.rules")])]));
+      out.push(sub("review", panel(t("rev.pid"), t("rev.title"), { status: gap ? t("rev.gap") : fixed ? t("rev.fixed") : "OK", statusKind: gap ? "bad" : fixed ? "warn" : "ok" },
+        [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("rev.hint")]), lines, el("div", { class: "hint" }, [t("rev.rules")])])));
     }
 
     // coordination
@@ -902,14 +989,14 @@
       blocks.push(el("div", {}, [el("div", { class: "sub-h", style: "margin-top:0" }, [t("coord.cadence")]), cad,
         d.reactive ? el("div", { class: "hint" }, [t("coord.reactive", { role: d.reactive })]) : null]));
     }
-    out.push(panel(t("coord.pid"), t("coord.title"), {}, [el("div", { class: "coord" }, blocks)]));
+    out.push(sub("plan", panel(t("coord.pid"), t("coord.title"), {}, [el("div", { class: "coord" }, blocks)])));
 
     // field notes
     const notes = el("ul", { class: "notes" }, (d.notes || []).map((n, i) => {
       const ph = (d.notes_i18n || [])[i];
       return el("li", { class: ph && ph.k.indexOf("d100.") === 0 ? "d100" : null }, [tp(ph, n)]);
     }));
-    out.push(panel(t("notes.pid"), t("notes.title"), { tone: STATE.mission && STATE.mission.mode === "d100" ? "red" : null }, [notes]));
+    out.push(sub("plan", panel(t("notes.pid"), t("notes.title"), { tone: STATE.mission && STATE.mission.mode === "d100" ? "red" : null }, [notes])));
     return out;
   }
 
@@ -1021,7 +1108,10 @@
   }
 
   // ----------------------------------------------------------------- reference
-  function glossaryPanel() {
+  function manualPanel() {
+    return panel(t("gl.pid"), t("gl.title"), { tone: "amber", status: t("gl.status"), statusKind: "info" }, [manualBody()]);
+  }
+  function manualBody() {
     const g = el("div", { class: "gloss" });
     const add = (k, v) => { g.appendChild(el("div", { class: "gk" }, [k])); g.appendChild(el("div", { class: "gv" }, [v])); };
     const body = el("div", { class: "body" });
@@ -1048,6 +1138,6 @@
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.sources")]));
     body.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gl.sources.d"), " ", t("gl.icons")]));
     body.appendChild(src);
-    return el("details", { class: "fold panel", style: "padding:0" }, [el("summary", {}, [t("gl.title")]), body]);
+    return body;
   }
 })();

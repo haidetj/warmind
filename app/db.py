@@ -86,6 +86,11 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
         if "roster_json" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN roster_json TEXT")
+        ccols = {r["name"] for r in c.execute("PRAGMA table_info(callsign_stats)").fetchall()}
+        if "owned_json" not in ccols:  # remembered gear: list of owned unlocks, or NULL = owns everything
+            c.execute("ALTER TABLE callsign_stats ADD COLUMN owned_json TEXT")
+        if "gear_set" not in ccols:
+            c.execute("ALTER TABLE callsign_stats ADD COLUMN gear_set INTEGER DEFAULT 0")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
         if "verdict_json" not in rcols:
             c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
@@ -124,6 +129,19 @@ def remember_callsign(callsign, snapshot, confidence, play_style, style_note):
                   "style_note=excluded.style_note, updated_at=excluded.updated_at",
                   (k, callsign.strip(), json.dumps(snapshot), json.dumps(confidence) if confidence else None,
                    play_style, style_note, time.time()))
+
+
+def remember_gear(callsign, owned):
+    """Keep a diver's gear selection with their callsign, so the next war table they
+    join starts from it. owned: list of unlock names, or None = owns everything."""
+    k = callsign_key(callsign)
+    if not k:
+        return
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO callsign_stats(callsign_key,callsign,owned_json,gear_set,updated_at) VALUES(?,?,?,1,?) "
+                  "ON CONFLICT(callsign_key) DO UPDATE SET owned_json=excluded.owned_json, gear_set=1, "
+                  "updated_at=excluded.updated_at",
+                  (k, callsign.strip(), json.dumps(owned) if owned is not None else None, time.time()))
 
 
 def recall_callsign(callsign):
