@@ -15,18 +15,31 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for warmind.onrender.com
+      - name: Wait for the new version of warmind.onrender.com
         run: |
-          for i in $(seq 1 36); do
-            code=$(curl -s -o /tmp/h.json -w "%{http_code}" --max-time 15 https://warmind.onrender.com/health || echo 000)
-            echo "$(date -u +%H:%M:%S) /health -> $code $(head -c 200 /tmp/h.json 2>/dev/null)"
-            if [ "$code" = "200" ]; then
-              page=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://warmind.onrender.com/)
-              icon=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://warmind.onrender.com/icons/eagle-airstrike.svg)
-              echo "home page -> $page | stratagem icon -> $icon"
-              echo "### WARMIND is up ($(date -u +%H:%M) UTC)" >> "$GITHUB_STEP_SUMMARY"
+          B=https://warmind.onrender.com
+          for i in $(seq 1 48); do
+            code=$(curl -s -o /tmp/h.json -w "%{http_code}" --max-time 15 $B/health || echo 000)
+            echo "$(date -u +%H:%M:%S) /health -> $code $(head -c 160 /tmp/h.json 2>/dev/null)"
+            # the new version reports its war feed in /health; the old one doesn't
+            if [ "$code" = "200" ] && grep -q '"war"' /tmp/h.json; then
+              for path in / /icons/eagle-airstrike.svg /img/a-35-recon.webp /api/meta /api/war; do
+                echo "$path -> $(curl -s -o /tmp/r -w "%{http_code} %{content_type} %{size_download}B" --max-time 20 $B$path)"
+              done
+              python3 - <<'PY'
+          import json, urllib.request
+          B = "https://warmind.onrender.com"
+          m = json.load(urllib.request.urlopen(B + "/api/meta", timeout=20))
+          print("meta: pictures for", len(m.get("pics", {})), "items")
+          w = json.load(urllib.request.urlopen(B + "/api/war", timeout=20))
+          print("war feed ok:", w.get("ok"), "| stale:", w.get("stale"), "| error:", w.get("error"))
+          for o in w.get("orders", []):
+              print("  order:", o["title"], "| expires", o["expires"], "| tasks", o["tasks"])
+          print("  planets:", len(w.get("planets", [])), "| MO planets:", [p["name"] for p in w.get("planets", []) if p["mo"]])
+          PY
+              echo "### WARMIND is up on the new version ($(date -u +%H:%M) UTC)" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 10
           done
-          echo "::error::WARMIND did not come back within 6 minutes"; exit 1
+          echo "::error::the new version of WARMIND did not come up within 8 minutes"; exit 1
