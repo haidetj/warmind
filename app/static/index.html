@@ -486,6 +486,9 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
 .wtile .pv img{max-height:46px;max-width:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.8))}
 .wtile.primary .pv img{max-height:62px}
 .wtile.booster .pv img{max-height:36px}
+.wtile.booster{grid-column:1/-1;grid-template-columns:40px minmax(0,1fr);align-items:center;column-gap:8px}
+.wtile.booster .lab{grid-column:1/-1}
+.wtile.booster .pv{height:36px}
 .wtile .st{font-family:var(--mono);font-size:9.5px;color:var(--muted);line-height:1.3}
 .locker .eff{font-size:11.5px;color:var(--muted);line-height:1.4} .locker .eff b{color:var(--ink-2);font-weight:600}
 @media (max-width:380px){.equip{grid-template-columns:1fr}.armorfig .pv{height:120px}.armorfig .pv img{max-height:120px}}
