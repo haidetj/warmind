@@ -44,16 +44,44 @@ def _mission_from(lobby) -> dict | None:
     return json.loads(lobby["mission_json"]) if lobby and lobby["mission_json"] else None
 
 
-def _owned_of(p) -> list | None:
-    """A player row's owned-gear list, or None meaning 'owns everything'."""
-    raw = p.get("owned_json") if isinstance(p, dict) else None
+def _owned_from_json(raw) -> list | None:
+    """Stored gear -> the full list of items owned, or None meaning 'owns everything'.
+    v2 ({"v": 2, "owned": [...]}) lists every owned item, base gear included. The
+    original format (a bare list) only listed warbond/Superstore gear, with base and
+    requisition gear implied, so it's read with all base gear owned."""
     if not raw:
         return None
     try:
-        v = json.loads(raw)
-        return v if isinstance(v, list) else None
+        v = json.loads(raw) if isinstance(raw, str) else raw
     except Exception:
         return None
+    valid = loader.warbond_catalog()["map"]
+    if isinstance(v, dict) and isinstance(v.get("owned"), list):
+        return [n for n in v["owned"] if n in valid]
+    if isinstance(v, list):
+        base = [n for n, wb in valid.items() if loader.is_base(wb)]
+        return [n for n in v if n in valid] + [n for n in base if n not in v]
+    return None
+
+
+def _owned_of(p) -> list | None:
+    """A player row's owned gear (every owned item), or None meaning 'owns everything'."""
+    return _owned_from_json(p.get("owned_json") if isinstance(p, dict) else None)
+
+
+def _accuracy_of(p) -> float | None:
+    """Career accuracy (shots hit / fired) from the diver's stat read, if there is one."""
+    try:
+        snap = json.loads(p["snapshot_json"]) if p.get("snapshot_json") else None
+    except Exception:
+        return None
+    if not snap or not (snap.get("shots_fired") or 0):
+        return None
+    return float(snap.get("shots_hit") or 0) / float(snap["shots_fired"])
+
+
+def _owned_store(owned: list | None):
+    return None if owned is None else {"v": 2, "owned": owned}
 
 
 def _style_phrase(p, snap) -> dict:
@@ -98,6 +126,7 @@ def _resolve(lobby) -> dict:
             play_style=p["play_style"] or "by_the_book",
             owned_items=_owned_of(p),
             accent_hex=ACCENTS[i % len(ACCENTS)],
+            accuracy=_accuracy_of(p),
         ))
     directive = None
     by_pid = {}
@@ -152,7 +181,7 @@ def _resolve(lobby) -> dict:
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
             "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
             "confidence": _conf_of(p),       # which read fields were double-read-verified
-            "owned": _owned_of(p),           # None = owns everything; else owned non-base gear
+            "owned": _owned_of(p),           # None = owns everything; else every item owned
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
@@ -283,6 +312,7 @@ def meta():
             "wiki": loader.wiki_map(),
             "kit_rules": list(_RULES.values()),
             "armory": loader.armory(),
+            "sources": loader.sources()["list"],
             "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "vision": vision.status()}
@@ -452,11 +482,8 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
     gear_restored = None
     mem = db.recall_callsign(callsign_final)
     if mem and mem.get("gear_set"):
-        owned = json.loads(mem["owned_json"]) if mem.get("owned_json") else None
-        if owned is not None:  # drop names that no longer exist in the catalog
-            valid = set(loader.warbond_catalog()["map"].keys())
-            owned = [n for n in owned if n in valid]
-        db.set_owned(pid, owned)
+        owned = _owned_from_json(mem.get("owned_json"))   # drops names no longer in the catalog
+        db.set_owned(pid, _owned_store(owned))
         gear_restored = len(owned) if owned is not None else "all"
     return {"player_id": pid, "player_token": token, "play_style": play_style,
             "style_note": note, "style_source": source, "vision_error": vision_error,
@@ -497,17 +524,22 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
 
 @app.post("/api/lobby/{lid}/player/{pid}/owned")
 def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
-    """Set which non-base gear this diver owns. Body: {"owned": [name,...]} or
-    {"owned": null} to mean 'owns everything'. Loadouts then avoid unowned gear."""
+    """Set the gear this diver owns. Body: {"owned": [every owned item], "v": 2} or
+    {"owned": null} for 'owns everything'. Without "v": 2 (a page loaded before the
+    full library), the list is warbond gear only and base gear stays owned.
+    Loadouts then avoid unowned gear."""
     p = _require_player(pid, x_token)
     owned = payload.get("owned", None)
     if owned is not None:
         if not isinstance(owned, list):
             raise HTTPException(400, "owned must be a list or null")
-        valid = set(loader.warbond_catalog()["map"].keys())
+        valid = loader.warbond_catalog()["map"]
         owned = [n for n in owned if isinstance(n, str) and n in valid]
-    db.set_owned(pid, owned)
-    db.remember_gear(p["callsign"], owned)  # the next war table under this callsign starts from it
+        stored = _owned_store(owned) if payload.get("v") == 2 else owned
+    else:
+        stored = None
+    db.set_owned(pid, stored)
+    db.remember_gear(p["callsign"], stored)  # the next war table under this callsign starts from it
     return {"ok": True}
 
 

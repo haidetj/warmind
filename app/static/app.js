@@ -706,21 +706,35 @@
     return wrap;
   }
 
-  // Gear checklist, laid out like the in-game loadout menu: tabs per slot, stratagems under their
-  // permit colour (Offensive / Supply / Defensive) with their in-game icons. A quick-fill row ticks
-  // or clears a whole warbond. Only gear you have to unlock is listed — base gear is always owned.
+  // Gear checklist: the whole library (base game, warbonds, Superstore, events), laid out like the
+  // in-game loadout menu — tabs per slot, stratagems under their permit colour with their icons,
+  // weapons with their renders and handling stats. A Filter modal narrows it by source, owned
+  // state or name; the list re-renders as the filter changes, and bulk actions act on what's shown.
   let gearTab = {};   // pid -> active tab, kept across re-renders
+  const GF_KEY = "wm_gearfilter";
+  let gearFilter = (() => { try { return JSON.parse(localStorage.getItem(GF_KEY)) || {}; } catch (e) { return {}; } })();
+  const gfNorm = f => ({ sources: Array.isArray(f.sources) ? f.sources : [], show: f.show || "all", q: f.q || "" });
+  function statLine(st) {
+    if (!st) return "";
+    const b = [];
+    if (st.damage != null) b.push(t("st.dmg", { n: nf(st.damage) }));
+    if (st.rpm != null) b.push(t("st.rpm", { n: nf(st.rpm) }));
+    if (st.capacity != null) b.push(t("st.cap", { n: nf(st.capacity) }));
+    if (st.recoil != null) b.push(t("st.recoil", { n: nf(st.recoil) }));
+    return b.join(" · ");
+  }
   function gearFold(p) {
-    const tabs = META.armory || [], wbs = META.warbonds || [];
+    const tabs = META.armory || [], srcs = META.sources || [];
     if (!tabs.length) return null;
-    const allNames = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allNames.push(i.name))));
+    const allItems = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allItems.push(i))));
+    const allNames = allItems.map(i => i.name);
     const owned = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
     const unset = !p.gear_confirmed;
     const d = el("details", { class: "fold" + (unset ? " attn" : "") });
     d.open = gearOpen[p.id] !== undefined ? gearOpen[p.id] : unset;
     d.addEventListener("toggle", () => { gearOpen[p.id] = d.open; });
-    d.appendChild(el("summary", {}, [unset ? t("gear.step") : t("gear.title")]));
-    const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear.hint")])]);
+    d.appendChild(el("summary", {}, [unset ? t("gear2.step") : t("gear2.title")]));
+    const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear2.hint")])]);
     d.appendChild(body);
 
     // debounced, queued save: rapid ticks all land (a save in flight no longer drops the next one)
@@ -731,63 +745,143 @@
         if (busy) { saveT = setTimeout(go, 300); return; }
         busy = true;
         try {
-          const payload = owned.size >= allNames.length ? { owned: null } : { owned: Array.from(owned) };
+          const payload = owned.size >= allNames.length ? { owned: null, v: 2 } : { owned: Array.from(owned), v: 2 };
           await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
           try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
           busy = false; await refresh(); toast(t("gear.saved"));
         } catch (e) { toast(e.message); } finally { busy = false; }
       }, now ? 0 : 700);
     }
-    const refreshers = [];
-    const sync = () => refreshers.forEach(f => f());
 
-    // quick fill by warbond
-    const chips = el("div", { class: "chips wbchips" });
-    wbs.forEach(w => {
-      const names = w.items.map(i => i.name);
-      const c = el("button", { type: "button", class: "chip" }, [w.kind === "special" ? t("gear.special") : w.name]);
-      const paint = () => { const n = names.filter(x => owned.has(x)).length; c.setAttribute("aria-pressed", String(n === names.length)); c.classList.toggle("part", n > 0 && n < names.length); };
-      c.onclick = () => { const all = names.every(x => owned.has(x)); names.forEach(x => all ? owned.delete(x) : owned.add(x)); sync(); save(); };
-      paint(); refreshers.push(paint); chips.appendChild(c);
-    });
-    body.appendChild(el("div", { class: "sub-h", style: "margin-top:2px" }, [t("gear.quick")]));
-    body.appendChild(el("div", { class: "hint", style: "margin:0 0 6px" }, [t("gear.quick.hint")]));
-    body.appendChild(chips);
+    // ---- filter
+    let F = gfNorm(gearFilter[p.id] || {});
+    const keep = () => { gearFilter[p.id] = F; try { localStorage.setItem(GF_KEY, JSON.stringify(gearFilter)); } catch (e) {} };
+    const srcLabel = n => n === "Base game" ? t("src.base") : n === "Events & special unlocks" ? t("gear.special") : n;
+    const match = i => (!F.sources.length || F.sources.indexOf(i.source) >= 0)
+      && (F.show === "all" || (F.show === "owned") === owned.has(i.name))
+      && (!F.q || i.name.toLowerCase().indexOf(F.q.toLowerCase()) >= 0);
+    const fbtn = el("button", { type: "button", class: "btn sm filterbtn", "aria-haspopup": "dialog" });
+    const fsum = el("div", { class: "fsum" });
+    const clear = el("button", { type: "button", class: "btn sm" }, ["× " + t("gf.clear")]);
+    clear.onclick = () => { F = gfNorm({}); keep(); paintAll(); };
+    const active = () => F.sources.length + (F.show !== "all" ? 1 : 0) + (F.q ? 1 : 0);
+    function paintFilterBar() {
+      const n = active();
+      fbtn.textContent = "⚲ " + t("gf.button") + (n ? " · " + n : "");
+      fbtn.classList.toggle("on", n > 0);
+      const bits = [];
+      if (F.sources.length) bits.push(F.sources.length <= 2 ? F.sources.map(srcLabel).join(", ") : t("gf.nsources", { n: F.sources.length }));
+      if (F.show !== "all") bits.push(t("gf.show." + F.show));
+      if (F.q) bits.push("“" + F.q + "”");
+      fsum.textContent = bits.length ? bits.join(" · ") + " — " + t("gf.matching", { n: allItems.filter(match).length }) : t("gf.everything", { n: allItems.length });
+      clear.hidden = !n;
+    }
+    fbtn.onclick = () => openFilter();
+    body.appendChild(el("div", { class: "filterbar" }, [fbtn, fsum, clear]));
 
-    // in-game tabs
+    function openFilter() {
+      const dlg = el("dialog", { class: "modal", "aria-label": t("gf.title") });
+      const showSeg = el("div", { class: "seg", role: "group" });
+      ["all", "owned", "missing"].forEach(k => {
+        const b = el("button", { type: "button", "aria-pressed": String(F.show === k) }, [t("gf.show." + k)]);
+        b.onclick = () => { F.show = k; showSeg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); changed(); };
+        showSeg.appendChild(b);
+      });
+      const q = el("input", { type: "search", placeholder: t("gf.search.ph"), value: F.q, autocomplete: "off" });
+      q.oninput = () => { F.q = q.value.trim(); changed(); };
+      const chips = el("div", { class: "chips srcchips" });
+      const kinds = [["base", t("gf.k.base")], ["warbond", t("gf.k.warbond")], ["superstore", "Superstore"], ["special", t("gear.special")]];
+      const chipEls = [];
+      kinds.forEach(([k, label]) => {
+        const list = srcs.filter(x => x.kind === k);
+        if (!list.length) return;
+        if (k !== "superstore" && k !== "special") chips.appendChild(el("div", { class: "sublabel" }, [label]));
+        list.forEach(x => {
+          const ownedN = () => allItems.filter(i => i.source === x.name && owned.has(i.name)).length;
+          const c = el("button", { type: "button", class: "chip", "aria-pressed": String(F.sources.indexOf(x.name) >= 0) },
+            [srcLabel(x.name), el("small", {}, [" " + ownedN() + "/" + x.n])]);
+          c.onclick = () => {
+            const i = F.sources.indexOf(x.name); i >= 0 ? F.sources.splice(i, 1) : F.sources.push(x.name);
+            c.setAttribute("aria-pressed", String(i < 0)); changed();
+          };
+          c._paint = () => { c.querySelector("small").textContent = " " + ownedN() + "/" + x.n; };
+          chipEls.push(c); chips.appendChild(c);
+        });
+      });
+      const allSrc = el("button", { type: "button", class: "btn sm" }, [t("gf.allsources")]);
+      allSrc.onclick = () => { F.sources = []; chipEls.forEach(c => c.setAttribute("aria-pressed", "false")); changed(); };
+      const count = el("div", { class: "gfcount", role: "status", "aria-live": "polite" });
+      const own = el("button", { type: "button", class: "btn sm" }, ["✓ " + t("gf.markown")]);
+      const lose = el("button", { type: "button", class: "btn sm" }, ["✗ " + t("gf.marknot")]);
+      own.onclick = () => { allItems.filter(match).forEach(i => owned.add(i.name)); changed(true); };
+      lose.onclick = () => { allItems.filter(match).forEach(i => owned.delete(i.name)); changed(true); };
+      const done = el("button", { type: "button", class: "btn primary" }, [t("gf.done")]);
+      done.onclick = () => dlg.close();
+      function changed(gear) {
+        keep(); paintAll(); chipEls.forEach(c => c._paint());
+        count.textContent = t("gf.matching", { n: allItems.filter(match).length });
+        if (gear) save();
+      }
+      dlg.append(
+        el("div", { class: "mhead" }, [el("b", {}, [t("gf.title")]), el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"])]),
+        el("div", { class: "mbody" }, [
+          el("span", { class: "label" }, [t("gf.search")]), q,
+          el("span", { class: "label" }, [t("gf.show")]), showSeg,
+          el("div", { class: "srchead" }, [el("span", { class: "label", style: "margin:0" }, [t("gf.sources")]), allSrc]),
+          el("div", { class: "hint", style: "margin:0 0 6px" }, [t("gf.sources.hint")]),
+          chips,
+        ]),
+        el("div", { class: "mfoot" }, [count, el("div", { class: "btnrow", style: "margin:0" }, [own, lose, done])]),
+      );
+      dlg.querySelector(".mhead .btn").onclick = () => dlg.close();
+      dlg.addEventListener("close", () => dlg.remove());
+      dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });   // tap the backdrop to close
+      document.body.appendChild(dlg);
+      count.textContent = t("gf.matching", { n: allItems.filter(match).length });
+      dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    }
+
+    // ---- in-game tabs (counts follow the filter)
     const order = ["Stratagem", "Primary", "Secondary", "Grenade", "Armor", "Booster"];
     const sorted = order.map(k => tabs.find(tb => tb.slot === k)).filter(Boolean);
-    const cur = gearTab[p.id] && sorted.some(tb => tb.slot === gearTab[p.id]) ? gearTab[p.id] : sorted[0].slot;
+    let cur = gearTab[p.id] && sorted.some(tb => tb.slot === gearTab[p.id]) ? gearTab[p.id] : sorted[0].slot;
     const tabbar = el("div", { class: "seg geartabs", role: "tablist" });
     const pane = el("div", { class: "gearpane" });
     const gkey = g => "grp." + String(g).replace(/[^A-Za-z0-9]+/g, "_");
+    const refreshers = [];
+    const sync = () => refreshers.forEach(f => f());
     function showTab(slot) {
-      gearTab[p.id] = slot;
+      cur = gearTab[p.id] = slot;
       tabbar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.slot === slot)));
-      pane.innerHTML = "";
+      pane.innerHTML = ""; refreshers.length = 0;
       const tb = sorted.find(x => x.slot === slot);
-      let lastPermit = null;
+      let lastPermit = null, shown = 0;
       tb.groups.forEach(g => {
+        const items = g.items.filter(match);
+        if (!items.length) return;
+        shown += items.length;
         if (g.permit && g.permit !== lastPermit) {
           pane.appendChild(el("div", { class: "permit " + g.permit.toLowerCase() }, [has("perm." + g.permit) ? t("perm." + g.permit) : g.permit]));
           lastPermit = g.permit;
         }
-        const names = g.items.map(i => i.name);
+        const names = items.map(i => i.name);
         const cnt = el("span", { class: "gs" });
         const paintCnt = () => { cnt.textContent = names.filter(n => owned.has(n)).length + "/" + names.length; };
         const allB = el("button", { type: "button", class: "btn sm" }, [t("gear.all")]);
         const noneB = el("button", { type: "button", class: "btn sm" }, [t("gear.none")]);
-        allB.onclick = () => { names.forEach(n => owned.add(n)); sync(); save(); };
-        noneB.onclick = () => { names.forEach(n => owned.delete(n)); sync(); save(); };
+        allB.onclick = () => { names.forEach(n => owned.add(n)); after(); };
+        noneB.onclick = () => { names.forEach(n => owned.delete(n)); after(); };
         const grid = el("div", { class: "tiles" });
-        g.items.forEach(i => {
+        items.forEach(i => {
           const cb = el("input", { type: "checkbox" });
           const paint = () => { cb.checked = owned.has(i.name); };
-          cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); sync(); save(); };
+          cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); after(); };
           const src = i.icon || i.img;
-          const icon = src ? el("img", { src: src, class: i.icon ? null : "pic", alt: "", loading: "lazy", width: "32", height: "32" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
+          const icon = src ? el("img", { src: src, class: i.icon ? null : "pic", alt: "", loading: "lazy" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
           if (src) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
-          grid.appendChild(el("label", { class: "tile" }, [cb, icon, el("span", { class: "tn" }, [wk(i.name), el("small", {}, [i.warbond === "Superstore" ? "Superstore" : i.warbond])])]));
+          const sl = statLine(i.stats);
+          grid.appendChild(el("label", { class: "tile" }, [cb, el("span", { class: "ti" }, [icon]), el("span", { class: "tn" }, [
+            wk(i.name), el("small", {}, [srcLabel(i.source)]), sl ? el("small", { class: "ts" }, [sl]) : null])]));
           paint(); refreshers.push(paint);
         });
         paintCnt(); refreshers.push(paintCnt);
@@ -795,16 +889,35 @@
           el("div", { class: "gearhead" }, [el("span", { class: "wbname" }, [has(gkey(g.group)) ? t(gkey(g.group)) : g.group, " ", cnt]), el("span", { class: "btnrow", style: "margin:0" }, [allB, noneB])]),
           grid]));
       });
+      if (!shown) pane.appendChild(el("div", { class: "hint" }, [t("gf.empty")]));
     }
+    // an owned-state filter means a tick can move an item out of view: re-filter after a short pause
+    let refT = null;
+    function after() { sync(); save(); if (F.show !== "all") { clearTimeout(refT); refT = setTimeout(paintAll, 900); } }
     sorted.forEach(tb => {
-      const b = el("button", { type: "button", role: "tab", "data-slot": tb.slot }, [has("slot." + tb.slot) ? t("slot." + tb.slot) : tb.slot]);
+      const b = el("button", { type: "button", role: "tab", "data-slot": tb.slot }, [has("slot." + tb.slot) ? t("slot." + tb.slot) : tb.slot, el("small", {})]);
       b.onclick = () => showTab(tb.slot);
       tabbar.appendChild(b);
     });
+    function paintAll() {
+      paintFilterBar();
+      const counts = {};
+      tabbar.querySelectorAll("button").forEach(b => {
+        const tb = sorted.find(x => x.slot === b.dataset.slot);
+        const n = counts[tb.slot] = tb.groups.reduce((a, g) => a + g.items.filter(match).length, 0);
+        b.querySelector("small").textContent = active() ? " " + n : "";
+        b.classList.toggle("empty", active() > 0 && !n);
+      });
+      if (!counts[cur]) {   // the filter emptied this tab: show the first tab that has matches
+        const first = sorted.find(tb => counts[tb.slot]);
+        if (first) cur = first.slot;
+      }
+      showTab(cur);
+    }
     body.appendChild(el("div", { class: "sub-h" }, [t("gear.items")]));
     body.appendChild(tabbar);
     body.appendChild(pane);
-    showTab(cur);
+    paintAll();
 
     const saveBtn = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("gear.save")]);
     saveBtn.onclick = () => { delete gearOpen[p.id]; save(true); };
@@ -1127,8 +1240,10 @@
         el("div", { class: "sn" }, [wk(s)]),
       ]);
     }));
-    const wt = (cls, label, name) => el("div", { class: "wtile " + cls }, [
-      el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [wk(name)])]);
+    const statsOf = n => { for (const tb of META.armory || []) for (const g of tb.groups) for (const i of g.items) if (i.name === n) return i.stats; return null; };
+    const wt = (cls, label, name, stats) => el("div", { class: "wtile " + cls }, [
+      el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [name ? wk(name) : "—"]),
+      stats && statLine(statsOf(name)) ? el("div", { class: "st" }, [statLine(statsOf(name))]) : null]);
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
     const armor = el("div", { class: "armorfig" }, [
@@ -1139,7 +1254,7 @@
     return el("div", { class: "locker" }, [
       strats,
       el("div", { class: "equip" }, [armor, el("div", { class: "weps" }, [
-        wt("primary", t("card.primary"), a.primary), wt("", t("card.secondary"), a.secondary),
+        wt("primary", t("card.primary"), a.primary, true), wt("", t("card.secondary"), a.secondary, true),
         wt("", t("card.grenade"), a.grenade), wt("booster", t("card.booster"), a.booster)])]),
       eff ? el("div", { class: "eff" }, [el("b", {}, [a.armor_passive + ": "]), eff]) : null,
     ]);
@@ -1320,6 +1435,7 @@
     const g3 = el("div", { class: "gloss" });
     g3.appendChild(el("div", { class: "gk" }, [t("gl.growth")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.growth.d")]));
     g3.appendChild(el("div", { class: "gk" }, [t("gl.thin")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.thin.d")]));
+    g3.appendChild(el("div", { class: "gk" }, [t("gl.handling")])); g3.appendChild(el("div", { class: "gv" }, [t("gl.handling.d")]));
     body.appendChild(el("div", { class: "sub-h" }, [t("gl.card")])); body.appendChild(g3);
     // research sources behind the kit rules
     const src = el("div", { class: "gloss" });

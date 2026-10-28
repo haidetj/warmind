@@ -396,11 +396,12 @@ ul.review .tx .tag{margin-left:6px}
 .permit.defensive{color:#5dff9e;border-color:#3ddc84;background:rgba(61,220,132,.08)}
 .ggroup{margin:8px 0 12px}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin-top:6px}
-.tile{display:grid;grid-template-columns:18px 32px 1fr;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--line);background:rgba(2,5,8,.55);cursor:pointer;min-width:0}
+.tile{display:grid;grid-template-columns:18px 44px minmax(0,1fr);gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--line);background:rgba(2,5,8,.55);cursor:pointer;min-width:0}
+.tile .ti{width:44px;height:36px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .tile:has(input:checked){border-color:rgba(255,194,58,.5);background:rgba(255,194,58,.06)}
-.tile img{width:32px;height:32px;object-fit:contain;image-rendering:auto}
-.tile img.pic{width:40px;height:32px}
-.tile .noicon{width:32px;text-align:center;color:var(--faint)}
+.tile img{max-width:44px;max-height:36px;width:auto;height:auto;object-fit:contain}
+.tile .tn small.ts{color:var(--muted);font-family:var(--mono);font-size:10px}
+.tile .noicon{text-align:center;color:var(--faint)}
 .tile .tn{min-width:0;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere}
 .tile .tn small{display:block;color:var(--faint);font-size:10.5px;margin-top:1px}
 .mrow .rm{padding:2px 8px;min-height:28px;font-size:13px}
@@ -440,6 +441,24 @@ ul.review .tx .tag{margin-left:6px}
 }
 @media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .medal .share{border-color:var(--amber);color:var(--amber)}
+/* gear filter: a button + summary line, and a modal that filters live */
+.filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 4px}
+.filterbar .fsum{flex:1 1 160px;min-width:0;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.filterbtn.on{border-color:var(--amber);color:var(--amber);box-shadow:0 0 10px rgba(255,194,58,.25)}
+.geartabs button small{color:var(--amber);font-family:var(--mono)} .geartabs button.empty{opacity:.45}
+dialog.modal{padding:0;border:1px solid var(--line-2);background:var(--bg,#04070b);color:var(--ink);width:min(620px,calc(100vw - 24px));
+  max-height:calc(100dvh - 32px);display:none;flex-direction:column;box-shadow:0 0 40px rgba(62,230,255,.15)}
+dialog.modal[open]{display:flex}
+dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
+.modal .mhead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);
+  font-family:var(--head);letter-spacing:2px;text-transform:uppercase;color:var(--cyan)}
+.modal .mbody{padding:12px 14px;overflow:auto;display:grid;gap:8px}
+.modal .mbody input[type=search]{width:100%}
+.modal .srchead{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.modal .srcchips .sublabel{flex-basis:100%;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);margin-top:6px}
+.modal .srcchips small{color:var(--muted);font-family:var(--mono);font-size:10px}
+.modal .mfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+.modal .gfcount{font-family:var(--mono);font-size:12px;color:var(--amber)}
 /* loadout screen: the kit laid out like the in-game loadout menu */
 .kitview{margin-bottom:12px;max-width:360px}
 .locker{padding:2px 16px 12px 18px;display:grid;gap:10px}
@@ -467,6 +486,7 @@ ul.review .tx .tag{margin-left:6px}
 .wtile .pv img{max-height:46px;max-width:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.8))}
 .wtile.primary .pv img{max-height:62px}
 .wtile.booster .pv img{max-height:36px}
+.wtile .st{font-family:var(--mono);font-size:9.5px;color:var(--muted);line-height:1.3}
 .locker .eff{font-size:11.5px;color:var(--muted);line-height:1.4} .locker .eff b{color:var(--ink-2);font-weight:600}
 @media (max-width:380px){.equip{grid-template-columns:1fr}.armorfig .pv{height:120px}.armorfig .pv img{max-height:120px}}
 /* galactic war: Major Order strip + active fronts */
