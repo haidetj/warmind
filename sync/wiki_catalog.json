@@ -1,6 +1,6 @@
 {
  "source": "https://helldivers.wiki.gg",
- "fetched": "2026-10-27",
+ "fetched": "2026-10-28",
  "items": [
   {
    "title": "A-35 Recon",
@@ -2073,7 +2073,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Meltagun Stratagem Icon Background.svg"
+   "stratagem_image": "Meltagun Stratagem Icon Background.svg",
+   "weapon_image": "40-K Meltagun Support Render.png"
   },
   {
    "title": "AC-8 Autocannon",
@@ -2087,7 +2088,8 @@
    "base_cooldown": "480s",
    "penetration": "AP (APHET) AP (Flak)",
    "permit_type": "Supply",
-   "stratagem_image": "Autocannon Stratagem Icon Background.svg"
+   "stratagem_image": "Autocannon Stratagem Icon Background.svg",
+   "weapon_image": "AC-8_Autocannon_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "AMW-20 Apex",
@@ -2100,7 +2102,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Apex Stratagem Icon Background.svg"
+   "stratagem_image": "Apex Stratagem Icon Background.svg",
+   "weapon_image": "AMW-20 Apex_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "APW-1 Anti-Materiel Rifle",
@@ -2113,7 +2116,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Anti-Materiel Rifle Stratagem Icon Background.svg"
+   "stratagem_image": "Anti-Materiel Rifle Stratagem Icon Background.svg",
+   "weapon_image": "APW-1 Anti-Materiel Rifle Support Render.png"
   },
   {
    "title": "ARC-3 Arc Thrower",
@@ -2126,7 +2130,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Arc Thrower Stratagem Icon Background.svg"
+   "stratagem_image": "Arc Thrower Stratagem Icon Background.svg",
+   "weapon_image": "ARC-3 Arc Thrower Support Render.png"
   },
   {
    "title": "B/FLAM-80 Cremator",
@@ -2139,7 +2144,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Cremator Stratagem Icon Background.svg"
+   "stratagem_image": "Cremator Stratagem Icon Background.svg",
+   "weapon_image": "B_FLAM-80_Cremator_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "B/MD C4 Pack",
@@ -2152,7 +2158,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "C4 Pack Stratagem Icon Background.svg"
+   "stratagem_image": "C4 Pack Stratagem Icon Background.svg",
+   "weapon_image": "B MD C4 Pack Support Render.png"
   },
   {
    "title": "CQC-1 One True Flag",
@@ -2165,7 +2172,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "One True Flag Stratagem Icon Background.svg"
+   "stratagem_image": "One True Flag Stratagem Icon Background.svg",
+   "weapon_image": "CQC-1 One True Flag Support Render.png"
   },
   {
    "title": "CQC-20 Breaching Hammer",
@@ -2178,7 +2186,8 @@
    "base_cooldown": "480s",
    "penetration": "AP (Melee) AP (Explosion)",
    "permit_type": "Supply",
-   "stratagem_image": "Breaching Hammer Stratagem Icon Background.svg"
+   "stratagem_image": "Breaching Hammer Stratagem Icon Background.svg",
+   "weapon_image": "CQC-20 Breaching Hammer Render.png"
   },
   {
    "title": "CQC-9 Defoliation Tool",
@@ -2191,7 +2200,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Defoliation Tool Stratagem Icon Background.svg"
+   "stratagem_image": "Defoliation Tool Stratagem Icon Background.svg",
+   "weapon_image": "CQC-9 Defoliation Tool Support Render.png"
   },
   {
    "title": "EAT-17 Expendable Anti-Tank",
@@ -2204,7 +2214,8 @@
    "base_cooldown": "70s",
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
-   "stratagem_image": "Expendable Anti-Tank Stratagem Icon Background.svg"
+   "stratagem_image": "Expendable Anti-Tank Stratagem Icon Background.svg",
+   "weapon_image": "EAT-17 Expendable Anti-Tank Support Render.png"
   },
   {
    "title": "EAT-411 Leveller",
@@ -2217,7 +2228,8 @@
    "base_cooldown": "140s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Leveller Stratagem Icon Background.svg"
+   "stratagem_image": "Leveller Stratagem Icon Background.svg",
+   "weapon_image": "EAT-411_Leveller_Support_Render.png"
   },
   {
    "title": "EAT-700 Expendable Napalm",
@@ -2230,7 +2242,8 @@
    "base_cooldown": "140s",
    "penetration": "AP (Bomblets)",
    "permit_type": "Supply",
-   "stratagem_image": "Expendable Napalm Stratagem Icon Background.svg"
+   "stratagem_image": "Expendable Napalm Stratagem Icon Background.svg",
+   "weapon_image": "EAT-700 Expendable Napalm Support Render.png"
   },
   {
    "title": "FAF-14 Spear",
@@ -2243,7 +2256,8 @@
    "base_cooldown": "480s",
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
-   "stratagem_image": "Spear Stratagem Icon Background.svg"
+   "stratagem_image": "Spear Stratagem Icon Background.svg",
+   "weapon_image": "FAF-14 Spear Weapon and Backpack Support Render.png"
   },
   {
    "title": "FLAM-40 Flamethrower",
@@ -2256,7 +2270,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Flamethrower Stratagem Icon Background.svg"
+   "stratagem_image": "Flamethrower Stratagem Icon Background.svg",
+   "weapon_image": "FLAM-40 Flamethrower Support Render.png"
   },
   {
    "title": "GL-21 Grenade Launcher",
@@ -2269,7 +2284,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Grenade Launcher Stratagem Icon Background.svg"
+   "stratagem_image": "Grenade Launcher Stratagem Icon Background.svg",
+   "weapon_image": "GL-21 Grenade Launcher Support Render.png"
   },
   {
    "title": "GL-28 Belt-Fed Grenade Launcher",
@@ -2282,7 +2298,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Belt-Fed Grenade Launcher Stratagem Icon Background.svg"
+   "stratagem_image": "Belt-Fed Grenade Launcher Stratagem Icon Background.svg",
+   "weapon_image": "GL-28_Belt-Fed_Grenade_Launcher_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "GL-52 De-Escalator",
@@ -2295,7 +2312,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "De-Escalator Stratagem Icon Background.svg"
+   "stratagem_image": "De-Escalator Stratagem Icon Background.svg",
+   "weapon_image": "GL-52 De-Escalator Support Render.png"
   },
   {
    "title": "GR-8 Recoilless Rifle",
@@ -2308,7 +2326,8 @@
    "base_cooldown": "480s",
    "penetration": "AP (HEAT) AP AP (HE) AP",
    "permit_type": "Supply",
-   "stratagem_image": "Recoilless Rifle Stratagem Icon Background.svg"
+   "stratagem_image": "Recoilless Rifle Stratagem Icon Background.svg",
+   "weapon_image": "GR-8_Recoilless_Rifle_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "LAS-44 Nova",
@@ -2320,7 +2339,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Nova Stratagem Icon Background.svg"
+   "stratagem_image": "Nova Stratagem Icon Background.svg",
+   "weapon_image": "LAS-44 Nova Support Render.png"
   },
   {
    "title": "LAS-98 Laser Cannon",
@@ -2333,7 +2353,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Laser Cannon Stratagem Icon Background.svg"
+   "stratagem_image": "Laser Cannon Stratagem Icon Background.svg",
+   "weapon_image": "LAS-98 Laser Cannon Support Render.png"
   },
   {
    "title": "LAS-99 Quasar Cannon",
@@ -2346,7 +2367,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Quasar Cannon Stratagem Icon Background.svg"
+   "stratagem_image": "Quasar Cannon Stratagem Icon Background.svg",
+   "weapon_image": "LAS-99 Quasar Cannon Support Render.png"
   },
   {
    "title": "M-1000 Maxigun",
@@ -2359,7 +2381,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Maxigun Stratagem Icon Background.svg"
+   "stratagem_image": "Maxigun Stratagem Icon Background.svg",
+   "weapon_image": "M-1000_Maxigun_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "M-105 Stalwart",
@@ -2372,7 +2395,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Stalwart Stratagem Icon Background.svg"
+   "stratagem_image": "Stalwart Stratagem Icon Background.svg",
+   "weapon_image": "M-105 Stalwart Support Render.png"
   },
   {
    "title": "MG-206 Heavy Machine Gun",
@@ -2385,7 +2409,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Heavy Machine Gun Stratagem Icon Background.svg"
+   "stratagem_image": "Heavy Machine Gun Stratagem Icon Background.svg",
+   "weapon_image": "MG-206 Heavy Machine Gun Support Render.png"
   },
   {
    "title": "MG-43 Machine Gun",
@@ -2398,7 +2423,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Machine Gun Stratagem Icon Background.svg"
+   "stratagem_image": "Machine Gun Stratagem Icon Background.svg",
+   "weapon_image": "MG-43 Machine Gun Support Render.png"
   },
   {
    "title": "MGX-42 Bullet Storm",
@@ -2411,7 +2437,8 @@
    "base_cooldown": "70s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Bullet Storm Stratagem Icon Background.svg"
+   "stratagem_image": "Bullet Storm Stratagem Icon Background.svg",
+   "weapon_image": "{{PAGENAME}} Support Render.png"
   },
   {
    "title": "MLS-4X Commando",
@@ -2424,7 +2451,8 @@
    "base_cooldown": "120s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Commando Stratagem Icon Background.svg"
+   "stratagem_image": "Commando Stratagem Icon Background.svg",
+   "weapon_image": "MLS-4X Commando Support Render.png"
   },
   {
    "title": "MS-11 Solo Silo",
@@ -2437,7 +2465,8 @@
    "base_cooldown": "180s",
    "penetration": "AP (Main Explosion) AP (Impact Explosion)",
    "permit_type": "Supply",
-   "stratagem_image": "Solo Silo Stratagem Icon Background.svg"
+   "stratagem_image": "Solo Silo Stratagem Icon Background.svg",
+   "weapon_image": "MS-11 Solo Silo Support Render.png"
   },
   {
    "title": "PLAS-45 Epoch",
@@ -2450,7 +2479,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Epoch Stratagem Icon Background.svg"
+   "stratagem_image": "Epoch Stratagem Icon Background.svg",
+   "weapon_image": "{{PAGENAME}} Support Render.png"
   },
   {
    "title": "RL-77 Airburst Rocket Launcher",
@@ -2463,7 +2493,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Airburst Rocket Launcher Stratagem Icon Background.svg"
+   "stratagem_image": "Airburst Rocket Launcher Stratagem Icon Background.svg",
+   "weapon_image": "RL-77_Airburst_Rocket_Launcher_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "RS-422 Railgun",
@@ -2476,7 +2507,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Railgun Stratagem Icon Background.svg"
+   "stratagem_image": "Railgun Stratagem Icon Background.svg",
+   "weapon_image": "RS-422 Railgun Support Render.png"
   },
   {
    "title": "S-11 Speargun",
@@ -2489,7 +2521,8 @@
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",
-   "stratagem_image": "Speargun Stratagem Icon Background.svg"
+   "stratagem_image": "Speargun Stratagem Icon Background.svg",
+   "weapon_image": "S-11 Speargun Support Render.png"
   },
   {
    "title": "StA-X3 W.A.S.P. Launcher",
@@ -2502,7 +2535,8 @@
    "base_cooldown": "480s",
    "penetration": "AP (Projectile) AP (Explosion)",
    "permit_type": "Supply",
-   "stratagem_image": "W.A.S.P. Launcher Stratagem Icon Background.svg"
+   "stratagem_image": "W.A.S.P. Launcher Stratagem Icon Background.svg",
+   "weapon_image": "StA-X3_W.A.S.P._Launcher_Weapon_and_Backpack_Support_Render.png"
   },
   {
    "title": "TX-41 Sterilizer",
@@ -2515,7 +2549,8 @@
    "base_cooldown": "480s",
    "penetration": "5",
    "permit_type": "Supply",
-   "stratagem_image": "Sterilizer Stratagem Icon Background.svg"
+   "stratagem_image": "Sterilizer Stratagem Icon Background.svg",
+   "weapon_image": "TX-41 Sterilizer Support Render.png"
   },
   {
    "title": "G-10 Incendiary",
