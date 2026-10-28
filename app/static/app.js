@@ -390,6 +390,7 @@
   // (assemble -> mission -> briefing -> debrief) until the viewer picks a tab; after that
   // a dot marks tabs that changed. The choice is remembered per war table.
   let curTab = null, tabPinned = false, lastTarget = null, curSub = "loadouts";
+  let kitView = (() => { try { return localStorage.getItem("wm_kitview") || "screen"; } catch (e) { return "screen"; } })();
   const tabDots = {};
   const TAB_KEY = () => "wm_tab_" + LID;
   try { const v = parseInt(localStorage.getItem(TAB_KEY()), 10); if (v >= 1 && v <= 5) { curTab = v; tabPinned = true; } } catch (e) {}
@@ -527,7 +528,7 @@
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
         el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
-      WAR && WAR.orders.length ? moStrip(WAR.orders[0]) : null,
+      ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
   }
 
@@ -782,8 +783,9 @@
           const cb = el("input", { type: "checkbox" });
           const paint = () => { cb.checked = owned.has(i.name); };
           cb.onchange = () => { cb.checked ? owned.add(i.name) : owned.delete(i.name); sync(); save(); };
-          const icon = i.icon ? el("img", { src: i.icon, alt: "", loading: "lazy", width: "32", height: "32" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
-          if (i.icon) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
+          const src = i.icon || i.img;
+          const icon = src ? el("img", { src: src, class: i.icon ? null : "pic", alt: "", loading: "lazy", width: "32", height: "32" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
+          if (src) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
           grid.appendChild(el("label", { class: "tile" }, [cb, icon, el("span", { class: "tn" }, [wk(i.name), el("small", {}, [i.warbond === "Superstore" ? "Superstore" : i.warbond])])]));
           paint(); refreshers.push(paint);
         });
@@ -901,7 +903,11 @@
     }
     fillMissions();
     let fillTacticals = () => {};
-    facSel.onchange = () => { draft.faction = facSel.value; fillMissions(); fillTacticals(); };
+    facSel.onchange = () => {
+      draft.faction = facSel.value; fillMissions(); fillTacticals();
+      const p = ((WAR && WAR.planets) || []).find(x => String(x.index) === planetSel.value);
+      if (p && p.enemy !== facSel.value) { planetSel.value = ""; draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); }   // that planet isn't this enemy's
+    };
     diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); };
     misSel.onchange = () => { draft.mission_id = misSel.value; };
     body.appendChild(el("div", { class: "blk grid2" }, [
@@ -1030,8 +1036,18 @@
 
     // loadouts
     const roster = el("div", { class: "roster" }); const me = meRec();
-    STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false)));
-    const rkids = [roster];
+    const fillRoster = () => { roster.innerHTML = ""; STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false))); };
+    fillRoster();
+    const viewSeg = el("div", { class: "seg kitview", role: "group", "aria-label": t("kv.label") });
+    [["screen", "▦ " + t("kv.screen")], ["list", "☰ " + t("kv.list")]].forEach(([k, label]) => {
+      const b = el("button", { type: "button", "aria-pressed": String(kitView === k) }, [label]);
+      b.onclick = () => {
+        kitView = k; try { localStorage.setItem("wm_kitview", k); } catch (e) {}
+        viewSeg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); fillRoster();
+      };
+      viewSeg.appendChild(b);
+    });
+    const rkids = [viewSeg, roster];
     if (isCreator()) {
       const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {
@@ -1092,6 +1108,42 @@
     return out;
   }
 
+  // The kit as the in-game loadout screen shows it: four stratagem slots in their permit
+  // colours, then the armour on the diver beside the weapon racks. Pictures come from the
+  // wiki (verify_wiki.py --armory); anything without one falls back to its name.
+  const pic = (name, kind) => {
+    const m = (META.pics || {})[name] || {}, src = kind === "icon" ? m.icon || m.img : m.img || m.icon;
+    if (!src) return el("span", { class: "nopic", "aria-hidden": "true" }, ["◇"]);
+    const im = el("img", { src: src, alt: "", loading: "lazy", decoding: "async" });
+    im.onerror = () => im.replaceWith(el("span", { class: "nopic", "aria-hidden": "true" }, ["◇"]));
+    return im;
+  };
+  function locker(a) {
+    const strats = el("div", { class: "strats" }, (a.stratagems || []).map(s => {
+      const pm = String(((META.pics || {})[s] || {}).permit || "supply").toLowerCase();
+      return el("div", { class: "sslot " + pm, title: s }, [
+        el("div", { class: "sq" }, [pic(s, "icon"), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
+        el("div", { class: "sn" }, [wk(s)]),
+      ]);
+    }));
+    const wt = (cls, label, name) => el("div", { class: "wtile " + cls }, [
+      el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [wk(name)])]);
+    const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
+    const armor = el("div", { class: "armorfig" }, [
+      el("span", { class: "lab" }, [t("card.armor")]), el("div", { class: "pv" }, [pic(a.armor, "img")]),
+      el("div", { class: "nm" }, [wk(a.armor)]),
+      el("div", { class: "ps", title: eff || "" }, [(has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive]),
+    ]);
+    return el("div", { class: "locker" }, [
+      strats,
+      el("div", { class: "equip" }, [armor, el("div", { class: "weps" }, [
+        wt("primary", t("card.primary"), a.primary), wt("", t("card.secondary"), a.secondary),
+        wt("", t("card.grenade"), a.grenade), wt("booster", t("card.booster"), a.booster)])]),
+      eff ? el("div", { class: "eff" }, [el("b", {}, [a.armor_passive + ": "]), eff]) : null,
+    ]);
+  }
+
   function diverCard(p, mine, provisional) {
     const a = p.assignment;
     const card = el("article", { class: "dcard" + (mine ? " me" : "") }); card.style.setProperty("--acc", p.accent);
@@ -1102,6 +1154,9 @@
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
     ]));
     if (!a) return card;
+    if (kitView === "screen") {
+      card.appendChild(locker(a));
+    } else {
     const kit = el("ul", { class: "kit" });
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
     kit.appendChild(row("card.primary", wk(a.primary)));
@@ -1118,6 +1173,7 @@
       el("span", { class: "vv" }, [wk(s), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
     ])));
     card.appendChild(kit);
+    }
     const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
     if (thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: thin.join(", ") })]));
     const why = a.rationale_parts && a.rationale_parts.length ? a.rationale_parts.map(x => tp(x, "")).filter(Boolean).join(" ") : "";

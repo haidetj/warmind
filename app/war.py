@@ -10,6 +10,7 @@ up to STALE_S, then the feature quietly hides itself.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -53,6 +54,12 @@ def _hazard_index() -> dict:
     return idx
 
 
+def _title(name: str) -> str:
+    """OMICRON -> Omicron, CHOEPESSA IV -> Choepessa IV."""
+    return " ".join(w.upper() if re.fullmatch(r"[IVX]+", w.upper()) or re.search(r"\d", w) else w.capitalize()
+                    for w in (name or "").split())
+
+
 def _faction(name) -> str | None:
     return FACTIONS.get(_norm(name or ""))
 
@@ -84,7 +91,7 @@ def _planets(campaigns: list, mo_planets: set) -> list:
         regions = p.get("regions") or []
         out.append({
             "index": p.get("index"),
-            "name": (p.get("name") or "").title(),
+            "name": _title(p.get("name") or ""),
             "sector": p.get("sector") or "",
             "biome": (p.get("biome") or {}).get("name") or "",
             "enemy": enemy,
@@ -119,7 +126,7 @@ def _orders(assignments: list) -> tuple[list, set]:
             else:
                 rows.append({"done": bool(got)})
         rw = a.get("reward") or {}
-        orders.append({"id": a.get("id"), "title": (a.get("title") or "Major Order").strip(),
+        orders.append({"id": a.get("id"), "title": _title(a.get("title") or "Major Order"),
                        "briefing": (a.get("briefing") or a.get("description") or "").strip()[:600],
                        "expires": a.get("expiration"), "tasks": rows,
                        "reward": rw.get("amount") if rw.get("type") == 1 else None})
@@ -127,6 +134,11 @@ def _orders(assignments: list) -> tuple[list, set]:
 
 
 def _refresh() -> dict:
+    fx = os.environ.get("WARMIND_WAR_FIXTURE")  # tests: {"assignments": [...], "campaigns": [...]} instead of the network
+    if fx:
+        raw = json.loads(open(fx).read())
+        orders, mo_planets = _orders(raw.get("assignments") or [])
+        return {"orders": orders, "planets": _planets(raw.get("campaigns") or [], mo_planets)}
     assignments = _get("assignments")
     orders, mo_planets = _orders(assignments if isinstance(assignments, list) else [])
     campaigns = _get("campaigns")

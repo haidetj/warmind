@@ -283,6 +283,7 @@ def meta():
             "wiki": loader.wiki_map(),
             "kit_rules": list(_RULES.values()),
             "armory": loader.armory(),
+            "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "vision": vision.status()}
 

@@ -399,6 +399,7 @@ ul.review .tx .tag{margin-left:6px}
 .tile{display:grid;grid-template-columns:18px 32px 1fr;gap:8px;align-items:center;padding:7px 8px;border:1px solid var(--line);background:rgba(2,5,8,.55);cursor:pointer;min-width:0}
 .tile:has(input:checked){border-color:rgba(255,194,58,.5);background:rgba(255,194,58,.06)}
 .tile img{width:32px;height:32px;object-fit:contain;image-rendering:auto}
+.tile img.pic{width:40px;height:32px}
 .tile .noicon{width:32px;text-align:center;color:var(--faint)}
 .tile .tn{min-width:0;font-size:12.5px;line-height:1.3;overflow-wrap:anywhere}
 .tile .tn small{display:block;color:var(--faint);font-size:10.5px;margin-top:1px}
@@ -439,6 +440,35 @@ ul.review .tx .tag{margin-left:6px}
 }
 @media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .medal .share{border-color:var(--amber);color:var(--amber)}
+/* loadout screen: the kit laid out like the in-game loadout menu */
+.kitview{margin-bottom:12px;max-width:360px}
+.locker{padding:2px 16px 12px 18px;display:grid;gap:10px}
+.locker .lab{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.locker .nm{font-family:var(--mono);font-size:11.5px;line-height:1.25;color:var(--ink);overflow-wrap:break-word;hyphens:auto;min-width:0}
+.locker .nopic{color:var(--faint);font-size:22px}
+.strats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.sslot{--pc:#3ea6ff;display:grid;gap:4px;min-width:0}
+.sslot.offensive{--pc:#ff3864} .sslot.defensive{--pc:#3ddc84}
+.sslot .sq{position:relative;aspect-ratio:1;display:grid;place-items:center;border:1px solid var(--pc);
+  background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--pc) 22%,transparent),rgba(2,5,8,.85) 75%);
+  box-shadow:inset 0 0 12px color-mix(in srgb,var(--pc) 25%,transparent)}
+.sslot .sq img{width:72%;height:72%;object-fit:contain;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--pc) 60%,transparent))}
+.sslot .sq .grow{position:absolute;left:-1px;right:-1px;bottom:-1px;margin:0;text-align:center;font-size:8.5px;padding:1px 0;background:rgba(4,7,11,.92)}
+.sslot .sn{font-family:var(--mono);font-size:10px;line-height:1.2;color:var(--ink-2);overflow-wrap:break-word;hyphens:auto;text-align:center;min-width:0}
+.equip{display:grid;grid-template-columns:minmax(92px,30%) 1fr;gap:7px}
+.armorfig,.wtile{border:1px solid var(--line);background:linear-gradient(180deg,rgba(62,230,255,.05),rgba(2,5,8,.7));padding:6px 7px;display:grid;gap:3px;min-width:0;align-content:start}
+.armorfig .pv{display:flex;align-items:center;justify-content:center;height:150px;overflow:hidden}
+.armorfig .pv img{max-height:150px;max-width:100%;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.7))}
+.armorfig .ps{font-size:10.5px;color:var(--amber);font-family:var(--mono);line-height:1.25;overflow-wrap:anywhere}
+.weps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;align-content:start}
+.wtile.primary{grid-column:1/-1}
+.wtile .pv{display:flex;align-items:center;justify-content:center;height:46px;overflow:hidden}
+.wtile.primary .pv{height:62px}
+.wtile .pv img{max-height:46px;max-width:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,.8))}
+.wtile.primary .pv img{max-height:62px}
+.wtile.booster .pv img{max-height:36px}
+.locker .eff{font-size:11.5px;color:var(--muted);line-height:1.4} .locker .eff b{color:var(--ink-2);font-weight:600}
+@media (max-width:380px){.equip{grid-template-columns:1fr}.armorfig .pv{height:120px}.armorfig .pv img{max-height:120px}}
 /* galactic war: Major Order strip + active fronts */
 .mo{margin-top:10px;border:1px solid rgba(255,194,58,.35);background:linear-gradient(90deg,rgba(255,194,58,.08),transparent 70%)}
 .mo>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:8px 10px;font-family:var(--mono);font-size:12px}
