@@ -92,8 +92,8 @@
   }
   function moPct(o) {
     const ts = o.tasks || [];
-    if (ts.length === 1 && ts[0].goal) return ts[0].pct;
-    return Math.round(100 * ts.filter(x => x.done || x.pct >= 100).length / Math.max(1, ts.length));
+    // overall: the mean of each task's progress (a count task counts its share; a planet task is 0 or 100)
+    return Math.round(ts.reduce((a, x) => a + (x.goal ? x.pct : x.done ? 100 : 0), 0) / Math.max(1, ts.length));
   }
   const meter = pct => el("div", { class: "meter", role: "img", "aria-label": pct + "%" }, [el("i", { style: "width:" + Math.max(0, Math.min(100, pct || 0)) + "%" })]);
   // The current Major Order as a fold: one line closed, briefing + tasks open.
@@ -111,8 +111,9 @@
     d.appendChild(el("div", { class: "mob" }, [
       meter(pct),
       o.briefing ? el("p", {}, [o.briefing]) : null,
-      el("ol", { class: "motasks" }, (o.tasks || []).map(x => el("li", { class: x.done || x.pct >= 100 ? "done" : null },
-        x.goal ? [nf(x.got) + " / " + nf(x.goal) + " (" + x.pct + "%)"] : [x.done ? "✓ " + t("war.task.done") : t("war.task.open")]))),
+      el("ol", { class: "motasks" }, (o.tasks || []).map(x => el("li", { class: x.done || x.pct >= 100 ? "done" : null }, [
+        x.kind ? el("b", {}, [t("war.k." + x.kind, { who: x.faction ? t("faction." + x.faction) : x.planet }) + ": "]) : null,
+        x.goal ? nf(x.got) + " / " + nf(x.goal) + " (" + x.pct + "%)" : x.done ? "✓ " + t("war.task.done") : t("war.task.open")]))),
       mp.length ? el("div", { class: "hint", style: "margin:0" }, [t("war.mo.planets") + ": " + mp.join(" · ")]) : null,
       el("div", { class: "hint", style: "margin:0" }, [t("war.source") + (WAR && WAR.stale ? " · " + t("war.stale") : "")]),
     ]));

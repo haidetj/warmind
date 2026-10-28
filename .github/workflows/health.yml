@@ -1,9 +1,12 @@
 name: health
 
-# Polls the live app until it answers (or 6 minutes pass). Run after a deploy to
-# know when it's safe to tell the squad to refresh. Read-only: never deploys.
+# After every deploy: waits until the live app is running the deployed commit,
+# then checks pages, pictures, meta and the live war feed. Read-only: never deploys.
 
 on:
+  workflow_run:
+    workflows: [deploy]
+    types: [completed]
   workflow_dispatch:
   push:
     paths: [".github/workflows/health.yml"]
@@ -16,13 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for the new version of warmind.onrender.com
+        env:
+          WANT: ${{ github.event.workflow_run.head_sha }}
         run: |
           B=https://warmind.onrender.com
           for i in $(seq 1 48); do
             code=$(curl -s -o /tmp/h.json -w "%{http_code}" --max-time 15 $B/health || echo 000)
             echo "$(date -u +%H:%M:%S) /health -> $code $(head -c 160 /tmp/h.json 2>/dev/null)"
-            # the new version reports its war feed in /health; the old one doesn't
-            if [ "$code" = "200" ] && grep -q '"war"' /tmp/h.json; then
+            # after a deploy, wait for the deployed commit ("commit":"" = Render didn't say; accept it);
+            # otherwise any answering version will do
+            if [ "$code" = "200" ] && { [ -z "$WANT" ] || grep -q "\"commit\":\"\(${WANT:0:12}\)\?\"" /tmp/h.json; }; then
               for path in / /icons/eagle-airstrike.svg /img/a-35-recon.webp /api/meta /api/war; do
                 echo "$path -> $(curl -s -o /tmp/r -w "%{http_code} %{content_type} %{size_download}B" --max-time 20 $B$path)"
               done

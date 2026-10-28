@@ -26,6 +26,8 @@ CACHE_S = 300
 STALE_S = 6 * 3600
 TIMEOUT_S = 6
 
+RACE_IDS = {2: "terminids", 3: "automatons", 4: "illuminate"}   # valueType 1 in Major Order tasks
+TASK_KINDS = {3: "kill", 11: "liberate", 13: "hold"}             # task types we can name with confidence
 FACTIONS = {"terminids": "terminids", "automaton": "automatons", "automatons": "automatons",
             "illuminate": "illuminate"}
 
@@ -115,34 +117,57 @@ def _orders(assignments: list) -> tuple[list, set]:
         for i, tk in enumerate(tasks):
             vals, types = tk.get("values") or [], tk.get("valueTypes") or []
             got = prog[i] if i < len(prog) else 0
-            goal = None
+            goal, race, planet = None, None, None
             for v, ty in zip(vals, types):
+                if ty == 1:          # valueType 1: enemy race
+                    race = RACE_IDS.get(v)
                 if ty == 3:          # valueType 3: the task's target count
                     goal = v
                 if ty == 12 and v:   # valueType 12: a planet index
-                    planets.add(v)
-            if goal and goal > 1:
-                rows.append({"got": got, "goal": goal, "pct": min(100, round(100 * got / goal))})
-            else:
-                rows.append({"done": bool(got)})
+                    planets.add(v); planet = v
+            row = {"done": bool(got)} if not (goal and goal > 1) else \
+                {"got": got, "goal": goal, "pct": min(100, round(100 * got / goal))}
+            kind = TASK_KINDS.get(tk.get("type"))
+            if kind == "kill" and race:
+                row.update(kind="kill", faction=race)
+            elif kind in ("liberate", "hold") and planet:
+                row.update(kind=kind, planet_index=planet)
+            rows.append(row)
         rw = a.get("reward") or {}
-        orders.append({"id": a.get("id"), "title": _title(a.get("title") or "Major Order"),
-                       "briefing": (a.get("briefing") or a.get("description") or "").strip()[:600],
+        title, brief = (a.get("title") or "").strip(), (a.get("briefing") or a.get("description") or "").strip()
+        if _norm(title) in ("", "majororder") and brief:   # the API's titles are often just "MAJOR ORDER"
+            first = re.split(r"(?<=[.!?])\s", brief)[0]
+            title = first if len(first) <= 90 else first[:87].rsplit(" ", 1)[0] + "…"
+            if len(first) <= 90 and brief[len(first):].strip():
+                brief = brief[len(first):].strip()   # the first sentence is the title now
+        else:
+            title = _title(title or "Major Order")
+        orders.append({"id": a.get("id"), "title": title,
+                       "briefing": brief[:600],
                        "expires": a.get("expiration"), "tasks": rows,
                        "reward": rw.get("amount") if rw.get("type") == 1 else None})
     return orders, planets
+
+
+def _build(assignments, campaigns) -> dict:
+    orders, mo_planets = _orders(assignments if isinstance(assignments, list) else [])
+    planets = _planets(campaigns if isinstance(campaigns, list) else [], mo_planets)
+    names = {p["index"]: p["name"] for p in planets}
+    for o in orders:  # name the planet a liberate/hold task points at, when it's an active front
+        for tk in o["tasks"]:
+            if tk.get("planet_index") in names:
+                tk["planet"] = names[tk["planet_index"]]
+            elif tk.get("kind") in ("liberate", "hold"):
+                tk.pop("kind")
+    return {"orders": orders, "planets": planets}
 
 
 def _refresh() -> dict:
     fx = os.environ.get("WARMIND_WAR_FIXTURE")  # tests: {"assignments": [...], "campaigns": [...]} instead of the network
     if fx:
         raw = json.loads(open(fx).read())
-        orders, mo_planets = _orders(raw.get("assignments") or [])
-        return {"orders": orders, "planets": _planets(raw.get("campaigns") or [], mo_planets)}
-    assignments = _get("assignments")
-    orders, mo_planets = _orders(assignments if isinstance(assignments, list) else [])
-    campaigns = _get("campaigns")
-    return {"orders": orders, "planets": _planets(campaigns if isinstance(campaigns, list) else [], mo_planets)}
+        return _build(raw.get("assignments") or [], raw.get("campaigns") or [])
+    return _build(_get("assignments"), _get("campaigns"))
 
 
 def snapshot() -> dict:

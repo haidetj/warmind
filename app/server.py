@@ -624,4 +624,5 @@ def picture(name: str):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "vision": vision.status(), "budget": budget.status(), "war": war.status()}
+    return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
+            "vision": vision.status(), "budget": budget.status(), "war": war.status()}

@@ -28,6 +28,11 @@ jobs:
           w = war.snapshot()
           print("ok:", w["ok"], "| error:", w.get("error"))
           print("orders:", json.dumps(w["orders"], indent=1)[:3000])
+          raw = war._get("assignments")
+          for a in raw:
+              print("raw order:", a.get("title"), "|", (a.get("briefing") or "")[:200])
+              for tk, pr in zip(a.get("tasks") or [], a.get("progress") or []):
+                  print("   task type", tk.get("type"), "values", tk.get("values"), "valueTypes", tk.get("valueTypes"), "progress", pr)
           print("planets:", len(w["planets"]))
           for p in w["planets"][:40]:
               print(f'  {"*" if p["mo"] else " "} {p["name"]:<16} {p["enemy"]:<11} def={p["defense"]!s:<5} '
