@@ -3,7 +3,13 @@
   "group": "Support Weapons",
   "icon": "/icons/40-k-meltagun.svg",
   "img": "/img/40-k-meltagun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 3,
+   "mags": 4,
+   "reload": 3.75,
+   "rpm": 50
+  }
  },
  "A-35 Recon": {
   "group": "Medium",
@@ -75,7 +81,18 @@
   "group": "Support Weapons",
   "icon": "/icons/ac-8-autocannon.svg",
   "img": "/img/ac-8-autocannon.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 10,
+   "damage": 150,
+   "dps": 1504.17,
+   "modes": [
+    "Semi",
+    "Auto APHET",
+    "Flak"
+   ],
+   "rpm": 190
+  }
  },
  "AD-11 Livewire": {
   "group": "Light",
@@ -109,55 +126,200 @@
   "group": "Support Weapons",
   "icon": "/icons/amw-20-apex.svg",
   "img": "/img/amw-20-apex.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 5,
+   "damage": 1550,
+   "dps": 1291.67,
+   "mags": 4,
+   "modes": [
+    "Semi"
+   ],
+   "reload": 5,
+   "rpm": 50
+  }
  },
  "APW-1 Anti-Materiel Rifle": {
   "group": "Support Weapons",
   "icon": "/icons/apw-1-anti-materiel-rifle.svg",
   "img": "/img/apw-1-anti-materiel-rifle.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 7,
+   "damage": 450,
+   "dps": 3000,
+   "mags": 8,
+   "modes": [
+    "Semi"
+   ],
+   "reload": 3.05,
+   "rpm": 400
+  }
  },
  "AR-11 Arbitrator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-11-arbitrator.webp"
+  "img": "/img/ar-11-arbitrator.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 70,
+   "dps": 1400,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Burst",
+    "10g"
+   ],
+   "recoil": 13,
+   "reload": 3.75,
+   "rpm": 1200
+  }
  },
  "AR-23 Liberator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23-liberator.webp"
+  "img": "/img/ar-23-liberator.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 90,
+   "dps": 960,
+   "mags": 8,
+   "modes": [
+    "Auto",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 11,
+   "reload": 3,
+   "rpm": 640
+  }
  },
  "AR-23A Liberator Carbine": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23a-liberator-carbine.webp"
+  "img": "/img/ar-23a-liberator-carbine.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 90,
+   "dps": 1380,
+   "mags": 8,
+   "modes": [
+    "Auto",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 18,
+   "reload": 2.5,
+   "rpm": 920
+  }
  },
  "AR-23C Liberator Concussive": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23c-liberator-concussive.webp"
+  "img": "/img/ar-23c-liberator-concussive.webp",
+  "stats": {
+   "capacity": 60,
+   "damage": 75,
+   "dps": 500,
+   "mags": 6,
+   "modes": [
+    "Auto",
+    "Semi"
+   ],
+   "recoil": 22,
+   "reload": 3.5,
+   "rpm": 400
+  }
  },
  "AR-23L Liberator Legacy": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23l-liberator-legacy.webp"
+  "img": "/img/ar-23l-liberator-legacy.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 90,
+   "dps": 990,
+   "mags": 8,
+   "modes": [
+    "Auto",
+    "Burst",
+    "Semi"
+   ],
+   "recoil": 14,
+   "rpm": 660
+  }
  },
  "AR-23P Liberator Penetrator": {
   "group": "Assault Rifles",
-  "img": "/img/ar-23p-liberator-penetrator.webp"
+  "img": "/img/ar-23p-liberator-penetrator.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 65,
+   "dps": 693.33,
+   "mags": 8,
+   "modes": [
+    "Semi",
+    "Burst",
+    "Full"
+   ],
+   "recoil": 12,
+   "reload": 3,
+   "rpm": 640
+  }
  },
  "AR-59 Suppressor": {
   "group": "Assault Rifles",
-  "img": "/img/ar-59-suppressor.webp"
+  "img": "/img/ar-59-suppressor.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 80,
+   "dps": 1133.34,
+   "mags": 8,
+   "modes": [
+    "Semi",
+    "Auto"
+   ],
+   "recoil": 13,
+   "reload": 3,
+   "rpm": 850
+  }
  },
  "AR-61 Tenderizer": {
   "group": "Assault Rifles",
-  "img": "/img/ar-61-tenderizer.webp"
+  "img": "/img/ar-61-tenderizer.webp",
+  "stats": {
+   "capacity": 35,
+   "damage": 105,
+   "dps": 1050,
+   "mags": 7,
+   "modes": [
+    "Semi",
+    "Burst",
+    "Auto"
+   ],
+   "recoil": 10,
+   "reload": 3.33,
+   "rpm": 600
+  }
  },
  "ARC-12 Blitzer": {
   "group": "Energy-Based",
-  "img": "/img/arc-12-blitzer.webp"
+  "img": "/img/arc-12-blitzer.webp",
+  "stats": {
+   "damage": 250,
+   "dps": 187.5,
+   "modes": [
+    "None"
+   ],
+   "recoil": 45,
+   "rpm": 45
+  }
  },
  "ARC-3 Arc Thrower": {
   "group": "Support Weapons",
   "icon": "/icons/arc-3-arc-thrower.svg",
   "img": "/img/arc-3-arc-thrower.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 250,
+   "dps": 250,
+   "rpm": 60
+  }
  },
  "AX/AR-23 Guard Dog": {
   "group": "Backpacks",
@@ -221,13 +383,30 @@
   "group": "Support Weapons",
   "icon": "/icons/b-flam-80-cremator.svg",
   "img": "/img/b-flam-80-cremator.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 500,
+   "damage": 225,
+   "dps": 225,
+   "modes": [
+    "Auto"
+   ]
+  }
  },
  "B/MD C4 Pack": {
   "group": "Support Weapons",
   "icon": "/icons/b-md-c4-pack.svg",
   "img": "/img/b-md-c4-pack.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 2000,
+   "modes": [
+    "Deploy",
+    "Detonate"
+   ],
+   "reload": 1.1
+  }
  },
  "BFM-16 Tanker": {
   "group": "Light",
@@ -255,11 +434,33 @@
  },
  "BR-14 Adjudicator": {
   "group": "Assault Rifles",
-  "img": "/img/br-14-adjudicator.webp"
+  "img": "/img/br-14-adjudicator.webp",
+  "stats": {
+   "capacity": 30,
+   "damage": 95,
+   "dps": 870.83,
+   "mags": 8,
+   "modes": [
+    "Semi",
+    "Auto"
+   ],
+   "recoil": 24,
+   "reload": 3,
+   "rpm": 550
+  }
  },
  "CB-9 Exploding Crossbow": {
   "group": "Explosives",
-  "img": "/img/cb-9-exploding-crossbow.webp"
+  "img": "/img/cb-9-exploding-crossbow.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 350,
+   "dps": 516,
+   "mags": 8,
+   "recoil": 26,
+   "reload": 3.33,
+   "rpm": 50
+  }
  },
  "CE-07 Demolition Specialist": {
   "group": "Light",
@@ -329,43 +530,83 @@
   "group": "Support Weapons",
   "icon": "/icons/cqc-1-one-true-flag.svg",
   "img": "/img/cqc-1-one-true-flag.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 200,
+   "recoil": 8,
+   "rpm": 117
+  }
  },
  "CQC-19 Stun Lance": {
   "group": "Melee",
-  "img": "/img/cqc-19-stun-lance.webp"
+  "img": "/img/cqc-19-stun-lance.webp",
+  "stats": {
+   "damage": 165,
+   "recoil": 8
+  }
  },
  "CQC-2 Saber": {
   "group": "Melee",
-  "img": "/img/cqc-2-saber.webp"
+  "img": "/img/cqc-2-saber.webp",
+  "stats": {
+   "damage": 188,
+   "recoil": 6,
+   "rpm": 150
+  }
  },
  "CQC-20 Breaching Hammer": {
   "group": "Support Weapons",
   "icon": "/icons/cqc-20-breaching-hammer.svg",
   "img": "/img/cqc-20-breaching-hammer.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 300,
+   "reload": 1
+  }
  },
  "CQC-30 Stun Baton": {
   "group": "Melee",
-  "img": "/img/cqc-30-stun-baton.webp"
+  "img": "/img/cqc-30-stun-baton.webp",
+  "stats": {
+   "damage": 120,
+   "recoil": 8
+  }
  },
  "CQC-42 Machete": {
   "group": "Melee",
-  "img": "/img/cqc-42-machete.webp"
+  "img": "/img/cqc-42-machete.webp",
+  "stats": {
+   "damage": 300,
+   "rpm": 72
+  }
  },
  "CQC-5 Combat Hatchet": {
   "group": "Melee",
-  "img": "/img/cqc-5-combat-hatchet.webp"
+  "img": "/img/cqc-5-combat-hatchet.webp",
+  "stats": {
+   "damage": 240,
+   "recoil": 8,
+   "rpm": 100
+  }
  },
  "CQC-73 Entrenchment Tool": {
   "group": "Melee",
-  "img": "/img/cqc-73-entrenchment-tool.webp"
+  "img": "/img/cqc-73-entrenchment-tool.webp",
+  "stats": {
+   "damage": 165,
+   "rpm": 150
+  }
  },
  "CQC-9 Defoliation Tool": {
   "group": "Support Weapons",
   "icon": "/icons/cqc-9-defoliation-tool.svg",
   "img": "/img/cqc-9-defoliation-tool.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 450,
+   "dps": 450
+  }
  },
  "CW-22 Kodiak": {
   "group": "Heavy",
@@ -388,7 +629,18 @@
  },
  "DBS-2 Double Freedom": {
   "group": "Shotguns",
-  "img": "/img/dbs-2-double-freedom.webp"
+  "img": "/img/dbs-2-double-freedom.webp",
+  "stats": {
+   "capacity": 2,
+   "damage": 840,
+   "dps": 1680,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 163,
+   "reload": 1.9,
+   "rpm": 650
+  }
  },
  "DP-00 Tactical": {
   "group": "Medium",
@@ -444,19 +696,33 @@
   "group": "Support Weapons",
   "icon": "/icons/eat-17-expendable-anti-tank.svg",
   "img": "/img/eat-17-expendable-anti-tank.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 150
+  }
  },
  "EAT-411 Leveller": {
   "group": "Support Weapons",
   "icon": "/icons/eat-411-leveller.svg",
   "img": "/img/eat-411-leveller.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 1000,
+   "rpm": 600
+  }
  },
  "EAT-700 Expendable Napalm": {
   "group": "Support Weapons",
   "icon": "/icons/eat-700-expendable-napalm.svg",
   "img": "/img/eat-700-expendable-napalm.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 500,
+   "rpm": 600
+  }
  },
  "EX-00 Prototype X": {
   "group": "Light",
@@ -545,17 +811,42 @@
   "group": "Support Weapons",
   "icon": "/icons/faf-14-spear.svg",
   "img": "/img/faf-14-spear.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 200,
+   "modes": [
+    "Semi"
+   ],
+   "reload": 4.65,
+   "rpm": 240
+  }
  },
  "FLAM-40 Flamethrower": {
   "group": "Support Weapons",
   "icon": "/icons/flam-40-flamethrower.svg",
   "img": "/img/flam-40-flamethrower.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 150,
+   "damage": 150,
+   "mags": 5,
+   "reload": 4
+  }
  },
  "FLAM-66 Torcher": {
   "group": "Special",
-  "img": "/img/flam-66-torcher.webp"
+  "img": "/img/flam-66-torcher.webp",
+  "stats": {
+   "capacity": 100,
+   "damage": 150,
+   "mags": 6,
+   "modes": [
+    "None"
+   ],
+   "recoil": 1,
+   "reload": 3.25
+  }
  },
  "FS-05 Marksman": {
   "group": "Heavy",
@@ -602,123 +893,266 @@
  },
  "G-10 Incendiary": {
   "group": "Standard",
-  "img": "/img/g-10-incendiary.webp"
+  "img": "/img/g-10-incendiary.webp",
+  "stats": {
+   "capacity": 5
+  }
  },
  "G-109 Urchin": {
   "group": "Special",
-  "img": "/img/g-109-urchin.webp"
+  "img": "/img/g-109-urchin.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 0
+  }
  },
  "G-11 Caltrops": {
   "group": "Special",
-  "img": "/img/g-11-caltrops.webp"
+  "img": "/img/g-11-caltrops.webp",
+  "stats": {
+   "damage": 50
+  }
  },
  "G-12 High Explosive": {
   "group": "Standard",
-  "img": "/img/g-12-high-explosive.webp"
+  "img": "/img/g-12-high-explosive.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 800
+  }
  },
  "G-123 Thermite": {
   "group": "Special",
-  "img": "/img/g-123-thermite.webp"
+  "img": "/img/g-123-thermite.webp",
+  "stats": {
+   "capacity": 3,
+   "damage": 150
+  }
  },
  "G-13 Incendiary Impact": {
   "group": "Special",
-  "img": "/img/g-13-incendiary-impact.webp"
+  "img": "/img/g-13-incendiary-impact.webp",
+  "stats": {
+   "capacity": 5
+  }
  },
  "G-142 Pyrotech": {
   "group": "Special",
-  "img": "/img/g-142-pyrotech.webp"
+  "img": "/img/g-142-pyrotech.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 20
+  }
  },
  "G-16 Impact": {
   "group": "Special",
-  "img": "/img/g-16-impact.webp"
+  "img": "/img/g-16-impact.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 400
+  }
  },
  "G-23 Stun": {
   "group": "Special",
-  "img": "/img/g-23-stun.webp"
+  "img": "/img/g-23-stun.webp",
+  "stats": {
+   "capacity": 5
+  }
  },
  "G-3 Smoke": {
   "group": "Special",
-  "img": "/img/g-3-smoke.webp"
+  "img": "/img/g-3-smoke.webp",
+  "stats": {
+   "capacity": 5
+  }
  },
  "G-31 Arc": {
   "group": "Special",
-  "img": "/img/g-31-arc.webp"
+  "img": "/img/g-31-arc.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 100
+  }
  },
  "G-4 Gas": {
   "group": "Special",
-  "img": "/img/g-4-gas.webp"
+  "img": "/img/g-4-gas.webp",
+  "stats": {
+   "capacity": 4
+  }
  },
  "G-48 Giga Grenade": {
   "group": "Special",
-  "img": "/img/g-48-giga-grenade.webp"
+  "img": "/img/g-48-giga-grenade.webp",
+  "stats": {
+   "capacity": 2,
+   "damage": 2000
+  }
  },
  "G-50 Seeker": {
   "group": "Special",
-  "img": "/img/g-50-seeker.webp"
+  "img": "/img/g-50-seeker.webp",
+  "stats": {
+   "capacity": 5
+  }
  },
  "G-6 Frag": {
   "group": "Standard",
-  "img": "/img/g-6-frag.webp"
+  "img": "/img/g-6-frag.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 35
+  }
  },
  "G-60 Anti-Tank Seeker": {
   "group": "Special",
-  "img": "/img/g-60-anti-tank-seeker.webp"
+  "img": "/img/g-60-anti-tank-seeker.webp",
+  "stats": {
+   "capacity": 3,
+   "damage": 1800
+  }
  },
  "G-7 Pineapple": {
   "group": "Standard",
-  "img": "/img/g-7-pineapple.webp"
+  "img": "/img/g-7-pineapple.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 300
+  }
  },
  "G-8 Immolation": {
   "group": "Special",
-  "img": "/img/g-8-immolation.webp"
+  "img": "/img/g-8-immolation.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 20
+  }
  },
  "G-89 Smokescreen": {
   "group": "Special",
-  "img": "/img/g-89-smokescreen.webp"
+  "img": "/img/g-89-smokescreen.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 0
+  }
  },
  "G/40-K Melta Mine": {
   "group": "Special",
-  "img": "/img/g-40-k-melta-mine.webp"
+  "img": "/img/g-40-k-melta-mine.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 2000
+  }
  },
  "G/SH-39 Shield": {
   "group": "Special",
-  "img": "/img/g-sh-39-shield.webp"
+  "img": "/img/g-sh-39-shield.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 0
+  }
  },
  "GL-15 Evictor": {
   "group": "Explosives",
-  "img": "/img/gl-15-evictor.webp"
+  "img": "/img/gl-15-evictor.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 50,
+   "dps": 490,
+   "modes": [
+    "Pump-Action"
+   ],
+   "recoil": 83,
+   "reload": 2.67,
+   "rpm": 60
+  }
  },
  "GL-21 Grenade Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/gl-21-grenade-launcher.svg",
   "img": "/img/gl-21-grenade-launcher.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 10,
+   "damage": 400,
+   "dps": 1066.67,
+   "mags": 3,
+   "modes": [
+    "Semi",
+    "Auto"
+   ],
+   "reload": 3.55,
+   "rpm": 160
+  }
  },
  "GL-28 Belt-Fed Grenade Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/gl-28-belt-fed-grenade-launcher.svg",
   "img": "/img/gl-28-belt-fed-grenade-launcher.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 120,
+   "damage": 150,
+   "dps": 400,
+   "modes": [
+    "Auto"
+   ],
+   "rpm": 160
+  }
  },
  "GL-52 De-Escalator": {
   "group": "Support Weapons",
   "icon": "/icons/gl-52-de-escalator.svg",
   "img": "/img/gl-52-de-escalator.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 6,
+   "damage": 100,
+   "dps": 3333.33,
+   "modes": [
+    "Semi",
+    "Auto"
+   ],
+   "rpm": 200
+  }
  },
  "GP-20 Ultimatum": {
   "group": "Special",
-  "img": "/img/gp-20-ultimatum.webp"
+  "img": "/img/gp-20-ultimatum.webp",
+  "stats": {
+   "capacity": 1,
+   "damage": 2000,
+   "recoil": 31,
+   "reload": 3,
+   "rpm": 900
+  }
  },
  "GP-31 Grenade Pistol": {
   "group": "Special",
-  "img": "/img/gp-31-grenade-pistol.webp"
+  "img": "/img/gp-31-grenade-pistol.webp",
+  "stats": {
+   "capacity": 1,
+   "recoil": 31,
+   "reload": 1.72,
+   "rpm": 900
+  }
  },
  "GR-8 Recoilless Rifle": {
   "group": "Support Weapons",
   "icon": "/icons/gr-8-recoilless-rifle.svg",
   "img": "/img/gr-8-recoilless-rifle.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 150,
+   "modes": [
+    "Semi",
+    "HEAT",
+    "HE"
+   ],
+   "reload": 6.1,
+   "rpm": 600
+  }
  },
  "GS-11 Democracy's Deputy": {
   "group": "Light",
@@ -771,11 +1205,28 @@
  },
  "JAR-5 Dominator": {
   "group": "Special",
-  "img": "/img/jar-5-dominator.webp"
+  "img": "/img/jar-5-dominator.webp",
+  "stats": {
+   "capacity": 15,
+   "damage": 275,
+   "dps": 1145.83,
+   "mags": 6,
+   "modes": [
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 58,
+   "reload": 3.8,
+   "rpm": 250
+  }
  },
  "K-2 Throwing Knife": {
   "group": "Special",
-  "img": "/img/k-2-throwing-knife.webp"
+  "img": "/img/k-2-throwing-knife.webp",
+  "stats": {
+   "capacity": 20,
+   "damage": 300
+  }
  },
  "KDM-500 Outrider": {
   "group": "Heavy",
@@ -783,49 +1234,132 @@
  },
  "LAS-12 Sai": {
   "group": "Energy-Based",
-  "img": "/img/las-12-sai.webp"
+  "img": "/img/las-12-sai.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 80,
+   "dps": 1066.67,
+   "recoil": 11,
+   "reload": 2,
+   "rpm": 800
+  }
  },
  "LAS-13 Trident": {
   "group": "Energy-Based",
-  "img": "/img/las-13-trident.webp"
+  "img": "/img/las-13-trident.webp",
+  "stats": {
+   "capacity": 2,
+   "damage": 360,
+   "dps": 1800,
+   "mags": 3,
+   "modes": [
+    "Auto"
+   ],
+   "recoil": 2,
+   "reload": 2.9,
+   "rpm": 300
+  }
  },
  "LAS-16 Sickle": {
   "group": "Energy-Based",
-  "img": "/img/las-16-sickle.webp"
+  "img": "/img/las-16-sickle.webp",
+  "stats": {
+   "capacity": 8,
+   "damage": 60,
+   "dps": 750,
+   "mags": 3,
+   "modes": [
+    "Automatic"
+   ],
+   "recoil": 2,
+   "reload": 2.25,
+   "rpm": 750
+  }
  },
  "LAS-17 Double-Edge Sickle": {
   "group": "Energy-Based",
-  "img": "/img/las-17-double-edge-sickle.webp"
+  "img": "/img/las-17-double-edge-sickle.webp",
+  "stats": {
+   "capacity": 15,
+   "dps": 700,
+   "mags": 3,
+   "modes": [
+    "Automatic"
+   ],
+   "recoil": 2,
+   "rpm": 700
+  }
  },
  "LAS-44 Nova": {
   "group": "Support Weapons",
   "icon": "/icons/las-44-nova.svg",
   "img": "/img/las-44-nova.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 880,
+   "dps": 440,
+   "rpm": 30
+  }
  },
  "LAS-5 Scythe": {
   "group": "Energy-Based",
-  "img": "/img/las-5-scythe.webp"
+  "img": "/img/las-5-scythe.webp",
+  "stats": {
+   "capacity": 8,
+   "damage": 350,
+   "mags": 4,
+   "recoil": 0,
+   "reload": 3
+  }
  },
  "LAS-58 Talon": {
   "group": "Special",
-  "img": "/img/las-58-talon.webp"
+  "img": "/img/las-58-talon.webp",
+  "stats": {
+   "capacity": 7,
+   "damage": 200,
+   "dps": 2500,
+   "mags": 3,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 2,
+   "reload": 2.4,
+   "rpm": 750
+  }
  },
  "LAS-7 Dagger": {
   "group": "Special",
-  "img": "/img/las-7-dagger.webp"
+  "img": "/img/las-7-dagger.webp",
+  "stats": {
+   "capacity": 6.67,
+   "damage": 250,
+   "mags": 3,
+   "recoil": 0,
+   "reload": 1.85
+  }
  },
  "LAS-98 Laser Cannon": {
   "group": "Support Weapons",
   "icon": "/icons/las-98-laser-cannon.svg",
   "img": "/img/las-98-laser-cannon.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 12.5,
+   "damage": 350,
+   "mags": 2,
+   "reload": 3.65
+  }
  },
  "LAS-99 Quasar Cannon": {
   "group": "Support Weapons",
   "icon": "/icons/las-99-quasar-cannon.svg",
   "img": "/img/las-99-quasar-cannon.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 150,
+   "rpm": 3.34
+  }
  },
  "LIFT-182 Warp Pack": {
   "group": "Backpacks",
@@ -849,7 +1383,16 @@
   "group": "Support Weapons",
   "icon": "/icons/m-1000-maxigun.svg",
   "img": "/img/m-1000-maxigun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1000,
+   "damage": 80,
+   "dps": 2000,
+   "modes": [
+    "Auto"
+   ],
+   "rpm": 1500
+  }
  },
  "M-102 Gunner FRV": {
   "group": "Vehicles",
@@ -870,23 +1413,84 @@
   "group": "Support Weapons",
   "icon": "/icons/m-105-stalwart.svg",
   "img": "/img/m-105-stalwart.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 250,
+   "damage": 90,
+   "dps": 1050,
+   "mags": 3,
+   "modes": [
+    "Auto"
+   ],
+   "reload": 5.9,
+   "rpm": 700
+  }
  },
  "M6C/SOCOM Pistol": {
   "group": "Pistols",
-  "img": "/img/m6c-socom-pistol.webp"
+  "img": "/img/m6c-socom-pistol.webp",
+  "stats": {
+   "capacity": 12,
+   "damage": 125,
+   "dps": 1875,
+   "mags": 10,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 20,
+   "reload": 1.5,
+   "rpm": 900
+  }
  },
  "M7S SMG": {
   "group": "Submachine Guns",
-  "img": "/img/m7s-smg.webp"
+  "img": "/img/m7s-smg.webp",
+  "stats": {
+   "capacity": 48,
+   "damage": 90,
+   "dps": 1308,
+   "mags": 7,
+   "modes": [
+    "Full",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 8,
+   "reload": 3,
+   "rpm": 872
+  }
  },
  "M90A Shotgun": {
   "group": "Shotguns",
-  "img": "/img/m90a-shotgun.webp"
+  "img": "/img/m90a-shotgun.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 726,
+   "dps": 967.99,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 83,
+   "rpm": 80
+  }
  },
  "MA5C Assault Rifle": {
   "group": "Assault Rifles",
-  "img": "/img/ma5c-assault-rifle.webp"
+  "img": "/img/ma5c-assault-rifle.webp",
+  "stats": {
+   "capacity": 32,
+   "damage": 90,
+   "dps": 960,
+   "mags": 8,
+   "modes": [
+    "Semi",
+    "Burst",
+    "Full"
+   ],
+   "recoil": 19,
+   "reload": 3.15,
+   "rpm": 640
+  }
  },
  "MD-17 Anti-Tank Mines": {
   "group": "Emplacements",
@@ -912,35 +1516,90 @@
   "group": "Support Weapons",
   "icon": "/icons/mg-206-heavy-machine-gun.svg",
   "img": "/img/mg-206-heavy-machine-gun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 100,
+   "damage": 150,
+   "dps": 1125,
+   "mags": 2,
+   "modes": [
+    "Auto"
+   ],
+   "reload": 5.55,
+   "rpm": 450
+  }
  },
  "MG-43 Machine Gun": {
   "group": "Support Weapons",
   "icon": "/icons/mg-43-machine-gun.svg",
   "img": "/img/mg-43-machine-gun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 175,
+   "damage": 90,
+   "dps": 945,
+   "mags": 3,
+   "modes": [
+    "Auto"
+   ],
+   "reload": 4.55,
+   "rpm": 630
+  }
  },
  "MGX-42 Bullet Storm": {
   "group": "Support Weapons",
   "icon": "/icons/mgx-42-bullet-storm.svg",
   "img": "/img/mgx-42-bullet-storm.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 300,
+   "damage": 100,
+   "dps": 2166.67,
+   "rpm": 1300
+  }
  },
  "MLS-4X Commando": {
   "group": "Support Weapons",
   "icon": "/icons/mls-4x-commando.svg",
   "img": "/img/mls-4x-commando.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 4,
+   "damage": 150,
+   "modes": [
+    "Semi",
+    "Laser-guided",
+    "Dumb-Fire"
+   ],
+   "rpm": 240
+  }
  },
  "MP-98 Knight": {
   "group": "Submachine Guns",
-  "img": "/img/mp-98-knight.webp"
+  "img": "/img/mp-98-knight.webp",
+  "stats": {
+   "capacity": 50,
+   "damage": 90,
+   "dps": 2070,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 12,
+   "reload": 2.5,
+   "rpm": 1380
+  }
  },
  "MS-11 Solo Silo": {
   "group": "Support Weapons",
   "icon": "/icons/ms-11-solo-silo.svg",
   "img": "/img/ms-11-solo-silo.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "damage": 2500
+  }
  },
  "Motivational Shocks": {
   "img": "/img/motivational-shocks.svg"
@@ -1027,55 +1686,198 @@
  },
  "P-11 Stim Pistol": {
   "group": "Special",
-  "img": "/img/p-11-stim-pistol.webp"
+  "img": "/img/p-11-stim-pistol.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 0,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 6,
+   "reload": 2.66,
+   "rpm": 70
+  }
  },
  "P-113 Verdict": {
   "group": "Pistols",
-  "img": "/img/p-113-verdict.webp"
+  "img": "/img/p-113-verdict.webp",
+  "stats": {
+   "capacity": 10,
+   "damage": 140,
+   "dps": 1050,
+   "mags": 10,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 31,
+   "reload": 2,
+   "rpm": 450
+  }
  },
  "P-19 Redeemer": {
   "group": "Pistols",
-  "img": "/img/p-19-redeemer.webp"
+  "img": "/img/p-19-redeemer.webp",
+  "stats": {
+   "capacity": 31,
+   "damage": 70,
+   "dps": 1283.33,
+   "mags": 6,
+   "modes": [
+    "Auto&nbsp;",
+    "&nbsp;Semi"
+   ],
+   "recoil": 14,
+   "reload": 2.15,
+   "rpm": 1100
+  }
  },
  "P-2 Peacemaker": {
   "group": "Pistols",
-  "img": "/img/p-2-peacemaker.webp"
+  "img": "/img/p-2-peacemaker.webp",
+  "stats": {
+   "capacity": 15,
+   "dps": 1500,
+   "mags": 8,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 20,
+   "reload": 1.8,
+   "rpm": 900
+  }
  },
  "P-33 Missile Pistol": {
   "group": "Special",
-  "img": "/img/p-33-missile-pistol.webp"
+  "img": "/img/p-33-missile-pistol.webp",
+  "stats": {
+   "capacity": 1,
+   "damage": 300,
+   "dps": 1300,
+   "modes": [
+    "Guided",
+    "Non-Guided"
+   ],
+   "recoil": 313,
+   "reload": 2.7,
+   "rpm": 60
+  }
  },
  "P-34 Breacher": {
   "group": "Special",
-  "img": "/img/p-34-breacher.webp"
+  "img": "/img/p-34-breacher.webp",
+  "stats": {
+   "capacity": 1,
+   "damage": 60,
+   "recoil": 313,
+   "reload": 2.68,
+   "rpm": 20
+  }
  },
  "P-35 Re-Educator": {
   "group": "Special",
-  "img": "/img/p-35-re-educator.webp"
+  "img": "/img/p-35-re-educator.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 60,
+   "dps": 110,
+   "mags": 2,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 10,
+   "reload": 3,
+   "rpm": 110
+  }
  },
  "P-4 Senator": {
   "group": "Pistols",
-  "img": "/img/p-4-senator.webp"
+  "img": "/img/p-4-senator.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 225,
+   "dps": 749.99,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 31,
+   "reload": 2.3,
+   "rpm": 200
+  }
  },
  "P-44 Mist": {
   "group": "Pistols",
-  "img": "/img/p-44-mist.webp"
+  "img": "/img/p-44-mist.webp",
+  "stats": {
+   "capacity": 25,
+   "damage": 110,
+   "dps": 733.34,
+   "mags": 5,
+   "modes": [
+    "Auto",
+    "Semi"
+   ],
+   "recoil": 17,
+   "reload": 2.3,
+   "rpm": 400
+  }
  },
  "P-69 Veto": {
   "group": "Pistols",
-  "img": "/img/p-69-veto.webp"
+  "img": "/img/p-69-veto.webp",
+  "stats": {
+   "capacity": 12,
+   "damage": 105,
+   "dps": 1312.5,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 30,
+   "rpm": 750
+  }
  },
  "P-72 Crisper": {
   "group": "Special",
-  "img": "/img/p-72-crisper.webp"
+  "img": "/img/p-72-crisper.webp",
+  "stats": {
+   "capacity": 50,
+   "damage": 150,
+   "mags": 4,
+   "recoil": 2,
+   "reload": 2.35
+  }
  },
  "P-92 Warrant": {
   "group": "Pistols",
-  "img": "/img/p-92-warrant.webp"
+  "img": "/img/p-92-warrant.webp",
+  "stats": {
+   "capacity": 13,
+   "damage": 80,
+   "dps": 600,
+   "mags": 8,
+   "modes": [
+    "Guided",
+    "Non-Guided"
+   ],
+   "recoil": 31,
+   "reload": 2,
+   "rpm": 450
+  }
  },
  "P/40-K Bolt Pistol": {
   "group": "Special",
-  "img": "/img/p-40-k-bolt-pistol.webp"
+  "img": "/img/p-40-k-bolt-pistol.webp",
+  "stats": {
+   "capacity": 6,
+   "damage": 325,
+   "dps": 1250,
+   "mags": 4,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 325,
+   "reload": 2.45,
+   "rpm": 150
+  }
  },
  "PH-202 Twigsnapper": {
   "group": "Heavy",
@@ -1091,65 +1893,231 @@
  },
  "PLAS-1 Scorcher": {
   "group": "Energy-Based",
-  "img": "/img/plas-1-scorcher.webp"
+  "img": "/img/plas-1-scorcher.webp",
+  "stats": {
+   "capacity": 20,
+   "damage": 100,
+   "dps": 1166,
+   "mags": 5,
+   "modes": [
+    "Semi",
+    "Auto"
+   ],
+   "recoil": 16,
+   "reload": 2.5,
+   "rpm": 350
+  }
  },
  "PLAS-101 Purifier": {
   "group": "Energy-Based",
-  "img": "/img/plas-101-purifier.webp"
+  "img": "/img/plas-101-purifier.webp",
+  "stats": {
+   "capacity": 15,
+   "damage": 75,
+   "dps": 2916,
+   "mags": 6,
+   "recoil": 16,
+   "reload": 2.5,
+   "rpm": 1000
+  }
  },
  "PLAS-15 Loyalist": {
   "group": "Special",
-  "img": "/img/plas-15-loyalist.webp"
+  "img": "/img/plas-15-loyalist.webp",
+  "stats": {
+   "capacity": 8,
+   "damage": 75,
+   "mags": 5,
+   "recoil": 6,
+   "reload": 1.9,
+   "rpm": 1000
+  }
  },
  "PLAS-39 Accelerator Rifle": {
   "group": "Energy-Based",
-  "img": "/img/plas-39-accelerator-rifle.webp"
+  "img": "/img/plas-39-accelerator-rifle.webp",
+  "stats": {
+   "capacity": 9,
+   "damage": 250,
+   "dps": 3208.33,
+   "mags": 8,
+   "modes": [
+    "Burst Fire"
+   ],
+   "recoil": 3,
+   "reload": 2.7,
+   "rpm": 550
+  }
  },
  "PLAS-45 Epoch": {
   "group": "Support Weapons",
   "icon": "/icons/plas-45-epoch.svg",
   "img": "/img/plas-45-epoch.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 3,
+   "damage": 500,
+   "dps": 1600,
+   "mags": 4,
+   "reload": 5.15,
+   "rpm": 600
+  }
  },
  "R-2 Amendment": {
   "group": "Marksman Rifles",
-  "img": "/img/r-2-amendment.webp"
+  "img": "/img/r-2-amendment.webp",
+  "stats": {
+   "capacity": 20,
+   "damage": 200,
+   "dps": 1600,
+   "modes": [
+    "Semi • Burst"
+   ],
+   "recoil": 29,
+   "reload": 3.5,
+   "rpm": 480
+  }
  },
  "R-2124 Constitution": {
   "group": "Marksman Rifles",
-  "img": "/img/r-2124-constitution.webp"
+  "img": "/img/r-2124-constitution.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 180,
+   "dps": 180,
+   "modes": [
+    "Bolt-Action"
+   ],
+   "recoil": 30,
+   "reload": 1.3,
+   "rpm": 60
+  }
  },
  "R-36 Eruptor": {
   "group": "Explosives",
-  "img": "/img/r-36-eruptor.webp"
+  "img": "/img/r-36-eruptor.webp",
+  "stats": {
+   "capacity": 5,
+   "damage": 225,
+   "dps": 592,
+   "mags": 6,
+   "modes": [
+    "Bolt-Action"
+   ],
+   "recoil": 58,
+   "reload": 4.67,
+   "rpm": 32
+  }
  },
  "R-4 Hyena": {
   "group": "Marksman Rifles",
-  "img": "/img/r-4-hyena.webp"
+  "img": "/img/r-4-hyena.webp",
+  "stats": {
+   "capacity": 15,
+   "damage": 220,
+   "dps": 696.67,
+   "mags": 5,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 54,
+   "reload": 2.5,
+   "rpm": 190
+  }
  },
  "R-40 Sightliner": {
   "group": "Sniper Rifles",
-  "img": "/img/r-40-sightliner.webp"
+  "img": "/img/r-40-sightliner.webp",
+  "stats": {
+   "capacity": 10,
+   "damage": 350,
+   "dps": 233.33,
+   "mags": 8,
+   "modes": [
+    "Bolt-Action"
+   ],
+   "recoil": 76,
+   "reload": 3,
+   "rpm": 40
+  }
  },
  "R-6 Deadeye": {
   "group": "Marksman Rifles",
-  "img": "/img/r-6-deadeye.webp"
+  "img": "/img/r-6-deadeye.webp",
+  "stats": {
+   "capacity": 8,
+   "damage": 300,
+   "dps": 500,
+   "modes": [
+    "Lever-Action"
+   ],
+   "recoil": 83,
+   "rpm": 100
+  }
  },
  "R-63 Diligence": {
   "group": "Marksman Rifles",
-  "img": "/img/r-63-diligence.webp"
+  "img": "/img/r-63-diligence.webp",
+  "stats": {
+   "capacity": 25,
+   "damage": 165,
+   "dps": 962,
+   "mags": 8,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 26,
+   "reload": 2.83,
+   "rpm": 350
+  }
  },
  "R-63CS Diligence Counter Sniper": {
   "group": "Marksman Rifles",
-  "img": "/img/r-63cs-diligence-counter-sniper.webp"
+  "img": "/img/r-63cs-diligence-counter-sniper.webp",
+  "stats": {
+   "capacity": 15,
+   "damage": 200,
+   "dps": 1166.67,
+   "mags": 6,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 33,
+   "reload": 3,
+   "rpm": 350
+  }
  },
  "R-72 Censor": {
   "group": "Marksman Rifles",
-  "img": "/img/r-72-censor.webp"
+  "img": "/img/r-72-censor.webp",
+  "stats": {
+   "capacity": 20,
+   "damage": 165,
+   "dps": 1100,
+   "mags": 8,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 13,
+   "reload": 2.5,
+   "rpm": 400
+  }
  },
  "R/40-K Hot-Shot Marksman Rifle": {
   "group": "Energy-Based",
-  "img": "/img/r-40-k-hot-shot-marksman-rifle.webp"
+  "img": "/img/r-40-k-hot-shot-marksman-rifle.webp",
+  "stats": {
+   "capacity": 12,
+   "damage": 275,
+   "dps": 962.5,
+   "mags": 7,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 19,
+   "reload": 2.9,
+   "rpm": 210
+  }
  },
  "RE-1861 Parade Commander": {
   "group": "Light",
@@ -1167,7 +2135,17 @@
   "group": "Support Weapons",
   "icon": "/icons/rl-77-airburst-rocket-launcher.svg",
   "img": "/img/rl-77-airburst-rocket-launcher.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 350,
+   "modes": [
+    "Cluster",
+    "Flak"
+   ],
+   "reload": 5.1,
+   "rpm": 16
+  }
  },
  "RS-100 Sanctioner": {
   "group": "Light",
@@ -1185,7 +2163,17 @@
   "group": "Support Weapons",
   "icon": "/icons/rs-422-railgun.svg",
   "img": "/img/rs-422-railgun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 600,
+   "modes": [
+    "Safe",
+    "Unsafe"
+   ],
+   "reload": 1.2,
+   "rpm": 34
+  }
  },
  "RS-6 Fiend Destroyer": {
   "group": "Medium",
@@ -1203,7 +2191,13 @@
   "group": "Support Weapons",
   "icon": "/icons/s-11-speargun.svg",
   "img": "/img/s-11-speargun.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 1,
+   "damage": 25,
+   "reload": 2.5,
+   "rpm": 60
+  }
  },
  "SA-04 Combat Technician": {
   "group": "Medium",
@@ -1247,43 +2241,155 @@
  },
  "SG-20 Halt": {
   "group": "Shotguns",
-  "img": "/img/sg-20-halt.webp"
+  "img": "/img/sg-20-halt.webp",
+  "stats": {
+   "capacity": 8,
+   "damage": 385,
+   "dps": 513,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 120,
+   "rpm": 80
+  }
  },
  "SG-22 Bushwhacker": {
   "group": "Special",
-  "img": "/img/sg-22-bushwhacker.webp"
+  "img": "/img/sg-22-bushwhacker.webp",
+  "stats": {
+   "capacity": 3,
+   "damage": 486,
+   "dps": 1620,
+   "modes": [
+    "Semi",
+    "All Barrel"
+   ],
+   "recoil": 108,
+   "rpm": 650
+  }
  },
  "SG-225 Breaker": {
   "group": "Shotguns",
-  "img": "/img/sg-225-breaker.webp"
+  "img": "/img/sg-225-breaker.webp",
+  "stats": {
+   "capacity": 16,
+   "damage": 396,
+   "dps": 1980,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Semi"
+   ],
+   "recoil": 43,
+   "reload": 2.5,
+   "rpm": 300
+  }
  },
  "SG-225IE Breaker Incendiary": {
   "group": "Shotguns",
-  "img": "/img/sg-225ie-breaker-incendiary.webp"
+  "img": "/img/sg-225ie-breaker-incendiary.webp",
+  "stats": {
+   "capacity": 26,
+   "damage": 240,
+   "dps": 1200,
+   "mags": 4,
+   "modes": [
+    "Burst",
+    "Semi"
+   ],
+   "recoil": 41,
+   "reload": 3,
+   "rpm": 300
+  }
  },
  "SG-225SP Breaker Spray&Pray": {
   "group": "Shotguns",
-  "img": "/img/sg-225sp-breaker-spray-pray.webp"
+  "img": "/img/sg-225sp-breaker-spray-pray.webp",
+  "stats": {
+   "capacity": 26,
+   "damage": 288,
+   "dps": 1584,
+   "mags": 8,
+   "modes": [
+    "Auto",
+    "Semi"
+   ],
+   "recoil": 45,
+   "reload": 3,
+   "rpm": 330
+  }
  },
  "SG-451 Cookout": {
   "group": "Shotguns",
-  "img": "/img/sg-451-cookout.webp"
+  "img": "/img/sg-451-cookout.webp",
+  "stats": {
+   "capacity": 16,
+   "damage": 320,
+   "dps": 426.67,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 100,
+   "rpm": 80
+  }
  },
  "SG-8 Punisher": {
   "group": "Shotguns",
-  "img": "/img/sg-8-punisher.webp"
+  "img": "/img/sg-8-punisher.webp",
+  "stats": {
+   "capacity": 16,
+   "damage": 486,
+   "dps": 647.99,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 83,
+   "rpm": 80
+  }
  },
  "SG-8P Punisher Plasma": {
   "group": "Energy-Based",
-  "img": "/img/sg-8p-punisher-plasma.webp"
+  "img": "/img/sg-8p-punisher-plasma.webp",
+  "stats": {
+   "capacity": 10,
+   "damage": 225,
+   "dps": 299.99,
+   "mags": 8,
+   "modes": [
+    "Semi-automatic"
+   ],
+   "recoil": 78,
+   "reload": 2.5,
+   "rpm": 80
+  }
  },
  "SG-8S Slugger": {
   "group": "Shotguns",
-  "img": "/img/sg-8s-slugger.webp"
+  "img": "/img/sg-8s-slugger.webp",
+  "stats": {
+   "capacity": 16,
+   "damage": 330,
+   "dps": 440,
+   "modes": [
+    "Semi"
+   ],
+   "recoil": 83,
+   "rpm": 80
+  }
  },
  "SG-97 Sweeper": {
   "group": "Shotguns",
-  "img": "/img/sg-97-sweeper.webp"
+  "img": "/img/sg-97-sweeper.webp",
+  "stats": {
+   "capacity": 7,
+   "damage": 504,
+   "dps": 1260,
+   "modes": [
+    "Auto"
+   ],
+   "recoil": 76,
+   "rpm": 150
+  }
  },
  "SH-20 Ballistic Shield Backpack": {
   "group": "Backpacks",
@@ -1302,23 +2408,88 @@
  },
  "SMG-203 Gallant": {
   "group": "Submachine Guns",
-  "img": "/img/smg-203-gallant.webp"
+  "img": "/img/smg-203-gallant.webp",
+  "stats": {
+   "capacity": 50,
+   "damage": 65,
+   "dps": 1495,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 15,
+   "reload": 2.5,
+   "rpm": 1380
+  }
  },
  "SMG-32 Reprimand": {
   "group": "Submachine Guns",
-  "img": "/img/smg-32-reprimand.webp"
+  "img": "/img/smg-32-reprimand.webp",
+  "stats": {
+   "capacity": 25,
+   "damage": 140,
+   "dps": 1143.33,
+   "mags": 9,
+   "modes": [
+    "Auto",
+    "Burst",
+    "Semi"
+   ],
+   "recoil": 32,
+   "reload": 3.55,
+   "rpm": 490
+  }
  },
  "SMG-37 Defender": {
   "group": "Submachine Guns",
-  "img": "/img/smg-37-defender.webp"
+  "img": "/img/smg-37-defender.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 110,
+   "dps": 953.34,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Semi",
+    "Burst"
+   ],
+   "recoil": 9,
+   "reload": 2.8,
+   "rpm": 520
+  }
  },
  "SMG-72 Pummeler": {
   "group": "Submachine Guns",
-  "img": "/img/smg-72-pummeler.webp"
+  "img": "/img/smg-72-pummeler.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 85,
+   "dps": 672.91,
+   "mags": 7,
+   "modes": [
+    "Auto",
+    "Burst",
+    "Semi"
+   ],
+   "recoil": 9,
+   "reload": 2.8,
+   "rpm": 475
+  }
  },
  "SMG/FLAM-34 Stoker": {
   "group": "Submachine Guns",
-  "img": "/img/smg-flam-34-stoker.webp"
+  "img": "/img/smg-flam-34-stoker.webp",
+  "stats": {
+   "capacity": 45,
+   "damage": 130,
+   "dps": 910,
+   "mags": 5,
+   "recoil": 9,
+   "reload": 2.8,
+   "rpm": 420
+  }
  },
  "SR-18 Roadblock": {
   "group": "Heavy",
@@ -1352,17 +2523,55 @@
  },
  "StA-11 SMG": {
   "group": "Submachine Guns",
-  "img": "/img/sta-11-smg.webp"
+  "img": "/img/sta-11-smg.webp",
+  "stats": {
+   "capacity": 48,
+   "damage": 100,
+   "dps": 1750,
+   "mags": 7,
+   "modes": [
+    "Auto"
+   ],
+   "recoil": 11,
+   "reload": 2.6,
+   "rpm": 1050
+  }
  },
  "StA-52 Assault Rifle": {
   "group": "Assault Rifles",
-  "img": "/img/sta-52-assault-rifle.webp"
+  "img": "/img/sta-52-assault-rifle.webp",
+  "stats": {
+   "capacity": 56,
+   "damage": 90,
+   "dps": 1185,
+   "mags": 6,
+   "modes": [
+    "Auto",
+    "Semi"
+   ],
+   "recoil": 14,
+   "reload": 4.2,
+   "rpm": 790
+  }
  },
  "StA-X3 W.A.S.P. Launcher": {
   "group": "Support Weapons",
   "icon": "/icons/sta-x3-w-a-s-p-launcher.svg",
   "img": "/img/sta-x3-w-a-s-p-launcher.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 7,
+   "damage": 600,
+   "dps": 6666.66,
+   "mags": 5,
+   "modes": [
+    "Burst",
+    "Artillery"
+   ],
+   "recoil": 6,
+   "reload": 4.9,
+   "rpm": 500
+  }
  },
  "Stamina Enhancement": {
   "img": "/img/stamina-enhancement.svg"
@@ -1385,7 +2594,11 @@
  },
  "TED-63 Dynamite": {
   "group": "Standard",
-  "img": "/img/ted-63-dynamite.webp"
+  "img": "/img/ted-63-dynamite.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 1000
+  }
  },
  "TG-122 Demo-Trooper": {
   "group": "Heavy",
@@ -1397,7 +2610,11 @@
  },
  "TM-1 Lure Mine": {
   "group": "Special",
-  "img": "/img/tm-1-lure-mine.webp"
+  "img": "/img/tm-1-lure-mine.webp",
+  "stats": {
+   "capacity": 4,
+   "damage": 1000
+  }
  },
  "TR-117 Alpha Commander": {
   "group": "Medium",
@@ -1423,7 +2640,12 @@
   "group": "Support Weapons",
   "icon": "/icons/tx-41-sterilizer.svg",
   "img": "/img/tx-41-sterilizer.webp",
-  "permit": "Supply"
+  "permit": "Supply",
+  "stats": {
+   "capacity": 100,
+   "damage": 30,
+   "reload": 4
+  }
  },
  "UAV Recon Booster": {
   "img": "/img/uav-recon-booster.svg"
@@ -1442,7 +2664,21 @@
  },
  "VG-70 Variable": {
   "group": "Special",
-  "img": "/img/vg-70-variable.webp"
+  "img": "/img/vg-70-variable.webp",
+  "stats": {
+   "capacity": 49,
+   "damage": 85,
+   "dps": 425,
+   "mags": 7,
+   "modes": [
+    "Total",
+    "Volley",
+    "Auto"
+   ],
+   "recoil": 7,
+   "reload": 3.58,
+   "rpm": 300
+  }
  },
  "Vitality Enhancement": {
   "img": "/img/vitality-enhancement.svg"
