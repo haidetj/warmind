@@ -276,9 +276,28 @@ def slug(name: str) -> str:
 IMAGES = ROOT / "app" / "static" / "img"
 
 
-def _fetch_files(want: dict, dest_dir: pathlib.Path, url_prefix: str, width: int) -> dict:
+def _trim_webp(data: bytes, box: int) -> bytes | None:
+    """Crop a render's transparent margins, fit it in box x box, re-encode as WebP.
+    Weapons sit small in the wiki's square thumbnails; trimmed they fill a tile."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return None
+    import io
+    im = Image.open(io.BytesIO(data)).convert("RGBA")
+    bb = im.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
+    if bb:
+        im = im.crop(bb)
+    im.thumbnail((box, box), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, "WEBP", quality=80, method=6)
+    return buf.getvalue()
+
+
+def _fetch_files(want: dict, dest_dir: pathlib.Path, url_prefix: str, width: int, trim: bool = False) -> dict:
     """want: {item name: wiki file name}. Resolves each file (a width-px thumbnail for
-    raster files; SVGs come back as originals), downloads it, returns {item: url path}."""
+    raster files; SVGs come back as originals), downloads it, returns {item: url path}.
+    trim: crop transparent margins and store as WebP (needs Pillow; PNG otherwise)."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     files = sorted(set(want.values()))
     urls = {}
@@ -306,6 +325,10 @@ def _fetch_files(want: dict, dest_dir: pathlib.Path, url_prefix: str, width: int
                 data = r.read()
             ok = (data[:4] == b"\x89PNG" or data[:3] == b"\xff\xd8\xff" or data[8:12] == b"WEBP"
                   or (ext == ".svg" and b"<svg" in data[:2000] and b"<script" not in data.lower()))
+            if ok and trim and ext != ".svg":
+                small = _trim_webp(data, width)
+                if small:
+                    data, dest = small, dest.with_suffix(".webp")
             if ok:
                 dest.write_bytes(data)
                 out[name] = url_prefix + dest.name
@@ -345,8 +368,12 @@ def armory() -> dict:
             out[rec["name"]] = e
     for name, path in _fetch_files(want_icons, ICONS, "/icons/", 64).items():
         out[name]["icon"] = path
-    for name, path in _fetch_files(want_imgs, IMAGES, "/img/", 200).items():
+    for name, path in _fetch_files(want_imgs, IMAGES, "/img/", 300, trim=True).items():
         out[name]["img"] = path
+    keep = {v["img"].rsplit("/", 1)[-1] for v in out.values() if v.get("img")}
+    for f in IMAGES.glob("*"):  # pictures of items we no longer have, or older formats
+        if f.name not in keep:
+            f.unlink()
     n_icons = sum(1 for v in out.values() if v.get("icon"))
     n_imgs = sum(1 for v in out.values() if v.get("img"))
     size = sum(f.stat().st_size for f in IMAGES.glob("*")) // 1024
