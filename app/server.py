@@ -23,6 +23,7 @@ import pathlib
 import budget
 import db
 import vision
+import war
 from warmind import coverage, kitrules, loader, oaths, passives, stats
 from warmind.resolve import Player, Session, resolve_squad
 
@@ -286,6 +287,12 @@ def meta():
             "vision": vision.status()}
 
 
+@app.get("/api/war")
+def war_feed():
+    """Active planets + Major Orders from the community war API (cached; no model calls)."""
+    return JSONResponse(war.snapshot(), headers={"Cache-Control": "public, max-age=60"})
+
+
 # ---------------------------------------------------------------- lobby lifecycle
 @app.post("/api/lobby")
 def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4)):
@@ -369,6 +376,8 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
         m["mode"] = "improvement"
     if m.get("oath") not in oaths.OATHS:
         m["oath"] = None
+    m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
+    m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     db.set_mission(lid, m)
     if lobby.get("briefed"):  # a new mission regenerates the whole squad, late joiners included
         db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
@@ -600,6 +609,18 @@ def icon(name: str):
                                  "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
 
 
+@app.get("/img/{name}")
+def picture(name: str):
+    """Weapon / armour renders and booster icons (from the Helldivers 2 wiki — see the field manual)."""
+    m = re.fullmatch(r"[a-z0-9-]+\.(png|webp|jpg|svg)", name)
+    f = HERE / "static" / "img" / name
+    if not m or not f.exists():
+        raise HTTPException(404, "no such picture")
+    mt = {"png": "image/png", "webp": "image/webp", "jpg": "image/jpeg", "svg": "image/svg+xml"}[m.group(1)]
+    return FileResponse(f, media_type=mt, headers={"Cache-Control": "public, max-age=604800",
+                                                   "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
+
+
 @app.get("/health")
 def health():
-    return {"ok": True, "vision": vision.status(), "budget": budget.status()}
+    return {"ok": True, "vision": vision.status(), "budget": budget.status(), "war": war.status()}

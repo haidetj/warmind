@@ -1,12 +1,13 @@
 name: war-probe
 
-# One-off look at the community Helldivers 2 API (what the companion apps use):
-# current war, Major Orders, active campaigns, planet hazards. Read-only.
+# Runs WARMIND's war feed parser (app/war.py) against the live community
+# Helldivers 2 API (what the companion apps use): Major Orders, active
+# campaigns, planet hazards. Read-only; on demand or when the parser changes.
 
 on:
   workflow_dispatch:
   push:
-    paths: [".github/workflows/war-probe.yml"]
+    paths: [".github/workflows/war-probe.yml", "app/war.py"]
 
 permissions:
   contents: read
@@ -15,19 +16,27 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe api.helldivers2.dev
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install --quiet pyyaml
+      - name: Parse the live war feed
+        working-directory: app
         run: |
-          H1="X-Super-Client: warmind (github.com/haidetj/warmind)"
-          H2="X-Super-Contact: github.com/haidetj/warmind/issues"
-          for ep in war assignments campaigns; do
-            echo "=================== /api/v1/$ep"
-            curl -s -w "\nHTTP %{http_code}\n" -H "$H1" -H "$H2" "https://api.helldivers2.dev/api/v1/$ep" -o /tmp/$ep.json; cat /tmp/$ep.json | head -c 2500; echo
-          done
-          echo "=================== campaign planet sample (first 2)"
           python3 - <<'PY'
-          import json
-          c = json.load(open("/tmp/campaigns.json"))
-          print(type(c), len(c) if isinstance(c, list) else "")
-          for x in (c[:2] if isinstance(c, list) else []):
-              print(json.dumps(x, indent=1)[:2500])
+          import json, war
+          w = war.snapshot()
+          print("ok:", w["ok"], "| error:", w.get("error"))
+          print("orders:", json.dumps(w["orders"], indent=1)[:3000])
+          print("planets:", len(w["planets"]))
+          for p in w["planets"][:40]:
+              print(f'  {"*" if p["mo"] else " "} {p["name"]:<16} {p["enemy"]:<11} def={p["defense"]!s:<5} '
+                    f'players={p["players"]:<6} lib={p["progress"]}% city={p["city"]} hz={p["hazards"]} raw={p["hazard_names"]}')
+          unmapped = sorted({n for p in w["planets"] for n in p["hazard_names"]} - {n for p in w["planets"] for n, _ in []})
+          import re
+          from warmind import loader
+          ours = {re.sub(r"[^a-z]", "", h["display_name"].lower()) for h in loader.hazards().values()}
+          miss = sorted({n for p in w["planets"] for n in p["hazard_names"] if re.sub(r"[^a-z]", "", n.lower()).rstrip("s") not in {o.rstrip("s") for o in ours}})
+          print("hazard names with no WARMIND mapping:", miss)
+          assert w["ok"], "war feed failed"
           PY

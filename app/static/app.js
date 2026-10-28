@@ -76,6 +76,71 @@
   const jpost = (path, body, token) => api(path, { method: "POST", headers: Object.assign({ "content-type": "application/json" }, token ? { "x-token": token } : {}), body: JSON.stringify(body) });
   const fdpost = (path, fd, token) => api(path, { method: "POST", headers: token ? { "x-token": token } : {}, body: fd });
 
+  // ======================================================================= galactic war (community API, cached server-side)
+  let WAR = null, warAt = 0, warP = null, moOpen = false;
+  function loadWar() {
+    if (warP && Date.now() - warAt < 120000) return warP;
+    warAt = Date.now();
+    warP = api("/api/war").then(w => (WAR = w && w.ok ? w : null), () => (WAR = null));
+    return warP;
+  }
+  function timeLeft(iso) {
+    const ms = Date.parse(iso) - Date.now();
+    if (!(ms > 0)) return "";
+    const h = Math.floor(ms / 3600000);
+    return h >= 48 ? t("war.days", { n: Math.floor(h / 24) }) : t("war.hours", { n: Math.max(1, h) });
+  }
+  function moPct(o) {
+    const ts = o.tasks || [];
+    if (ts.length === 1 && ts[0].goal) return ts[0].pct;
+    return Math.round(100 * ts.filter(x => x.done || x.pct >= 100).length / Math.max(1, ts.length));
+  }
+  const meter = pct => el("div", { class: "meter", role: "img", "aria-label": pct + "%" }, [el("i", { style: "width:" + Math.max(0, Math.min(100, pct || 0)) + "%" })]);
+  // The current Major Order as a fold: one line closed, briefing + tasks open.
+  function moStrip(o) {
+    const pct = moPct(o), left = timeLeft(o.expires);
+    const d = el("details", { class: "mo", open: moOpen ? true : null });
+    d.addEventListener("toggle", () => { moOpen = d.open; });
+    d.appendChild(el("summary", {}, [
+      el("span", { class: "mok" }, ["★ " + t("war.mo")]),
+      el("span", { class: "mot" }, [o.title]),
+      left ? el("span", { class: "mol" }, [left]) : null,
+      el("span", { class: "mop" }, [pct + "%"]),
+    ]));
+    const mp = ((WAR && WAR.planets) || []).filter(p => p.mo).map(p => p.name);
+    d.appendChild(el("div", { class: "mob" }, [
+      meter(pct),
+      o.briefing ? el("p", {}, [o.briefing]) : null,
+      el("ol", { class: "motasks" }, (o.tasks || []).map(x => el("li", { class: x.done || x.pct >= 100 ? "done" : null },
+        x.goal ? [nf(x.got) + " / " + nf(x.goal) + " (" + x.pct + "%)"] : [x.done ? "✓ " + t("war.task.done") : t("war.task.open")]))),
+      mp.length ? el("div", { class: "hint", style: "margin:0" }, [t("war.mo.planets") + ": " + mp.join(" · ")]) : null,
+      el("div", { class: "hint", style: "margin:0" }, [t("war.source") + (WAR && WAR.stale ? " · " + t("war.stale") : "")]),
+    ]));
+    return d;
+  }
+  function planetLabel(p) {
+    return (p.mo ? "★ " : "") + p.name + " · " + t("faction." + p.enemy) + (p.defense ? " · " + t("war.defense") : "") +
+      " · " + t("war.divers", { n: nf(p.players) });
+  }
+  function warPanel() {
+    const body = el("div", { class: "stack", style: "gap:10px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+    const card = panel("SYS-00", t("war.title"), { status: t("war.live"), statusKind: "ok" }, [body]);
+    loadWar().then(w => {
+      if (!w || (!w.orders.length && !w.planets.length)) { card.remove(); return; }
+      body.innerHTML = "";
+      w.orders.forEach(o => body.appendChild(moStrip(o)));
+      const top = w.planets.slice(0, 8);
+      if (top.length) body.appendChild(el("div", { class: "fronts" }, [el("span", { class: "label" }, [t("war.fronts")])].concat(top.map(p =>
+        el("div", { class: "front f-" + p.enemy }, [
+          el("div", { class: "fn" }, [(p.mo ? "★ " : "") + p.name, el("span", { class: "fs" }, [[t("faction." + p.enemy), p.defense ? t("war.defense") : null, p.biome].filter(Boolean).join(" · ")])]),
+          el("div", { class: "fp" }, [t("war.divers", { n: nf(p.players) })]),
+          p.progress != null ? meter(p.progress) : null,
+          p.hazard_names.length ? el("div", { class: "fh" }, [p.hazard_names.join(" · ")]) : null,
+        ])))));
+    });
+    return card;
+  }
+
   // ======================================================================= feedback
   let toastT;
   function toast(m) { const n = $("#toast"); n.textContent = m; n.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => n.classList.remove("show"), 2600); }
@@ -150,6 +215,7 @@
     META = await api("/api/meta");
     if (!LID) return renderHome();
     startPolling();
+    loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
   })().catch(e => { app.innerHTML = ""; app.appendChild(el("div", { class: "alert red" }, [el("b", {}, ["ERR"]), t("err.start", { msg: e.message })])); });
 
   // ======================================================================= home
@@ -192,6 +258,7 @@
     ]));
     app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
       el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
+    app.appendChild(warPanel());
     const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     app.appendChild(fmFold);
@@ -460,6 +527,7 @@
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
         el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
+      WAR && WAR.orders.length ? moStrip(WAR.orders[0]) : null,
     ]);
   }
 
@@ -767,6 +835,7 @@
     const mods = (m.operation_modifiers || []).map(x => t("mod." + x)).concat(m.is_city_map ? [t("mod.__city")] : []);
     R.misReadout.appendChild(el("div", { class: "readout" }, [
       ro(t("mis.mission"), mm ? mm.name : m.mission_id, "wide"),
+      m.planet_name ? ro(t("mis.planet"), m.planet_name, "wide") : null,
       ro(t("mis.faction"), t("faction." + m.faction)),
       ro(t("mis.difficulty"), "D" + m.difficulty + (Number(m.difficulty) === 10 ? " · " + t("mis.super") : "")),
       ro(t("mis.mode"), t("mode." + m.mode), m.mode === "d100" ? "d100" : ""),
@@ -794,6 +863,28 @@
       modes.appendChild(b);
     });
     body.appendChild(el("div", { class: "blk", style: "margin-top:4px" }, [el("span", { class: "label" }, [t("mis.mode")]), modes, el("div", { class: "hint" }, [t("mis.d100.hint")])]));
+
+    // planet from the live war: fills faction + hazards (optional)
+    const planetSel = el("select", { id: "m-planet" }, [el("option", { value: "" }, [t("war.pick.none")])]);
+    const planetInfo = el("div", { class: "hint" }, [t("war.pick.hint")]);
+    const planetBlk = el("div", { class: "blk field", style: "display:none" }, [el("label", { class: "label", for: "m-planet" }, ["★ " + t("war.pick")]), planetSel, planetInfo]);
+    body.appendChild(planetBlk);
+    let paintHaz = () => {};
+    loadWar().then(w => {
+      if (!w || !w.planets.length) return;
+      w.planets.forEach(p => planetSel.appendChild(el("option", { value: String(p.index) }, [planetLabel(p)])));
+      const cur = w.planets.find(p => p.name === draft.planet_name);
+      if (cur) planetSel.value = String(cur.index);
+      planetBlk.style.display = "";
+    });
+    planetSel.onchange = () => {
+      const p = ((WAR && WAR.planets) || []).find(x => String(x.index) === planetSel.value);
+      if (!p) { draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); return; }
+      draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
+      draft.planet_hazards = p.hazards.slice();
+      paintHaz(); fillMissions(); fillTacticals();
+      planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null].filter(Boolean).join(" · ");
+    };
 
     // faction / difficulty / mission
     const facSel = el("select", { id: "m-fac" }, ["automatons", "terminids", "illuminate"].map(f => el("option", { value: f }, [t("faction." + f)])));
@@ -837,10 +928,11 @@
     const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };
     const haz = el("div", { class: "chips" });
     (META.hazards || []).forEach(h => {
-      const c = el("button", { type: "button", class: "chip", "aria-pressed": String(draft.planet_hazards.indexOf(h.id) >= 0) }, [h.name]);
+      const c = el("button", { type: "button", class: "chip", "data-id": h.id, "aria-pressed": String(draft.planet_hazards.indexOf(h.id) >= 0) }, [h.name]);
       c.onclick = () => toggle(draft.planet_hazards, h.id, c);
       haz.appendChild(c);
     });
+    paintHaz = () => haz.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(draft.planet_hazards.indexOf(c.dataset.id) >= 0)));
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.hazards.label")]), haz]));
     const tac = el("div", { class: "chips" });
     fillTacticals = () => {
@@ -1034,14 +1126,58 @@
   }
 
   // ----------------------------------------------------------------- 04: debrief
-  function verdictBlock(v) {
+  // Medal card: a 1200x630 image (previews well in Discord) drawn on a canvas, then the
+  // system share sheet (phones: Discord, Messages…). Falls back to text+link sharing, then
+  // to downloading the card and copying the text.
+  async function shareMedal(v, mname, callsign) {
+    const mission = STATE.mission || {}, mm = meta(mission.mission_id);
+    const text = t("share.text", { medal: mname, callsign: callsign, oath: t("oath." + v.oath + ".name"), id: v.medal.id,
+                                   mission: mm ? mm.name : "" });
+    const url = location.origin + "/?l=" + LID;
+    try { await document.fonts.ready; } catch (e) {}
+    const W = 1200, H = 630, c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    g.fillStyle = "#04070b"; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "rgba(62,230,255,.07)"; g.lineWidth = 1;                       // bunker grid
+    for (let x = 0; x < W; x += 40) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+    for (let y = 0; y < H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    const rg = g.createRadialGradient(300, 315, 10, 300, 315, 330); rg.addColorStop(0, "rgba(255,194,58,.28)"); rg.addColorStop(1, "rgba(255,194,58,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "#ffc23a"; g.lineWidth = 6; g.shadowColor = "#ffc23a"; g.shadowBlur = 24;   // medal hex
+    g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; g.lineTo(300 + 150 * Math.cos(a), 315 + 150 * Math.sin(a)); } g.closePath(); g.stroke();
+    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ffc23a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
+    g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
+    const fit = (txt, font, max) => { let sz = font; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; while (g.measureText(txt).width > max && sz > 22) { sz -= 2; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; } };
+    g.fillStyle = "#3ee6ff"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
+    g.fillStyle = "#ffffff"; fit(mname.toUpperCase(), 58, 650); g.fillText(mname.toUpperCase(), 500, 222);
+    g.fillStyle = "#ffc23a"; fit(callsign, 44, 650); g.fillText(callsign, 500, 290);
+    g.fillStyle = "#9fb3c2"; g.font = "400 26px 'JetBrains Mono', monospace";
+    g.fillText(t("oath." + v.oath + ".name") + " · " + (mm ? mm.name : ""), 500, 345);
+    g.fillText((STATE.name || "Squad") + (mission.difficulty ? " · D" + mission.difficulty : ""), 500, 385);
+    g.fillStyle = "#4dffa1"; g.font = "500 24px 'JetBrains Mono', monospace"; g.fillText("ID " + v.medal.id, 500, 450);
+    g.fillStyle = "#3ee6ff"; g.font = "700 34px 'Chakra Petch', sans-serif"; g.fillText("WARMIND", 500, 560);
+    g.fillStyle = "#5d7383"; g.font = "400 18px 'JetBrains Mono', monospace"; g.fillText(location.host, 680, 558);
+    const blob = await new Promise(r => c.toBlob(r, "image/png"));
+    const file = blob && new File([blob], "warmind-medal-" + v.medal.id + ".png", { type: "image/png" });
+    try {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: mname, text: text + " " + url }); return; }
+      if (navigator.share) { await navigator.share({ title: mname, text: text, url: url }); return; }
+    } catch (e) { if (e && e.name === "AbortError") return; }   // the diver closed the share sheet
+    if (blob) { const a = el("a", { href: URL.createObjectURL(blob), download: file.name }); document.body.appendChild(a); a.click(); a.remove(); }
+    copy(text + " " + url, t("share.copied"));
+  }
+
+  function verdictBlock(v, callsign) {
     if (!v) return null;
     const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
     if (v.passed === true && v.medal) {
       const base = t("oath." + v.oath + ".medal"), mname = v.medal.d100 ? t("medal.d100", { name: base }) : base;
+      const shareBtn = el("button", { class: "btn sm share", type: "button" }, ["⇪ " + t("share.btn")]);
+      shareBtn.onclick = () => shareMedal(v, mname, callsign || "");
       return el("div", { class: "medal" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["★"]), el("div", {}, [
         el("div", { class: "mn" }, [mname]), el("div", { class: "mid" }, [t("deb.medal", { id: v.medal.id })]),
-        el("div", { class: "mw" }, [t("deb.kept", { name: name, reason: reason })])])]);
+        el("div", { class: "mw" }, [t("deb.kept", { name: name, reason: reason })]),
+        el("div", { class: "btnrow", style: "margin:8px 0 0" }, [shareBtn])])]);
     }
     if (v.passed === false) return el("div", { class: "broken" }, [el("div", { class: "bt" }, [t("deb.broken", { name: name })]), el("div", { class: "bw" }, [reason])]);
     return el("div", { class: "unver" }, [t("deb.unver", { reason: reason })]);
@@ -1091,7 +1227,7 @@
         }
       }
       else {
-        const vb = verdictBlock(aar.verdict); if (vb) inner.push(vb);
+        const vb = verdictBlock(aar.verdict, p.callsign); if (vb) inner.push(vb);
         const r = aar.result || {};
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
