@@ -178,6 +178,8 @@ def _resolve(lobby) -> dict:
             "id": p["id"], "callsign": p["callsign"], "accent": ACCENTS[i % len(ACCENTS)],
             "play_style": p["play_style"], "style_source": p["style_source"],
             "style_note": p["style_note"], "style_note_i18n": _style_phrase(p, snap), "has_stats": bool(snap),
+            # what the stat read itself says (also for remembered reads), for "why this kit"
+            "style_read": ({"style": stats.classify(snap)[0], **stats.classify_phrase(snap)} if snap else None),
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
             "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
             "confidence": _conf_of(p),       # which read fields were double-read-verified
@@ -240,6 +242,7 @@ def _assignment_dict(a):
         "booster": a.booster, "stratagems": a.stratagems, "growth_slot": a.growth_slot,
         "thin": a.thin, "thin_axes": [_AXIS_CODE.get(t, t) for t in a.thin],
         "rationale": a.rationale, "rationale_parts": a.rationale_parts,
+        "why": a.why,   # "why this kit": [{"kind", "k", "p"}], translated on the client
     }
 
 

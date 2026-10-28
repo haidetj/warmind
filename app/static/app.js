@@ -1260,6 +1260,32 @@
     ]);
   }
 
+  // "Why this kit": one line per decision — the stat read behind the play style, the role,
+  // what the mission asks for, why the weapons (mission tags, the support weapon they cover
+  // for, accuracy), what the stratagems bring, why the armour.
+  const WHY_ICON = { stats: "◉", role: "◆", mission: "◎", handling: "⌖", weapon: "▸", strats: "✦", armor: "⛨",
+                     growth: "↗", thin: "⚠", nostats: "ⓘ", reroll: "⟳" };
+  function whyLine(w) {
+    const p = Object.assign({}, w.p || {});
+    if (w.k.indexOf("why.") !== 0) return tp(w, "");
+    if (p.style) p.style = styleLabel(p.style);
+    if (p.mode) p.mode = t("mode." + p.mode);
+    if (Array.isArray(p.tags)) p.tags = p.tags.map(x => x.tag.replace(/_/g, " ") + (x.src ? " (" + x.src + ")" : "")).join(", ");
+    if (Array.isArray(p.axes)) p.axes = p.axes.map(x => t("axis." + x)).join(", ");
+    return t(w.k, p);
+  }
+  function whyKit(p, a) {
+    const rows = [];
+    const read = p.style_read;
+    if (read && read.style === p.play_style && has(read.k)) rows.push(["stats", t("why.stats", { style: styleLabel(p.play_style), read: tp(read, "") })]);
+    else if (p.style_source === "manual") rows.push(["stats", t("why.stats.chosen", { style: styleLabel(p.play_style) })]);
+    a.why.forEach(w => { const line = whyLine(w); if (line) rows.push([w.kind, line]); });
+    return el("div", { class: "whykit" }, [
+      el("div", { class: "wk-h" }, [t("why.title")]),
+      el("ul", {}, rows.map(([k, line]) => el("li", { class: "w-" + k }, [el("span", { class: "ic", "aria-hidden": "true" }, [WHY_ICON[k] || "•"]), el("span", {}, [line])]))),
+    ]);
+  }
+
   function diverCard(p, mine, provisional) {
     const a = p.assignment;
     const card = el("article", { class: "dcard" + (mine ? " me" : "") }); card.style.setProperty("--acc", p.accent);
@@ -1292,8 +1318,8 @@
     }
     const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
     if (thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: thin.join(", ") })]));
-    const why = a.rationale_parts && a.rationale_parts.length ? a.rationale_parts.map(x => tp(x, "")).filter(Boolean).join(" ") : "";
-    card.appendChild(el("div", { class: "why" }, [why || a.rationale]));
+    card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
+      (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
     return card;
   }
 

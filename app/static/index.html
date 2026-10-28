@@ -441,6 +441,14 @@ ul.review .tx .tag{margin-left:6px}
 }
 @media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .medal .share{border-color:var(--amber);color:var(--amber)}
+/* why this kit */
+.whykit{margin:4px 16px 14px 18px;padding:10px 12px;border:1px solid var(--line);border-left:2px solid var(--acc,var(--cyan));background:rgba(2,5,8,.55)}
+.whykit .wk-h{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--acc,var(--cyan));margin-bottom:6px}
+.whykit ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.whykit li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+.whykit .ic{color:var(--acc,var(--cyan));text-align:center}
+.whykit li.w-thin .ic{color:var(--red)} .whykit li.w-growth .ic,.whykit li.w-handling .ic{color:var(--amber)}
+.whykit li.w-nostats,.whykit li.w-reroll{color:var(--muted);font-size:11.5px}
 /* gear filter: a button + summary line, and a modal that filters live */
 .filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 4px}
 .filterbar .fsum{flex:1 1 160px;min-width:0;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
