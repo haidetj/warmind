@@ -650,8 +650,8 @@ def _notes(session, p):
         for i, t in enumerate(D100_ORDERS, 1):
             add(f"d100.{i}", t)
     if OP_PLOTTING in session.operation_modifiers:
-        add("note.plotting", "Complex Stratagem Plotting: every call is 2–4s standing still. Only the "
-                             "reactive diver calls under fire; everyone else plots from inside the relay.")
+        add("note.plotting2", "Complex Stratagem Plotting: every call-in is 50% longer, extraction included. Only "
+                              "the reactive diver calls under fire; everyone else calls from cover, and start extraction early.")
     if OP_POOR_INTEL in session.operation_modifiers:
         add("note.poor_intel", "Poor Intel: the Forward Eye works a beat ahead so objectives are found "
                                "without the squad searching as four.")

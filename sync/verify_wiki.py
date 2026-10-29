@@ -467,6 +467,19 @@ if __name__ == "__main__":
         data = effects()
         out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
         print(f"wrote {len(data['pages'])} effect pages; categories: { {k: len(v) for k, v in data['categories'].items()} }")
+        # anything the wiki lists that WARMIND doesn't model gets a visible warning
+        import yaml
+        ours = {norm(m["display_name"]) for m in yaml.safe_load((ROOT / "app/warmind/data/operation_modifiers.yaml").read_text())}
+        live = [n for n in data["categories"].get("Operation Modifiers", [])
+                if "Removed Operation Modifiers" not in data["pages"].get(n, "")]
+        for n in live:
+            if norm(n.replace(" and ", " & ")) not in ours and norm(n) not in ours:
+                print(f"::warning::operation modifier on the wiki but not in operation_modifiers.yaml: {n}")
+        haz = {norm(h["display_name"]).rstrip("s") for h in loader.hazards().values()}
+        conditions = re.sub(r"<!--.*?-->", "", data["pages"].get("Environmental Conditions", ""), flags=re.S)
+        for n in re.findall(r"^\|\s*(?:\[\[(?:[^|\]]*\|)?)?([A-Z][A-Za-z ]+?)(?:\]\])?\s*$", conditions, re.M):
+            if norm(n).rstrip("s") not in haz and norm(n).replace("tornados", "tornadoes").rstrip("s") not in haz:
+                print(f"::warning::environmental condition on the wiki but not in hazards.yaml: {n}")
         sys.exit(0)
     if "--discover" in sys.argv:
         i = sys.argv.index("--discover")

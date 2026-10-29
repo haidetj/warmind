@@ -447,6 +447,7 @@ window.WM_I18N = {
       "rat.handling.forgiving": "{weapon} is forgiving (steady, deep magazine), so {acc}% career accuracy still lands hits.",
       "rat.handling.precise": "{weapon} rewards precision, and {acc}% career accuracy is precise.",
       "mod.__stealth": "Stealth run",
+      "note.plotting2": "Complex Stratagem Plotting: every call-in is 50% longer, extraction included. Only the reactive diver calls under fire; everyone else calls from cover, and start extraction early.",
       "mis.stealth.hint": "Stealth run: the whole squad goes quiet. Suppressed weapons, Scout armour and smoke over sentries and emplacements.",
       "note.stealth": "Stealth run: move as a group, go around patrols, kill flares and callers first, and save strikes for objectives. One loud diver breaks it for everyone.",
       "gf.unsaved": "● {n} unsaved changes",
