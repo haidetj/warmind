@@ -51,9 +51,11 @@ def compose(
     planet_hazards: list[str] | None = None,
     mission_id: str | None = None,
     tactical_ids: list[str] | None = None,
+    op_modifiers: list[str] | None = None,
 ) -> Pressure:
     planet_hazards = planet_hazards or []
     tactical_ids = tactical_ids or []
+    op_modifiers = op_modifiers or []
 
     vec: dict[str, float] = defaultdict(float)
     contrib: dict[str, list[tuple[str, float]]] = defaultdict(list)
@@ -83,6 +85,13 @@ def compose(
                 rec = situation.get(tag)
                 if rec:
                     apply(rec.get("modifiers"), _sit_label(tag))
+
+    # --- operation modifiers (Roving Shriekers, Gunship Patrols, ...): the whole operation ---
+    opmods = loader.operation_modifiers()
+    for mid in op_modifiers:
+        rec = opmods.get(mid)
+        if rec:
+            apply(rec.get("modifiers"), rec.get("display_name", mid))
 
     # --- tactical overlay (runtime, only known once the map generates) ---
     for tid in tactical_ids:

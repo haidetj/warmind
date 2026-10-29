@@ -340,7 +340,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     situation_tags = None
     if session.is_city_map:
         situation_tags = ["urban"]
-    p = pressure_mod.compose(session.planet_hazards, session.mission_id, session.tactical_objectives)
+    p = pressure_mod.compose(session.planet_hazards, session.mission_id, session.tactical_objectives,
+                             op_modifiers=session.operation_modifiers)
     if situation_tags:
         extra = pressure_mod.compose(tactical_ids=[]).vector  # noop to keep shape
         urban = pressure_mod.loader.mission_tag_modifiers().get("urban", {}).get("modifiers", {})
@@ -654,6 +655,11 @@ def _notes(session, p):
     if OP_POOR_INTEL in session.operation_modifiers:
         add("note.poor_intel", "Poor Intel: the Forward Eye works a beat ahead so objectives are found "
                                "without the squad searching as four.")
+    opmods = pressure_mod.loader.operation_modifiers()
+    for mid in session.operation_modifiers:   # data-driven field notes for the rest
+        rec = opmods.get(mid)
+        if rec and rec.get("note") and mid not in (OP_PLOTTING, OP_POOR_INTEL):
+            add(f"opmod.{mid}.note", f"{rec['display_name']}: {rec['note']}")
     if session.stealth:
         add("note.stealth", "Stealth run: move as a group, go around patrols, kill flares and callers first, "
                             "and save strikes for objectives. One loud diver breaks it for everyone.")

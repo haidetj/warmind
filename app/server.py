@@ -300,6 +300,9 @@ def meta():
         for m in loader.missions().values()
     ]
     hazards = [{"id": k, "name": v["display_name"]} for k, v in loader.hazards().items()]
+    op_mods = [{"id": m["id"], "name": m["display_name"], "faction": m.get("faction", "any"),
+                "dmin": m.get("difficulty_min", 1), "desc": m.get("description", "")}
+               for m in loader.operation_modifiers().values()]
     tacticals = [{"id": t["id"], "name": t["display_name"], "faction": t.get("faction", "any"),
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
                  for t in loader.tactical_objectives().values()]
@@ -310,6 +313,7 @@ def meta():
     return {"missions": sorted(missions, key=lambda x: x["name"]),
             "hazards": sorted(hazards, key=lambda x: x["name"]),
             "tacticals": sorted(tacticals, key=lambda x: x["name"]),
+            "op_modifiers": sorted(op_mods, key=lambda x: x["name"]),
             "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
             "warbonds": loader.warbond_catalog()["warbonds"],
             "oaths": oaths.catalog(),
@@ -412,6 +416,8 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     if m.get("oath") not in oaths.OATHS:
         m["oath"] = None
     m["stealth"] = bool(m.get("stealth"))
+    known = loader.operation_modifiers()
+    m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:4]
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     db.set_mission(lid, m)

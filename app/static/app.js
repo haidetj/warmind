@@ -999,7 +999,7 @@
     const mm = meta(m.mission_id);
     const ro = (k, v, cls) => el("div", { class: "ro " + (cls || "") }, [el("div", { class: "k" }, [k]), el("div", { class: "v" }, [v])]);
     const oath = m.oath ? t("oath." + m.oath + ".name") : t("common.none");
-    const mods = (m.operation_modifiers || []).map(x => t("mod." + x)).concat(m.is_city_map ? [t("mod.__city")] : [])
+    const mods = (m.operation_modifiers || []).map(x => has("mod." + x) ? t("mod." + x) : ((META.op_modifiers || []).find(o => o.id === x) || { name: x }).name).concat(m.is_city_map ? [t("mod.__city")] : [])
       .concat(m.stealth ? [t("mod.__stealth")] : []);
     R.misReadout.appendChild(el("div", { class: "readout" }, [
       ro(t("mis.mission"), mm ? mm.name : m.mission_id, "wide"),
@@ -1050,7 +1050,7 @@
       if (!p) { draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); return; }
       draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
       draft.planet_hazards = p.hazards.slice();
-      paintHaz(); fillMissions(); fillTacticals();
+      paintHaz(); fillMissions(); fillTacticals(); fillOps();
       planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null].filter(Boolean).join(" · ");
     };
 
@@ -1070,11 +1070,11 @@
     fillMissions();
     let fillTacticals = () => {};
     facSel.onchange = () => {
-      draft.faction = facSel.value; fillMissions(); fillTacticals();
+      draft.faction = facSel.value; fillMissions(); fillTacticals(); fillOps();
       const p = ((WAR && WAR.planets) || []).find(x => String(x.index) === planetSel.value);
       if (p && p.enemy !== facSel.value) { planetSel.value = ""; draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); }   // that planet isn't this enemy's
     };
-    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); };
+    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); fillOps(); };
     misSel.onchange = () => { draft.mission_id = misSel.value; };
     body.appendChild(el("div", { class: "blk grid2" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "m-fac" }, [t("mis.faction")]), facSel]),
@@ -1082,20 +1082,39 @@
       el("div", { class: "field", style: "grid-column:1/-1" }, [el("label", { class: "label", for: "m-mis" }, [t("mis.mission")]), misSel]),
     ]));
 
-    // modifiers
-    const ops = el("div", { class: "chips" });
-    ["complex_stratagem_plotting", "poor_intel", "__city", "__stealth"].forEach(id => {
-      const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
-      const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on) }, [t("mod." + id)]);
-      c.onclick = () => {
-        if (id === "__city") draft.is_city_map = !draft.is_city_map;
-        else if (id === "__stealth") draft.stealth = !draft.stealth;
-        else { const i = draft.operation_modifiers.indexOf(id); i >= 0 ? draft.operation_modifiers.splice(i, 1) : draft.operation_modifiers.push(id); }
-        c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true"));
-      };
-      ops.appendChild(c);
-    });
-    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops,
+    // operation modifiers (from the data, filtered to this faction + difficulty) + our toggles
+    const ops = el("div", { class: "chips" }), opsDesc = el("div", { class: "hint opdesc" });
+    const opName = id => (has("mod." + id) ? t("mod." + id) : ((META.op_modifiers || []).find(x => x.id === id) || { name: id }).name);
+    const paintOpsDesc = () => {
+      opsDesc.innerHTML = "";
+      draft.operation_modifiers.forEach(id => {
+        const m = (META.op_modifiers || []).find(x => x.id === id);
+        if (m && m.desc) opsDesc.appendChild(el("div", {}, [el("b", {}, [opName(id) + ": "]), has("opmod." + id + ".desc") ? t("opmod." + id + ".desc") : m.desc]));
+      });
+    };
+    let fillOps = () => {};
+    fillOps = () => {
+      ops.innerHTML = "";
+      const dv = parseInt(diffSel.value, 10);
+      const list = (META.op_modifiers || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin);
+      draft.operation_modifiers = draft.operation_modifiers.filter(id => list.some(x => x.id === id));   // this front can't have it
+      list.map(x => x.id).concat(["__city", "__stealth"]).forEach(id => {
+        const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
+        const m = (META.op_modifiers || []).find(x => x.id === id);
+        const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on), title: m ? m.desc : null }, [opName(id)]);
+        c.onclick = () => {
+          if (id === "__city") draft.is_city_map = !draft.is_city_map;
+          else if (id === "__stealth") draft.stealth = !draft.stealth;
+          else { const i = draft.operation_modifiers.indexOf(id); i >= 0 ? draft.operation_modifiers.splice(i, 1) : draft.operation_modifiers.push(id); }
+          c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true"));
+          paintOpsDesc();
+        };
+        ops.appendChild(c);
+      });
+      paintOpsDesc();
+    };
+    fillOps();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops, opsDesc,
       el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
 
     // planet hazards + tactical objectives: both feed the mission pressure

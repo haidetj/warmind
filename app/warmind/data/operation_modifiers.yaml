@@ -1,0 +1,25 @@
+# Operation modifiers: apply to every mission in an operation. Each one's
+# `modifiers` are additive kit-tag weights, like hazards.yaml, and feed the mission
+# read; `note` becomes a field note. Faction / difficulty_min say where the game
+# rolls them. Descriptions follow helldivers.wiki.gg (sync/effects_wiki.json,
+# refreshed weekly by data-verify).
+
+- id: complex_stratagem_plotting
+  display_name: Complex Stratagem Plotting
+  faction: any
+  difficulty_min: 4
+  description: Stratagem codes are scrambled each call; inputs take longer.
+  modifiers:
+    support_weapon: +0.30
+    strong_primary: +0.20
+  note: every call is 2–4s standing still. Only the reactive diver calls under fire.
+
+- id: poor_intel
+  display_name: Poor Intel
+  faction: automatons
+  difficulty_min: 4
+  description: Objective locations are hidden on the map until found.
+  modifiers:
+    mobility: +0.30
+    radar_booster: +0.30
+  note: the Forward Eye works a beat ahead so objectives are found without the squad searching as four.
