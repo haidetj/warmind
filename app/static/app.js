@@ -574,7 +574,7 @@
       }
       if (r.gear_restored != null) setTimeout(() => toast(r.gear_restored === "device" ? t("toast.gear_device") : t("toast.gear_restored")), 2800);
       const st = styleLabel(r.play_style);
-      toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err") : r.restored ? t("toast.joined.restored", { style: st })
+      toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err2") : r.restored ? t("toast.joined.restored", { style: st })
         : list.length ? (list.length > 1 ? t("toast.joined.reads", { style: st, n: list.length }) : t("toast.joined.read", { style: st })) : t("toast.joined.plain"));
     } catch (e) {
       stop(); lockControls(controls, false);
@@ -644,7 +644,7 @@
   let gearOpen = {};   // pid -> open state, kept across re-renders
   function setupPanel(p) {
     const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-    const reread = fileBtn("", t("me.reread"), true);
+    const reread = fileBtn("", t("me.upload_new"), true);
     const styleSel = el("select", { id: "my-style", "aria-label": t("me.style") }, (META.archetypes || []).map(k => el("option", { value: k }, [styleLabel(k)])));
     styleSel.value = p.play_style;
     styleSel.onchange = async () => {

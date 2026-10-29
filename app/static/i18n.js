@@ -5,7 +5,7 @@
 window.WM_I18N = {
   langs: [
     ["en", "English"], ["es", "Español"], ["pt", "Português"], ["fr", "Français"], ["de", "Deutsch"],
-    ["it", "Italiano"], ["pl", "Polski"], ["ru", "Русский"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "简体中文"], ["hu", "Magyar"], ["sv", "Svenska"], ["nl", "Nederlands"], ["tl", "Tagalog"], ["pirate", "Pirate 🏴‍☠️"],
+    ["it", "Italiano"], ["pl", "Polski"], ["ru", "Русский"], ["ja", "日本語"], ["ko", "한국어"], ["zh", "简体中文"], ["hu", "Magyar"], ["sv", "Svenska"], ["nl", "Nederlands"], ["tl", "Tagalog"], ["sq", "Shqip"], ["bs", "Bosanski"], ["pirate", "Pirate 🏴‍☠️"],
   ],
   dict: {
     en: {
@@ -75,7 +75,7 @@ window.WM_I18N = {
       "join.hint.return": "Dropped with WARMIND before? Enter the same callsign and tap “Join without stats” — your last read comes back. Callsigns aren't passwords: anyone using yours gets your stats.",
       "join.joining": "Joining the drop…",
       "join.failed": "Upload failed: {msg} — try again.",
-      "toast.joined.err": "Joined — couldn't read that screenshot. Pick your style or re-read below.",
+      "toast.joined.err2": "Joined — couldn't read that screenshot. Pick your style or upload new stats below.",
       "toast.joined.restored": "Welcome back — restored your last stat read ({style}).",
       "toast.joined.read": "Read as {style}",
       "toast.joined.reads": "Read as {style} ({n} shots)",
@@ -99,7 +99,7 @@ window.WM_I18N = {
 
       // ----- my setup -----
       "me.pid": "PNL-03", "me.title": "Your setup",
-      "me.reread": "Re-read stats",
+      "me.upload_new": "Upload new stats",
       "me.style": "Play style",
       "me.read.title": "Career read — from your screenshots",
       "me.read.cool": "The read",
@@ -245,7 +245,7 @@ window.WM_I18N = {
       "note.pick_style": "Pick a style or upload your career stats.",
       "note.couldnt_read": "Couldn't read that screenshot — pick your style or try another shot.",
       "note.chosen": "Chosen by the diver.",
-      "note.restored": "Restored your last stat read ({when}) by callsign — re-upload to refresh.",
+      "note.restored": "Restored your last stat read ({when}) by callsign — upload new stats to refresh.",
       "sc.accuracy": "Accuracy", "sc.kd": "K/D", "sc.success": "Mission success", "sc.extraction": "Extraction rate",
       "sc.kills_pm": "Kills / mission", "sc.deaths_pm": "Deaths / mission", "sc.objectives_pm": "Objectives / mission",
       "sc.samples_pm": "Samples / mission", "sc.strats_pm": "Stratagems / mission", "sc.avg_mission": "Avg mission (min)",

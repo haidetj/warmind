@@ -260,6 +260,7 @@ LANG_NAMES = {"en": "English", "es": "Spanish", "pt": "Brazilian Portuguese", "f
               "de": "German", "it": "Italian", "pl": "Polish", "ru": "Russian", "ja": "Japanese",
               "ko": "Korean", "zh": "Simplified Chinese", "hu": "Hungarian", "sv": "Swedish",
               "nl": "Dutch", "tl": "Tagalog (natural Filipino gamer Taglish is fine)",
+              "sq": "Albanian", "bs": "Bosnian (Latin script)",
               "pirate": "English written in playful pirate speak (arr, matey, ye) — still clear and precise"}
 
 
