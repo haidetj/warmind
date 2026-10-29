@@ -35,6 +35,7 @@ class Session:
     operation_modifiers: list = field(default_factory=list)
     tactical_objectives: list = field(default_factory=list)
     is_city_map: bool = False
+    stealth: bool = False   # creator's "stealth run" toggle: the whole squad goes quiet
     seed: int = 0  # creator's reroll counter; 0 = the canonical (best-scoring) loadouts
 
 
@@ -67,6 +68,7 @@ class Assignment:
     thin: list
     rationale: str
     rationale_parts: list = field(default_factory=list)  # [{"k","p"}] — same text, translatable
+    why: list = field(default_factory=list)  # "why this kit": [{"kind","k","p"}], one line per decision
 
 
 @dataclass
@@ -88,11 +90,17 @@ class Directive:
 # ---------------------------------------------------------------- kit filling
 
 def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=None,
-          cover_weight=0.3, exclude=frozenset(), squad_used=None, extra=None, owned_only=False):
+          cover_weight=0.3, exclude=frozenset(), squad_used=None, extra=None, owned_only=False,
+          reroll_margin=0.0):
     """Highest-scoring item, with soft role preferences and a squad-duplicate penalty.
-    Unowned gear is a fallback so a slot never strands; owned_only=True returns None instead."""
+    Unowned gear is a fallback so a slot never strands; owned_only=True returns None instead.
+    reroll_margin > 0: on a reroll, cycle through the owned options scoring within that
+    margin of the best (weapons and armour have many near-equals; a tiny jitter never
+    moved them) instead of nudging near-ties."""
     squad_used = squad_used or Counter()
     excl_owned = session_excluded(session)
+    rotate = bool(reroll_margin and session.seed)
+    scored = []
     best, best_s = None, float("-inf")
     fb, fb_s = None, float("-inf")  # fallback ignoring ownership, so a slot never strands
     for it in cands:
@@ -107,14 +115,21 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
-        if session.seed:  # reroll: reshuffle near-ties only, never promote a clearly worse pick
+        if session.seed and not rotate:  # reroll: reshuffle near-ties only, never promote a clearly worse pick
             s += _jitter(it.name, session.seed, getattr(session, "_salt", ""))
         if s > fb_s:
             fb, fb_s = it, s
         if it.name in excl_owned:  # ownership exclusion is soft
             continue
+        scored.append((s, it))
         if s > best_s:
             best, best_s = it, s
+    if rotate and best is not None:
+        salt = getattr(session, "_salt", "")
+        near = sorted((it for sc, it in scored if it is not best and sc >= best_s - reroll_margin),
+                      key=lambda it: zlib.crc32(f"{salt}|{it.name}".encode()))
+        order = [best] + near   # reroll n takes the n-th: every reroll changes while alternatives last
+        return order[session.seed % len(order)]
     return best if best is not None or owned_only else fb
 
 
@@ -124,7 +139,10 @@ def _jitter(name: str, seed: int, salt: str) -> float:
     return REROLL_SPREAD * (h % 10_000) / 10_000
 
 
-REROLL_SPREAD = 0.3  # under one grade step: rerolls swap near-equal options only
+REROLL_SPREAD = 0.3  # stratagems: under one grade step, rerolls swap near-equal options only
+# weapons / armour: rerolls cycle through options within this much of the best for the diver
+REROLL_MARGIN = {"primary": 0.7, "secondary": 0.7, "grenade": 0.6, "armor": 0.5}
+GEAR_DUP_W = 0.45   # two divers on the same weapon or armour: allowed, but variety is worth something
 
 
 def session_excluded(session) -> set:
@@ -268,7 +286,7 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(divers, pool):
+def _assign_boosters(divers, pool, seed=0):
     """divers: [(role_name, excluded_names)] in role order. In the game every diver
     brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
     diver gets a unique booster they own, preferring the strong picks and their role's
@@ -278,6 +296,10 @@ def _assign_boosters(divers, pool):
         avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
         bias = _ROLE_BIAS.get(role_name, "any")
         pick = None
+        top = [b for b in avail if b["role_bias"] in (bias, "any") and b.get("strong")]
+        if seed and len(top) > 1:   # reroll: rotate among the strong boosters that suit the role
+            top.sort(key=lambda b: zlib.crc32(f"{role_name}|{b['name']}".encode()))
+            avail = [top[seed % len(top)]] + [b for b in avail if b is not top[seed % len(top)]]
         for want_strong in (True, False):
             pick = next((b for b in avail if b["role_bias"] in (bias, "any")
                          and bool(b.get("strong")) == want_strong), None)
@@ -318,19 +340,27 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     situation_tags = None
     if session.is_city_map:
         situation_tags = ["urban"]
-    p = pressure_mod.compose(session.planet_hazards, session.mission_id, session.tactical_objectives)
+    p = pressure_mod.compose(session.planet_hazards, session.mission_id, session.tactical_objectives,
+                             op_modifiers=session.operation_modifiers)
     if situation_tags:
         extra = pressure_mod.compose(tactical_ids=[]).vector  # noop to keep shape
         urban = pressure_mod.loader.mission_tag_modifiers().get("urban", {}).get("modifiers", {})
         for k, v in urban.items():
             p.vector[k] = round(p.vector.get(k, 0.0) + v, 4)
             p.contributors.setdefault(k, []).append(("city terrain", v))
+    if session.stealth:   # stealth run: fold the situation in, credited as its own source
+        quiet = pressure_mod.loader.mission_tag_modifiers().get("stealth_run", {}).get("modifiers", {})
+        for k, v in quiet.items():
+            p.vector[k] = round(p.vector.get(k, 0.0) + v, 4)
+            p.contributors.setdefault(k, []).append(("stealth run", v))
     if session.mode == "d100":  # the map's demands, turned up past the difficulty dial
         p.vector = {k: round(v * modes.D100_PRESSURE, 4) for k, v in p.vector.items()}
     session._pressure = p
     session._excluded = set()
     doctrine = _doctrine(session)
     commando = bool(doctrine and doctrine.get("kind") == "commando")
+    # quiet kit (no statics, no Heavy armour): forced on commando ops, chosen for a stealth run
+    quiet = commando or session.stealth
 
     poor_intel = OP_POOR_INTEL in session.operation_modifiers
     # Stats-first: each diver gets the role that fits them. Mission coverage becomes
@@ -355,7 +385,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
-    boosters = _assign_boosters(order, pool)
+    boosters = _assign_boosters(order, pool, session.seed)
 
     assignments, kits_by_role = [], {}
     squad_used = Counter()
@@ -379,7 +409,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         ctx[pl.id] = (pl, role, pstyle, hist, _diver_excluded(pl))
         as_diver(pl)
         strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
-                                 slots=COMMANDO_SLOTS if commando else None, no_static=commando)
+                                 slots=COMMANDO_SLOTS if commando else None, no_static=quiet)
         for it in strat:
             squad_used[it.name] += 1
         phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "strat": strat})
@@ -389,9 +419,11 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         pl, role, pstyle, hist, _ = ctx[kit["pid"]]
         as_diver(pl)
         return _pick(cands, session, pstyle, hist, squad_used=squad_used, owned_only=True)   # never swap in unowned gear
-    review = kitrules.review_squad(phase, pool, review_pick, session, commando)
+    review = kitrules.review_squad(phase, pool, review_pick, session, quiet)
 
     passive_why = {}
+    gear_used = Counter()   # weapons + armour already handed out in this squad
+    chaff_for = {}          # pid -> the anti-tank support weapon their primary is covering for
     # phase 3 — carried weapons complement the final stratagems: an anti-tank support
     # weapon wants a chaff primary; no anti-tank support means the grenade brings it
     for kit in phase:
@@ -403,24 +435,32 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         # handling: recoil / rate / magazine from the wiki against the diver's accuracy and the mode
         sk = handling.skill(pl.accuracy)
         hfit = lambda it: handling.fit(it.name, sk, session.mode)
+        dup = lambda it: -GEAR_DUP_W * gear_used[it.name]
         primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
-                        pref_cover="ch" if has_at else None, cover_weight=0.4, extra=hfit)
-        secondary = _pick(pool.secondaries, session, pstyle, hist, extra=hfit)
-        grenade = _pick(pool.grenades, session, pstyle, hist,
-                        pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9)
+                        pref_cover="ch" if has_at else None, cover_weight=0.4,
+                        extra=lambda it: hfit(it) + dup(it), reroll_margin=REROLL_MARGIN["primary"])
+        secondary = _pick(pool.secondaries, session, pstyle, hist, extra=lambda it: hfit(it) + dup(it),
+                          reroll_margin=REROLL_MARGIN["secondary"])
+        grenade = _pick(pool.grenades, session, pstyle, hist, extra=dup,
+                        pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9,
+                        reroll_margin=REROLL_MARGIN["grenade"])
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
-        weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight  # commando: no Heavy
+        weight = "Medium" if quiet and role.armor_weight == "Heavy" else role.armor_weight  # quiet: no Heavy
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map
         armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist,
                       extra=lambda a: passives.bonus(a.passive, pk, session.faction)[0]
-                      - ARMOR_PRESSURE_DISCOUNT * scoring.pressure_dot(a, session._pressure))
+                      - ARMOR_PRESSURE_DISCOUNT * scoring.pressure_dot(a, session._pressure) + dup(a),
+                      reroll_margin=REROLL_MARGIN["armor"])
+        for it in (primary, secondary, grenade, armor):
+            gear_used[it.name] += 1
         passive_why[pl.id] = passives.bonus(armor.passive, pk, session.faction)[1]
         # armor counts toward coverage (Scout armour is a break-contact answer)
         kits_by_role[role.name] = [primary, secondary, grenade, armor] + strat
         assignments.append((pl, role, pstyle, primary, secondary, grenade, armor, strat))
+        chaff_for[pl.id] = main.name if (has_at and main and "ch" in primary.coverage) else None
 
     # coverage pass + rationale
     matrix = coverage.capability_matrix(kits_by_role)
@@ -446,7 +486,10 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
             rationale += (" Commando op: no statics — carry your support weapon, keep one strike "
                           "for each Super Destroyer window.")
             rparts.append({"k": "rat.commando", "p": {}})
+        why = _why_kit(pl, role, session, role_map.get(pl.id), primary, secondary, armor, strat,
+                       chaff_for.get(pl.id), passive_why.get(pl.id), growth, thin, matrix)
         final.append(Assignment(
+            why=why,
             player_id=pl.id, callsign=pl.callsign, role=role.name,
             primary=primary.name, secondary=secondary.name, grenade=grenade.name,
             armor=armor.name, armor_weight=armor.weight, armor_passive=armor.passive,
@@ -481,6 +524,66 @@ PASSIVE_WHY_EN = {
     "pw.sway": "steadier aim for the marksman rifle", "pw.flinch": "no flinch while holding a sightline",
     "pw.stealth": "harder to spot while picking targets",
 }
+
+
+def _tag_reasons(item, pressure, n=2):
+    """The mission tags this item answers, strongest first, each with what put it there
+    (a hazard, the mission type, a tactical objective)."""
+    hits = sorted(((pressure.get(t), t) for t in item.tags if pressure.get(t) > 0.15), reverse=True)[:n]
+    out = []
+    for _, t in hits:
+        legs = [leg for leg in pressure.contributors.get(t, []) if leg[1] > 0]
+        out.append({"tag": t, "src": max(legs, key=lambda x: x[1])[0] if legs else ""})
+    return out
+
+
+def _why_kit(pl, role, session, role_key, primary, secondary, armor, strat, chaff_for,
+             passive_why, growth, thin, matrix) -> list:
+    """'Why this kit', one line per decision WARMIND made for this diver: how the role
+    was chosen from their read, what the mission asks for, why each weapon (mission
+    tags, the support weapon it covers for, their accuracy), what their stratagems
+    bring, why the armour. Phrase keys + params; the client words them."""
+    out = []
+    pstyle = roles_mod.play_style(pl.play_style)
+    aff = pstyle.affinity.get(role_key, 0.3) if role_key else 0.3
+    mode = session.mode
+    kind = ("mission" if mode == "optimize" else "stretch" if mode in ("challenge", "d100") and aff < 0.5
+            else "fit" if aff >= 0.5 else "open")
+    out.append({"kind": "role", "k": "why.role." + kind,
+                "p": {"role": role.name, "style": pl.play_style, "mode": mode}})
+    driver = session._pressure.driver()
+    if driver:
+        out.append({"kind": "mission", "k": "why.mission", "p": {"driver": driver}})
+    sk = handling.skill(pl.accuracy)
+    for w in (primary, secondary):
+        hw = handling.why(w.name, sk, mode)
+        if hw:
+            out.append({"kind": "handling", "k": "rat.handling." + hw,
+                        "p": {"weapon": w.name, "acc": f"{pl.accuracy * 100:.0f}"}})
+            break
+    if chaff_for:
+        out.append({"kind": "weapon", "k": "why.chaff", "p": {"item": primary.name, "support": chaff_for}})
+    else:
+        tr = _tag_reasons(primary, session._pressure)
+        if tr:
+            out.append({"kind": "weapon", "k": "why.answers", "p": {"item": primary.name, "tags": tr}})
+    axes = sorted({a for s in strat for a in s.coverage}, key=["at", "st", "ch", "bc"].index)
+    if axes:
+        out.append({"kind": "strats", "k": "why.strats", "p": {"axes": axes}})
+    if passive_why:
+        out.append({"kind": "armor", "k": "rat.passive",
+                    "p": {"armor": armor.name, "passive": armor.passive, "why": passive_why[0]}})
+    if growth:
+        out.append({"kind": "growth", "k": "rat.growth", "p": {"item": growth, "style": pl.play_style}})
+    for a in thin:
+        owner = coverage.cover_owner(a, matrix, role.name)
+        if owner:
+            out.append({"kind": "thin", "k": "rat.thin", "p": {"axis": a, "owner": owner}})
+    if pl.accuracy is None:
+        out.append({"kind": "nostats", "k": "why.nostats", "p": {}})
+    if session.seed:
+        out.append({"kind": "reroll", "k": "why.reroll", "p": {"n": session.seed}})
+    return out
 
 
 HANDLING_WHY_EN = {
@@ -547,11 +650,19 @@ def _notes(session, p):
         for i, t in enumerate(D100_ORDERS, 1):
             add(f"d100.{i}", t)
     if OP_PLOTTING in session.operation_modifiers:
-        add("note.plotting", "Complex Stratagem Plotting: every call is 2–4s standing still. Only the "
-                             "reactive diver calls under fire; everyone else plots from inside the relay.")
+        add("note.plotting2", "Complex Stratagem Plotting: every call-in is 50% longer, extraction included. Only "
+                              "the reactive diver calls under fire; everyone else calls from cover, and start extraction early.")
     if OP_POOR_INTEL in session.operation_modifiers:
         add("note.poor_intel", "Poor Intel: the Forward Eye works a beat ahead so objectives are found "
                                "without the squad searching as four.")
+    opmods = pressure_mod.loader.operation_modifiers()
+    for mid in session.operation_modifiers:   # data-driven field notes for the rest
+        rec = opmods.get(mid)
+        if rec and rec.get("note") and mid not in (OP_PLOTTING, OP_POOR_INTEL):
+            add(f"opmod.{mid}.note", f"{rec['display_name']}: {rec['note']}")
+    if session.stealth:
+        add("note.stealth", "Stealth run: move as a group, go around patrols, kill flares and callers first, "
+                            "and save strikes for objectives. One loud diver breaks it for everyone.")
     if session.is_city_map:
         add("note.city", "City map: short sightlines and airborne threats. Emplacements lose arcs; "
                          "anti-air and entry tools gain value.")

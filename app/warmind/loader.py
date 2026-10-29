@@ -37,6 +37,13 @@ def mission_tag_modifiers() -> dict:
     return _load("mission_tag_modifiers.yaml")
 
 
+def operation_modifiers() -> dict:
+    """Operation modifiers (Roving Shriekers, Gunship Patrols, ...): id -> record with the
+    wiki's description, the faction/difficulty it appears on, and its kit-tag pressure."""
+    p = DATA / "operation_modifiers.yaml"
+    return {m["id"]: m for m in (_load("operation_modifiers.yaml") or [])} if p.exists() else {}
+
+
 def items() -> dict:
     """The raw items.yaml (primaries, secondaries, grenades, stratagems, armor, boosters)."""
     return _load("items.yaml")
@@ -108,6 +115,8 @@ def kit_tag_vocabulary() -> set[str]:
 
     walk(hazards())
     for rec in mission_tag_modifiers().values():
+        vocab.update((rec.get("modifiers") or {}).keys())
+    for rec in operation_modifiers().values():
         vocab.update((rec.get("modifiers") or {}).keys())
     return vocab
 

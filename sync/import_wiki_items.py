@@ -71,6 +71,8 @@ def weapon(row, section):
         tags.add("ammo_independent")
     if "stun" in tr:
         cov.add("bc")
+    if "suppressed" in tr:
+        tags.add("stealth")
     return cov, tags
 
 

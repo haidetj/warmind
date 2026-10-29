@@ -1,0 +1,47 @@
+name: feedback-sync
+
+# Turns in-app feedback (POST /api/feedback) into GitHub issues labelled
+# "feedback": the backlog reviewed at the start of each working session (see
+# CLAUDE.md). Idempotent: each issue title carries the feedback id, and ids that
+# already have an issue are skipped. Public by design; the form says so.
+
+on:
+  schedule:
+    - cron: "41 13 * * *"        # daily ~13:41 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull feedback from the live app and open issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          curl -sf --retry 4 --retry-delay 15 --max-time 30 https://warmind.onrender.com/api/feedback/export -o fb.json
+          gh label create feedback --repo "$REPO" --color 0E8A16 --description "From the in-app feedback form" 2>/dev/null || true
+          gh issue list --repo "$REPO" --label feedback --state all --limit 1000 --json title -q '.[].title' > have.txt
+          python3 - <<'PY'
+          import json, re, subprocess, os, datetime
+          items = json.load(open("fb.json"))["items"]
+          have = set(re.findall(r"WM-FB-[A-Za-z0-9_-]+", open("have.txt").read()))
+          new = [i for i in items if f"WM-FB-{i['id']}" not in have][:25]   # cap per run
+          defuse = lambda s: (s or "").replace("@", "@​")              # no @-mention pings
+          for i in new:
+              when = datetime.datetime.utcfromtimestamp(i["created_at"]).strftime("%Y-%m-%d %H:%M UTC")
+              first = re.sub(r"\s+", " ", i["text"]).strip()[:70]
+              title = f"[{i['kind']}] {defuse(first)} (WM-FB-{i['id']})"
+              body = (f"**From:** {defuse(i['name'])}  \n**When:** {when}  \n**Where:** {i.get('page') or '-'}"
+                      f"{' · war table ' + i['lobby_id'] if i.get('lobby_id') else ''}  \n**Language:** {i.get('lang') or 'en'}\n\n"
+                      + "\n".join("> " + line for line in defuse(i["text"]).splitlines())
+                      + "\n\n---\n_Submitted through WARMIND's in-app feedback form._")
+              subprocess.run(["gh", "issue", "create", "--repo", os.environ["REPO"], "--title", title,
+                              "--label", "feedback", "--body", body], check=True)
+          print(f"{len(items)} feedback items on the server, {len(new)} new issues opened")
+          PY

@@ -428,7 +428,59 @@ def discover(n: int) -> int:
     return 0
 
 
+EFFECT_PAGES = ("Effects and Modifiers", "Effects", "Operation Modifiers", "Environmental Hazards", "Planetary Hazards")
+EFFECT_CATEGORIES = ("Operation Modifiers", "Operation modifiers", "Effects", "Planetary Effects", "Environmental Hazards",
+                     "Planetary Hazards", "Hazards")
+
+
+def effects() -> dict:
+    """Operation modifiers, planetary effects and environmental hazards, as the wiki
+    describes them: the overview pages plus every page in the matching categories
+    (each page's wikitext, trimmed). WARMIND's hazards.yaml / modifier list are checked
+    against this so a modifier like Roving Shriekers can't be missing."""
+    pages, members = {}, {}
+    for t in EFFECT_PAGES:
+        title, text = wikitext(t)
+        if text:
+            pages[title] = text[:20000]
+        time.sleep(0.3)
+    for cat in EFFECT_CATEGORIES:
+        d = api(action="query", list="categorymembers", cmtitle="Category:" + cat, cmlimit=200, cmnamespace=0)
+        names = [m["title"] for m in d.get("query", {}).get("categorymembers", [])]
+        if names:
+            members[cat] = names
+        time.sleep(0.3)
+    for cat, names in members.items():
+        for n in names:
+            if n in pages:
+                continue
+            title, text = wikitext(n)
+            if text:
+                pages[title] = text[:6000]
+            time.sleep(0.2)
+    return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
+
+
 if __name__ == "__main__":
+    if "--effects" in sys.argv:
+        out = ROOT / "sync" / "effects_wiki.json"
+        data = effects()
+        out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {len(data['pages'])} effect pages; categories: { {k: len(v) for k, v in data['categories'].items()} }")
+        # anything the wiki lists that WARMIND doesn't model gets a visible warning
+        import yaml
+        ours = {norm(m["display_name"]) for m in yaml.safe_load((ROOT / "app/warmind/data/operation_modifiers.yaml").read_text())}
+        live = [n for n in data["categories"].get("Operation Modifiers", [])
+                if "Removed Operation Modifiers" not in data["pages"].get(n, "")]
+        for n in live:
+            if norm(n.replace(" and ", " & ")) not in ours and norm(n) not in ours:
+                print(f"::warning::operation modifier on the wiki but not in operation_modifiers.yaml: {n}")
+        haz = {norm(h["display_name"]).rstrip("s") for h in loader.hazards().values()}
+        conditions = re.sub(r"<!--.*?-->", "", data["pages"].get("Environmental Conditions", ""), flags=re.S)
+        for n in re.findall(r"^\|\s*(?:\[\[(?:[^|\]]*\|)?)?([A-Z][A-Za-z ]+?)(?:\]\])?\s*$", conditions, re.M):
+            if norm(n).rstrip("s") not in haz and norm(n).replace("tornados", "tornadoes").rstrip("s") not in haz:
+                print(f"::warning::environmental condition on the wiki but not in hazards.yaml: {n}")
+        sys.exit(0)
     if "--discover" in sys.argv:
         i = sys.argv.index("--discover")
         sys.exit(discover(int(sys.argv[i + 1]) if len(sys.argv) > i + 1 else 8))

@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS callsign_stats (
   style_note TEXT,
   updated_at REAL
 );
+CREATE TABLE IF NOT EXISTS feedback (
+  id TEXT PRIMARY KEY,
+  created_at REAL,
+  name TEXT,
+  kind TEXT,
+  text TEXT,
+  lobby_id TEXT,
+  page TEXT,
+  lang TEXT
+);
 CREATE INDEX IF NOT EXISTS idx_player_lobby ON player(lobby_id);
 CREATE INDEX IF NOT EXISTS idx_result_player ON result(player_id);
 """
@@ -244,3 +254,18 @@ def latest_result(player_id):
         row = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC LIMIT 1",
                         (player_id,)).fetchone()
         return dict(row) if row else None
+
+
+# ---------------------------------------------------------------- feedback
+def add_feedback(fid, name, kind, text, lobby_id, page, lang):
+    """In-app feedback. It's synced daily into public GitHub issues (feedback-sync.yml)."""
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO feedback(id,created_at,name,kind,text,lobby_id,page,lang) VALUES(?,?,?,?,?,?,?,?)",
+                  (fid, time.time(), name, kind, text, lobby_id, page, lang))
+
+
+def list_feedback(after: float = 0.0, limit: int = 200) -> list:
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM feedback WHERE created_at > ? ORDER BY created_at LIMIT ?",
+                         (after, limit)).fetchall()
+    return [dict(r) for r in rows]

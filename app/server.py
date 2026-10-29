@@ -80,6 +80,17 @@ def _accuracy_of(p) -> float | None:
     return float(snap.get("shots_hit") or 0) / float(snap["shots_fired"])
 
 
+def _oaths_of(mission) -> list:
+    """The mission's oaths (list), reading the single-oath format older lobbies stored."""
+    ks = mission.get("oaths") if isinstance(mission.get("oaths"), list) else ([mission["oath"]] if mission.get("oath") else [])
+    return [k for k in ks if k in oaths.OATHS]
+
+
+def _verdicts_of(raw) -> list:
+    v = json.loads(raw) if raw else None
+    return v if isinstance(v, list) else [v] if v else []
+
+
 def _owned_store(owned: list | None):
     return None if owned is None else {"v": 2, "owned": owned}
 
@@ -178,6 +189,8 @@ def _resolve(lobby) -> dict:
             "id": p["id"], "callsign": p["callsign"], "accent": ACCENTS[i % len(ACCENTS)],
             "play_style": p["play_style"], "style_source": p["style_source"],
             "style_note": p["style_note"], "style_note_i18n": _style_phrase(p, snap), "has_stats": bool(snap),
+            # what the stat read itself says (also for remembered reads), for "why this kit"
+            "style_read": ({"style": stats.classify(snap)[0], **stats.classify_phrase(snap)} if snap else None),
             "stats": snap, "rates": rates,   # the numbers read from the screenshots, for verification
             "scorecard": stats.scorecard(snap) if snap else None,  # cool derived display stats
             "confidence": _conf_of(p),       # which read fields were double-read-verified
@@ -185,7 +198,8 @@ def _resolve(lobby) -> dict:
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
-                     "verdict": json.loads(res["verdict_json"]) if res.get("verdict_json") else None}
+                     "verdicts": _verdicts_of(res.get("verdict_json")),
+                     "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
         })
     all_snaps = [json.loads(p["snapshot_json"]) for p in players_rows if p["snapshot_json"]]
@@ -210,6 +224,7 @@ def _session_of(mission, lobby) -> Session:
         operation_modifiers=mission.get("operation_modifiers", []),
         tactical_objectives=mission.get("tactical_objectives", []),
         is_city_map=mission.get("is_city_map", False),
+        stealth=bool(mission.get("stealth", False)),
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -240,6 +255,7 @@ def _assignment_dict(a):
         "booster": a.booster, "stratagems": a.stratagems, "growth_slot": a.growth_slot,
         "thin": a.thin, "thin_axes": [_AXIS_CODE.get(t, t) for t in a.thin],
         "rationale": a.rationale, "rationale_parts": a.rationale_parts,
+        "why": a.why,   # "why this kit": [{"kind", "k", "p"}], translated on the client
     }
 
 
@@ -296,6 +312,9 @@ def meta():
         for m in loader.missions().values()
     ]
     hazards = [{"id": k, "name": v["display_name"]} for k, v in loader.hazards().items()]
+    op_mods = [{"id": m["id"], "name": m["display_name"], "faction": m.get("faction", "any"),
+                "dmin": m.get("difficulty_min", 1), "desc": m.get("description", "")}
+               for m in loader.operation_modifiers().values()]
     tacticals = [{"id": t["id"], "name": t["display_name"], "faction": t.get("faction", "any"),
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
                  for t in loader.tactical_objectives().values()]
@@ -306,6 +325,7 @@ def meta():
     return {"missions": sorted(missions, key=lambda x: x["name"]),
             "hazards": sorted(hazards, key=lambda x: x["name"]),
             "tacticals": sorted(tacticals, key=lambda x: x["name"]),
+            "op_modifiers": sorted(op_mods, key=lambda x: x["name"]),
             "archetypes": list(stats.ALLOWED), "roles": roles, "play_styles": play_styles,
             "warbonds": loader.warbond_catalog()["warbonds"],
             "oaths": oaths.catalog(),
@@ -322,6 +342,37 @@ def meta():
 def war_feed():
     """Active planets + Major Orders from the community war API (cached; no model calls)."""
     return JSONResponse(war.snapshot(), headers={"Cache-Control": "public, max-age=60"})
+
+
+# ---------------------------------------------------------------- feedback
+FEEDBACK_KINDS = ("bug", "idea", "other")
+_fb_hits: dict = {}   # ip -> [timestamps]; a light brake on spam (the backlog is public)
+
+
+@app.post("/api/feedback")
+def feedback(payload: dict, request: Request):
+    """Save a feedback note (name, kind, text, where in the app). It becomes a public
+    GitHub issue on the next daily sync, so the form says so."""
+    text = str(payload.get("text") or "").strip()
+    if len(text) < 3:
+        raise HTTPException(400, "feedback is empty")
+    now, ip = time.time(), _ip(request)
+    hits = [t for t in _fb_hits.get(ip, []) if t > now - 3600]
+    if len(hits) >= 6:
+        raise HTTPException(429, "Thanks, that's plenty for this hour. Try again later.")
+    _fb_hits[ip] = hits + [now]
+    kind = payload.get("kind") if payload.get("kind") in FEEDBACK_KINDS else "other"
+    fid = _id(6)
+    db.add_feedback(fid, str(payload.get("name") or "").strip()[:40] or "Anonymous diver", kind, text[:2000],
+                    str(payload.get("lobby") or "")[:12], str(payload.get("page") or "")[:24],
+                    str(payload.get("lang") or "en")[:8])
+    return {"ok": True, "id": fid}
+
+
+@app.get("/api/feedback/export")
+def feedback_export(after: float = 0.0):
+    """Feedback for the daily GitHub sync (public by design: it's published as issues)."""
+    return {"items": db.list_feedback(after)}
 
 
 # ---------------------------------------------------------------- lobby lifecycle
@@ -405,8 +456,13 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     from warmind.modes import MODES
     if m.get("mode") not in MODES:
         m["mode"] = "improvement"
-    if m.get("oath") not in oaths.OATHS:
-        m["oath"] = None
+    # oaths: up to 3, each judged on its own; "oath" stays as the first for older clients
+    picked = m.get("oaths") if isinstance(m.get("oaths"), list) else ([m.get("oath")] if m.get("oath") else [])
+    m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
+    m["oath"] = m["oaths"][0] if m["oaths"] else None
+    m["stealth"] = bool(m.get("stealth"))
+    known = loader.operation_modifiers()
+    m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:4]
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     db.set_mission(lid, m)
@@ -588,18 +644,127 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
         raise HTTPException(429, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
-    # the oath verdict is decided in code from the numbers, before any prose is written
-    verdict = oaths.evaluate(mission.get("oath"), result)
-    if verdict:
-        verdict["medal"] = oaths.medal(verdict, lobby_id=lid, player_id=pid, result=result,
-                                       mode=mission.get("mode"))
+    return await _record_result(lid, pid, p, ctx, mission, result, data, mt, lang)
+
+
+async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
+    """Verdicts (decided in code), medals, the review, saved for this diver."""
+    # oath verdicts are decided in code from the numbers, before any prose is written
+    verdicts = []
+    for key in _oaths_of(mission):
+        v = oaths.evaluate(key, result)
+        if v:
+            v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=result, mode=mission.get("mode"))
+            verdicts.append(v)
     try:
-        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdict, lang=lang)
+        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdicts, lang=lang)
     except Exception:
-        # the numbers and verdict already stand; don't lose them over the prose call
-        aar = vision._mock_oath_line(verdict) + "Review text unavailable — the scoreboard was read and recorded."
-    db.save_result(_id(5), lid, pid, result, aar, verdict)
-    return {"ok": True, "aar": aar, "result": result, "verdict": verdict}
+        # the numbers and verdicts already stand; don't lose them over the prose call
+        aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
+    db.save_result(_id(5), lid, pid, result, aar, verdicts or None)
+    return {"ok": True, "aar": aar, "result": result, "verdicts": verdicts,
+            "verdict": verdicts[0] if verdicts else None}
+
+
+# ---------------------------------------------------------------- whole-squad scoreboard
+_squad_reads: dict = {}   # read id -> {"lid", "rows", "data", "mt", "at"}; kept 30 min for the confirm step
+SQUAD_READ_TTL = 1800
+
+
+def _norm_name(s: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _match_rows(rows: list, players: list) -> dict:
+    """Scoreboard row index -> player id, one to one: exact name, then containment,
+    then closest spelling (>= 0.6). Rows nobody matches stay unassigned for the squad."""
+    import difflib
+    out, used = {}, set()
+    names = {pl["id"]: _norm_name(pl["callsign"]) for pl in players}
+    for test in (lambda a, b: a == b, lambda a, b: a and b and (a in b or b in a),
+                 lambda a, b: difflib.SequenceMatcher(None, a, b).ratio() >= 0.6):
+        for i, r in enumerate(rows):
+            if i in out:
+                continue
+            rn = _norm_name(r.get("name"))
+            for pid, pn in names.items():
+                if pid not in used and test(rn, pn):
+                    out[i] = pid; used.add(pid)
+                    break
+    return out
+
+
+def _require_member(lid, token):
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    if token and (token == lobby["creator_token"] or any(token == x["token"] for x in db.list_players(lid))):
+        return lobby
+    raise HTTPException(403, "join this war table first")
+
+
+@app.post("/api/lobby/{lid}/results/squad")
+async def squad_results_read(lid: str, request: Request, image: UploadFile = File(...), x_token: str = Header(None)):
+    """Step 1: read a scoreboard that shows the whole squad; propose who is who."""
+    _require_member(lid, x_token)
+    players = db.list_players(lid)
+    data, mt = await image.read(), _media_type(image)
+    try:
+        _charge(request, lid, 1)
+        rows = await run_in_threadpool(vision.read_squad_results, data, mt, [x["callsign"] for x in players])
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"could not read the screenshot: {e}")
+    if not rows:
+        raise HTTPException(422, "no player columns found on that screenshot")
+    now = time.time()
+    for k in [k for k, v in _squad_reads.items() if now - v["at"] > SQUAD_READ_TTL]:
+        del _squad_reads[k]
+    rid = _id(6)
+    _squad_reads[rid] = {"lid": lid, "rows": rows, "data": data, "mt": mt, "at": now}
+    match = _match_rows(rows, players)
+    return {"read_id": rid,
+            "rows": [{"i": i, "name": r.get("name"), "kills": r.get("kills"), "deaths": r.get("deaths"),
+                      "accuracy_pct": r.get("accuracy_pct")} for i, r in enumerate(rows)],
+            "match": {str(i): pid for i, pid in match.items()}}
+
+
+@app.post("/api/lobby/{lid}/results/squad/{rid}")
+async def squad_results_commit(lid: str, rid: str, payload: dict, request: Request, x_token: str = Header(None)):
+    """Step 2: the squad confirmed who is who: record every diver's result at once."""
+    lobby = _require_member(lid, x_token)
+    read = _squad_reads.get(rid)
+    if not read or read["lid"] != lid:
+        raise HTTPException(410, "that scoreboard read expired, upload it again")
+    players = {x["id"]: x for x in db.list_players(lid)}
+    assign = {int(i): pid for i, pid in (payload.get("assign") or {}).items()
+              if str(i).isdigit() and pid in players and int(i) < len(read["rows"])}
+    if len(set(assign.values())) != len(assign):
+        raise HTTPException(400, "each diver can only be matched to one column")
+    if not assign:
+        raise HTTPException(400, "match at least one column to a diver")
+    try:
+        _charge(request, lid, len(assign))   # one review per diver
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
+    state = _resolve(lobby)
+    mission = _mission_from(lobby) or {}
+    lang = str(payload.get("lang") or "en")[:8]
+    out = []
+    for i, pid in assign.items():
+        p = players[pid]
+        me = next((x for x in state["players"] if x["id"] == pid), None)
+        a = me and me["assignment"]
+        baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
+        ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
+               "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline,
+               "column": read["rows"][i].get("name")}
+        result = {k: v for k, v in read["rows"][i].items() if k in vision.RESULT_FIELDS}
+        r = await _record_result(lid, pid, p, ctx, mission, result, read["data"], read["mt"], lang)
+        out.append({"player_id": pid, "callsign": p["callsign"], "verdicts": r["verdicts"]})
+    _squad_reads.pop(rid, None)
+    return {"ok": True, "recorded": out}
 
 
 @app.delete("/api/lobby/{lid}/player/{pid}")

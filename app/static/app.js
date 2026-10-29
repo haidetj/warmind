@@ -264,6 +264,7 @@
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     app.appendChild(fmFold);
     renderMyLobbies();
+    app.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn()]));
     if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
     bootSequence(term);
   }
@@ -450,7 +451,7 @@
         el("span", { class: "tn" }, [i === 5 ? "FM" : "0" + i]),
         el("b", {}, [i === 5 ? t("gl.short") : t("phase." + i)]),
       ]);
-      b.onclick = () => setTab(i, true);
+      b.onclick = () => (curTab === 1 && i !== 1 ? guardGear(() => setTab(i, true)) : setTab(i, true));
       R.tabbar.appendChild(b);
     });
   }
@@ -481,7 +482,7 @@
     // not joined yet: Assemble, where the join form is (a late joiner must not land on Debrief)
     const target = !myPlayer() ? 1 : ph.active < 0 ? 4 : ph.active + 1;
     if (curTab === null) curTab = target;
-    if (!tabPinned && curTab !== target && lastTarget !== null) { setTab(target, false); toast(t("tabs.moved", { tab: t("phase." + target) })); }
+    if (!tabPinned && !gearDirty() && curTab !== target && lastTarget !== null) { setTab(target, false); toast(t("tabs.moved", { tab: t("phase." + target) })); }
     else { if (tabPinned && lastTarget !== null && target !== lastTarget && target !== curTab) tabDots[target] = true; setTab(curTab, false); }
     lastTarget = target;
     window.scrollTo(0, y);
@@ -508,6 +509,60 @@
     return [bar].concat(nodes);
   }
 
+  // Feedback: name + kind + message, saved with a timestamp and where in the app it came
+  // from. Synced daily into public GitHub issues, so the form says it's public.
+  function feedbackBtn(cls) {
+    const b = el("button", { type: "button", class: "btn sm " + (cls || "") }, ["✎ " + t("fb.button")]);
+    b.onclick = openFeedback;
+    return b;
+  }
+  function openFeedback() {
+    const me = LID && STATE ? myPlayer() : null;
+    let saved = ""; try { saved = localStorage.getItem("wm_fb_name") || ""; } catch (e) {}
+    const name = el("input", { type: "text", maxlength: "40", value: (me && me.callsign) || saved, placeholder: t("fb.name.ph"), autocomplete: "off" });
+    let kind = "idea";
+    const kinds = el("div", { class: "seg", role: "group" });
+    ["bug", "idea", "other"].forEach(k => {
+      const b = el("button", { type: "button", "aria-pressed": String(k === kind) }, [t("fb.kind." + k)]);
+      b.onclick = () => { kind = k; kinds.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
+      kinds.appendChild(b);
+    });
+    const text = el("textarea", { rows: "5", maxlength: "2000", placeholder: t("fb.text.ph") });
+    const send = el("button", { type: "button", class: "btn primary" }, ["➤ " + t("fb.send")]);
+    const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fb.title") });
+    send.onclick = async () => {
+      if (text.value.trim().length < 3) { text.focus(); return; }
+      send.disabled = true;
+      try {
+        try { localStorage.setItem("wm_fb_name", name.value.trim()); } catch (e) {}
+        await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
+          page: LID ? "tab" + (curTab || "") : "home", lang: LANG });
+        dlg.close(); toast(t("fb.thanks"));
+      } catch (e) { toast(e.message); send.disabled = false; }
+    };
+    cancel.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("fb.title")])]),
+      el("div", { class: "mbody" }, [
+        el("span", { class: "label" }, [t("fb.name")]), name,
+        el("span", { class: "label" }, [t("fb.kind")]), kinds,
+        el("span", { class: "label" }, [t("fb.text")]), text,
+        el("div", { class: "hint", style: "margin:0" }, [t("fb.public")]),
+      ]),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [send, cancel])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    (name.value ? text : name).focus();
+  }
+
+  function homeLink() {
+    const a = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
+    a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/"; }); };
+    return a;
+  }
+
   // ----------------------------------------------------------------- command header
   function commandPanel(ph) {
     const link = location.origin + "/?l=" + LID;
@@ -515,13 +570,13 @@
     inv.onclick = () => copy(link, t("common.copied"));
     const role = isCreator() ? tag("amber", t("common.creator")) : myPlayer() ? tag("cyan", t("common.diver")) : null;
     const fm = el("button", { class: "btn sm fmbtn", type: "button" }, ["▤ " + t("gl.short")]);
-    fm.onclick = () => setTab(5, true);
+    fm.onclick = () => guardGear(() => setTab(5, true));
     const status = ph.active < 0 ? t("phase.4") + " ✓" : t("phase." + (ph.active + 1));
     return panel(t("cmd.pid"), t("cmd.title"), { status: status, statusKind: ph.active < 0 ? "ok" : "warn" }, [
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
           el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
-        el("div", { class: "acts" }, [role, inv, fm, el("a", { class: "btn sm", href: "/" }, [t("cmd.home")])]),
+        el("div", { class: "acts" }, [role, inv, fm, feedbackBtn(), homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
@@ -574,7 +629,7 @@
       }
       if (r.gear_restored != null) setTimeout(() => toast(r.gear_restored === "device" ? t("toast.gear_device") : t("toast.gear_restored")), 2800);
       const st = styleLabel(r.play_style);
-      toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err") : r.restored ? t("toast.joined.restored", { style: st })
+      toast(r.over_budget ? r.vision_error : r.vision_error ? t("toast.joined.err2") : r.restored ? t("toast.joined.restored", { style: st })
         : list.length ? (list.length > 1 ? t("toast.joined.reads", { style: st, n: list.length }) : t("toast.joined.read", { style: st })) : t("toast.joined.plain"));
     } catch (e) {
       stop(); lockControls(controls, false);
@@ -644,7 +699,7 @@
   let gearOpen = {};   // pid -> open state, kept across re-renders
   function setupPanel(p) {
     const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-    const reread = fileBtn("", t("me.reread"), true);
+    const reread = fileBtn("", t("me.upload_new"), true);
     const styleSel = el("select", { id: "my-style", "aria-label": t("me.style") }, (META.archetypes || []).map(k => el("option", { value: k }, [styleLabel(k)])));
     styleSel.value = p.play_style;
     styleSel.onchange = async () => {
@@ -706,6 +761,43 @@
     return wrap;
   }
 
+  // ---- unsaved gear: drafts survive live re-renders; leaving the Assemble tab or the page with
+  // one asks first (save and continue / discard / keep editing)
+  const gearDraft = {};   // pid -> { owned: Set, total }
+  const gearDirty = () => { const me = meRec(); return !!(me && gearDraft[me.id]); };
+  async function saveGearDraft(pid) {
+    const d = gearDraft[pid]; if (!d) return true;
+    const payload = d.owned.size >= d.total ? { owned: null, v: 2 } : { owned: Array.from(d.owned), v: 2 };
+    if (busy) { toast(t("gf.wait")); return false; }
+    busy = true;
+    try {
+      await jpost("/api/lobby/" + LID + "/player/" + pid + "/owned", payload, meRec().token);
+      try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
+      delete gearDraft[pid];
+      busy = false; await refresh(); toast(t("gear.saved"));
+      return true;
+    } catch (e) { toast(e.message); return false; } finally { busy = false; }
+  }
+  function guardGear(go) {
+    if (!gearDirty()) return go();
+    const me = meRec();
+    const dlg = el("dialog", { class: "modal confirm", "aria-label": t("unsaved.title") });
+    const save = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("unsaved.save")]);
+    const drop = el("button", { type: "button", class: "btn red" }, [t("unsaved.discard")]);
+    const stay = el("button", { type: "button", class: "btn" }, [t("unsaved.stay")]);
+    save.onclick = async () => { save.disabled = true; if (await saveGearDraft(me.id)) { dlg.close(); go(); } else save.disabled = false; };
+    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); renderLive(); go(); };
+    stay.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("unsaved.title")])]),
+      el("div", { class: "mbody" }, [el("p", { style: "margin:0" }, [t("unsaved.body")])]),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [save, drop, stay])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  window.addEventListener("beforeunload", e => { if (gearDirty()) { e.preventDefault(); e.returnValue = ""; } });   // reload / close / external link
+
   // Gear checklist: the whole library (base game, warbonds, Superstore, events), laid out like the
   // in-game loadout menu — tabs per slot, stratagems under their permit colour with their icons,
   // weapons with their renders and handling stats. A Filter modal narrows it by source, owned
@@ -728,7 +820,9 @@
     if (!tabs.length) return null;
     const allItems = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allItems.push(i))));
     const allNames = allItems.map(i => i.name);
-    const owned = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
+    const saved = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
+    // edits build a draft (kept across live re-renders) until Save; leaving with one asks first
+    const owned = gearDraft[p.id] ? gearDraft[p.id].owned : new Set(saved);
     const unset = !p.gear_confirmed;
     const d = el("details", { class: "fold" + (unset ? " attn" : "") });
     d.open = gearOpen[p.id] !== undefined ? gearOpen[p.id] : unset;
@@ -737,20 +831,11 @@
     const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear2.hint")])]);
     d.appendChild(body);
 
-    // debounced, queued save: rapid ticks all land (a save in flight no longer drops the next one)
-    let saveT = null;
-    function save(now) {
-      clearTimeout(saveT);
-      saveT = setTimeout(async function go() {
-        if (busy) { saveT = setTimeout(go, 300); return; }
-        busy = true;
-        try {
-          const payload = owned.size >= allNames.length ? { owned: null, v: 2 } : { owned: Array.from(owned), v: 2 };
-          await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
-          try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
-          busy = false; await refresh(); toast(t("gear.saved"));
-        } catch (e) { toast(e.message); } finally { busy = false; }
-      }, now ? 0 : 700);
+    const changes = () => { let n = 0; owned.forEach(x => { if (!saved.has(x)) n++; }); saved.forEach(x => { if (!owned.has(x)) n++; }); return n; };
+    function save() {   // any edit: record the draft and update the sticky footer
+      if (changes()) gearDraft[p.id] = { owned: owned, total: allNames.length };
+      else delete gearDraft[p.id];
+      paintFoot();
     }
 
     // ---- filter
@@ -919,12 +1004,27 @@
     body.appendChild(pane);
     paintAll();
 
+    // sticky footer: always in reach while scrolling the checklist
     const saveBtn = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("gear.save")]);
-    saveBtn.onclick = () => { delete gearOpen[p.id]; save(true); };
+    saveBtn.onclick = async () => {
+      gearDraft[p.id] = { owned: owned, total: allNames.length };   // save even with no edits: confirms the gear
+      if (await saveGearDraft(p.id)) delete gearOpen[p.id];
+    };
     const allBtn = el("button", { class: "btn sm", type: "button" }, [t("gear.everything")]);
-    allBtn.onclick = () => { if (!window.confirm(t("gear.everything.confirm"))) return; allNames.forEach(n => owned.add(n)); sync(); save(true); };
-    body.appendChild(el("div", { class: "btnrow" }, [saveBtn, allBtn]));
+    allBtn.onclick = async () => {
+      if (!window.confirm(t("gear.everything.confirm"))) return;
+      allNames.forEach(n => owned.add(n)); sync(); gearDraft[p.id] = { owned: owned, total: allNames.length }; await saveGearDraft(p.id);
+    };
+    const fstat = el("span", { class: "fstat", role: "status", "aria-live": "polite" });
+    function paintFoot() {
+      const n = changes();
+      fstat.className = "fstat " + (n ? "dirty" : unset ? "unset" : "ok");
+      fstat.textContent = n ? (n === 1 ? t("gf.unsaved1") : t("gf.unsaved", { n: n })) : unset ? t("gf.notyet") : "✓ " + t("gf.saved");
+    }
+    paintFoot();
+    body.appendChild(el("div", { class: "btnrow" }, [allBtn]));
     body.appendChild(el("div", { class: "hint" }, [t("gear.remembered")]));
+    body.appendChild(el("div", { class: "gearfoot" }, [fstat, saveBtn]));
     return d;
   }
 
@@ -947,8 +1047,9 @@
     if (!set) { if (!isCreator()) R.misReadout.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("mis.waiting")])); return; }
     const mm = meta(m.mission_id);
     const ro = (k, v, cls) => el("div", { class: "ro " + (cls || "") }, [el("div", { class: "k" }, [k]), el("div", { class: "v" }, [v])]);
-    const oath = m.oath ? t("oath." + m.oath + ".name") : t("common.none");
-    const mods = (m.operation_modifiers || []).map(x => t("mod." + x)).concat(m.is_city_map ? [t("mod.__city")] : []);
+    const oath = oathsOf(m).length ? oathsOf(m).map(k => t("oath." + k + ".name")).join(" · ") : t("common.none");
+    const mods = (m.operation_modifiers || []).map(x => has("mod." + x) ? t("mod." + x) : ((META.op_modifiers || []).find(o => o.id === x) || { name: x }).name).concat(m.is_city_map ? [t("mod.__city")] : [])
+      .concat(m.stealth ? [t("mod.__stealth")] : []);
     R.misReadout.appendChild(el("div", { class: "readout" }, [
       ro(t("mis.mission"), mm ? mm.name : m.mission_id, "wide"),
       m.planet_name ? ro(t("mis.planet"), m.planet_name, "wide") : null,
@@ -963,7 +1064,7 @@
   }
 
   function missionEditor() {
-    const base = { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null };
+    const base = { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null, oaths: [] };
     const draft = JSON.parse(JSON.stringify(Object.assign(base, (STATE && STATE.mission) || {})));
     ["operation_modifiers", "planet_hazards", "tactical_objectives"].forEach(k => { if (!Array.isArray(draft[k])) draft[k] = []; });
     const set = !!(STATE.mission && STATE.mission.mission_id);
@@ -998,7 +1099,7 @@
       if (!p) { draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); return; }
       draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
       draft.planet_hazards = p.hazards.slice();
-      paintHaz(); fillMissions(); fillTacticals();
+      paintHaz(); fillMissions(); fillTacticals(); fillOps();
       planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null].filter(Boolean).join(" · ");
     };
 
@@ -1018,11 +1119,11 @@
     fillMissions();
     let fillTacticals = () => {};
     facSel.onchange = () => {
-      draft.faction = facSel.value; fillMissions(); fillTacticals();
+      draft.faction = facSel.value; fillMissions(); fillTacticals(); fillOps();
       const p = ((WAR && WAR.planets) || []).find(x => String(x.index) === planetSel.value);
       if (p && p.enemy !== facSel.value) { planetSel.value = ""; draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); }   // that planet isn't this enemy's
     };
-    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); };
+    diffSel.onchange = () => { draft.difficulty = parseInt(diffSel.value, 10); fillMissions(); fillTacticals(); fillOps(); };
     misSel.onchange = () => { draft.mission_id = misSel.value; };
     body.appendChild(el("div", { class: "blk grid2" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "m-fac" }, [t("mis.faction")]), facSel]),
@@ -1030,19 +1131,40 @@
       el("div", { class: "field", style: "grid-column:1/-1" }, [el("label", { class: "label", for: "m-mis" }, [t("mis.mission")]), misSel]),
     ]));
 
-    // modifiers
-    const ops = el("div", { class: "chips" });
-    ["complex_stratagem_plotting", "poor_intel", "__city"].forEach(id => {
-      const on = id === "__city" ? draft.is_city_map : draft.operation_modifiers.indexOf(id) >= 0;
-      const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on) }, [t("mod." + id)]);
-      c.onclick = () => {
-        if (id === "__city") draft.is_city_map = !draft.is_city_map;
-        else { const i = draft.operation_modifiers.indexOf(id); i >= 0 ? draft.operation_modifiers.splice(i, 1) : draft.operation_modifiers.push(id); }
-        c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true"));
-      };
-      ops.appendChild(c);
-    });
-    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops]));
+    // operation modifiers (from the data, filtered to this faction + difficulty) + our toggles
+    const ops = el("div", { class: "chips" }), opsDesc = el("div", { class: "hint opdesc" });
+    const opName = id => (has("mod." + id) ? t("mod." + id) : ((META.op_modifiers || []).find(x => x.id === id) || { name: id }).name);
+    const paintOpsDesc = () => {
+      opsDesc.innerHTML = "";
+      draft.operation_modifiers.forEach(id => {
+        const m = (META.op_modifiers || []).find(x => x.id === id);
+        if (m && m.desc) opsDesc.appendChild(el("div", {}, [el("b", {}, [opName(id) + ": "]), has("opmod." + id + ".desc") ? t("opmod." + id + ".desc") : m.desc]));
+      });
+    };
+    let fillOps = () => {};
+    fillOps = () => {
+      ops.innerHTML = "";
+      const dv = parseInt(diffSel.value, 10);
+      const list = (META.op_modifiers || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin);
+      draft.operation_modifiers = draft.operation_modifiers.filter(id => list.some(x => x.id === id));   // this front can't have it
+      list.map(x => x.id).concat(["__city", "__stealth"]).forEach(id => {
+        const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
+        const m = (META.op_modifiers || []).find(x => x.id === id);
+        const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on), title: m ? m.desc : null }, [opName(id)]);
+        c.onclick = () => {
+          if (id === "__city") draft.is_city_map = !draft.is_city_map;
+          else if (id === "__stealth") draft.stealth = !draft.stealth;
+          else { const i = draft.operation_modifiers.indexOf(id); i >= 0 ? draft.operation_modifiers.splice(i, 1) : draft.operation_modifiers.push(id); }
+          c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true"));
+          paintOpsDesc();
+        };
+        ops.appendChild(c);
+      });
+      paintOpsDesc();
+    };
+    fillOps();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops, opsDesc,
+      el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
 
     // planet hazards + tactical objectives: both feed the mission pressure
     const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };
@@ -1072,10 +1194,23 @@
 
     // oath
     const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
-    const setHint = () => { oathHint.textContent = draft.oath ? t("mis.oath.hint", { rule: t("oath." + draft.oath + ".rule"), medal: t("oath." + draft.oath + ".medal") }) : t("mis.oath.hint.none"); };
+    draft.oaths = oathsOf(draft);
+    const setHint = () => {
+      draft.oath = draft.oaths[0] || null;   // older clients read the first
+      oathHint.innerHTML = "";
+      oathHint.appendChild(draft.oaths.length ? medalPreview(draft.oaths, draft.mode === "d100") : document.createTextNode(t("mis.oath.hint.none")));
+      if (draft.oaths.length) oathHint.appendChild(el("div", { class: "hint", style: "margin-top:6px" }, [t("mis.oaths.hint")]));
+      oathRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.k ? draft.oaths.indexOf(x.dataset.k) >= 0 : !draft.oaths.length)));
+    };
     [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
-      const c = el("button", { type: "button", class: "chip", "aria-pressed": String((draft.oath || null) === k) }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
-      c.onclick = () => { draft.oath = k; oathRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === c))); setHint(); };
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => {
+        if (!k) draft.oaths = [];
+        else if (draft.oaths.indexOf(k) >= 0) draft.oaths = draft.oaths.filter(x => x !== k);
+        else if (draft.oaths.length < 3) draft.oaths = draft.oaths.concat([k]);
+        else { toast(t("mis.oaths.max")); return; }
+        setHint();
+      };
       oathRow.appendChild(c);
     });
     setHint();
@@ -1260,6 +1395,32 @@
     ]);
   }
 
+  // "Why this kit": one line per decision — the stat read behind the play style, the role,
+  // what the mission asks for, why the weapons (mission tags, the support weapon they cover
+  // for, accuracy), what the stratagems bring, why the armour.
+  const WHY_ICON = { stats: "◉", role: "◆", mission: "◎", handling: "⌖", weapon: "▸", strats: "✦", armor: "⛨",
+                     growth: "↗", thin: "⚠", nostats: "ⓘ", reroll: "⟳" };
+  function whyLine(w) {
+    const p = Object.assign({}, w.p || {});
+    if (w.k.indexOf("why.") !== 0) return tp(w, "");
+    if (p.style) p.style = styleLabel(p.style);
+    if (p.mode) p.mode = t("mode." + p.mode);
+    if (Array.isArray(p.tags)) p.tags = p.tags.map(x => x.tag.replace(/_/g, " ") + (x.src ? " (" + x.src + ")" : "")).join(", ");
+    if (Array.isArray(p.axes)) p.axes = p.axes.map(x => t("axis." + x)).join(", ");
+    return t(w.k, p);
+  }
+  function whyKit(p, a) {
+    const rows = [];
+    const read = p.style_read;
+    if (read && read.style === p.play_style && has(read.k)) rows.push(["stats", t("why.stats", { style: styleLabel(p.play_style), read: tp(read, "") })]);
+    else if (p.style_source === "manual") rows.push(["stats", t("why.stats.chosen", { style: styleLabel(p.play_style) })]);
+    a.why.forEach(w => { const line = whyLine(w); if (line) rows.push([w.kind, line]); });
+    return el("div", { class: "whykit" }, [
+      el("div", { class: "wk-h" }, [t("why.title")]),
+      el("ul", {}, rows.map(([k, line]) => el("li", { class: "w-" + k }, [el("span", { class: "ic", "aria-hidden": "true" }, [WHY_ICON[k] || "•"]), el("span", {}, [line])]))),
+    ]);
+  }
+
   function diverCard(p, mine, provisional) {
     const a = p.assignment;
     const card = el("article", { class: "dcard" + (mine ? " me" : "") }); card.style.setProperty("--acc", p.accent);
@@ -1292,8 +1453,8 @@
     }
     const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
     if (thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: thin.join(", ") })]));
-    const why = a.rationale_parts && a.rationale_parts.length ? a.rationale_parts.map(x => tp(x, "")).filter(Boolean).join(" ") : "";
-    card.appendChild(el("div", { class: "why" }, [why || a.rationale]));
+    card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
+      (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
     return card;
   }
 
@@ -1339,6 +1500,18 @@
     copy(text + " " + url, t("share.copied"));
   }
 
+  const oathsOf = m => (m && Array.isArray(m.oaths) ? m.oaths : m && m.oath ? [m.oath] : []);
+  // what's at stake: the medal each sworn oath earns, before anyone uploads a result
+  function medalPreview(keys, d100) {
+    return el("div", { class: "stakes" }, keys.map(k => {
+      const base = t("oath." + k + ".medal");
+      return el("div", { class: "medal preview" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["★"]), el("div", {}, [
+        el("div", { class: "mn" }, [d100 ? t("medal.d100", { name: base }) : base]),
+        el("div", { class: "mw" }, [t("oath." + k + ".name") + ": " + t("oath." + k + ".rule")]),
+        has("oath." + k + ".proof") ? el("div", { class: "mw proof" }, [t("oath." + k + ".proof")]) : null])]);
+    }));
+  }
+
   function verdictBlock(v, callsign) {
     if (!v) return null;
     const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
@@ -1355,11 +1528,55 @@
     return el("div", { class: "unver" }, [t("deb.unver", { reason: reason })]);
   }
 
+  // Squad scoreboard: confirm which column is which diver (prefilled from the names), then
+  // every matched diver's result, oath verdicts, medals and review are recorded at once.
+  function squadConfirm(r, token) {
+    const dlg = el("dialog", { class: "modal squadmatch", "aria-label": t("deb.squad.title") });
+    const sels = [];
+    const rows = r.rows.map(row => {
+      const sel = el("select", {}, [el("option", { value: "" }, [t("deb.squad.skip")])].concat(
+        STATE.players.map(p => el("option", { value: p.id }, [p.callsign]))));
+      sel.value = r.match[String(row.i)] || "";
+      sels.push([row.i, sel]);
+      const nums = [row.kills != null ? t("sb.kills") + " " + row.kills : null, row.deaths != null ? t("sb.deaths") + " " + row.deaths : null,
+        row.accuracy_pct != null ? t("sb.accuracy") + " " + row.accuracy_pct + "%" : null].filter(Boolean).join(" · ");
+      return el("div", { class: "sqrow" }, [el("div", {}, [el("b", {}, [row.name]), el("div", { class: "hint", style: "margin:0" }, [nums])]), sel]);
+    });
+    const err = el("div", { class: "hint", style: "margin:0;color:var(--red)" });
+    const ok = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("deb.squad.record")]);
+    const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    ok.onclick = async () => {
+      const assign = {}, seen = new Set();
+      for (const [i, sel] of sels) {
+        if (!sel.value) continue;
+        if (seen.has(sel.value)) { err.textContent = t("deb.squad.dupe"); return; }
+        seen.add(sel.value); assign[i] = sel.value;
+      }
+      if (!seen.size) { err.textContent = t("deb.squad.none"); return; }
+      ok.disabled = true; busy = true; ok.textContent = t("deb.squad.writing");
+      try {
+        const res = await jpost("/api/lobby/" + LID + "/results/squad/" + r.read_id, { assign: assign, lang: LANG }, token);
+        dlg.close(); busy = false; await refresh();
+        const won = res.recorded.reduce((n, x) => n + x.verdicts.filter(v => v.passed === true && v.medal).length, 0);
+        toast(t("deb.squad.done", { n: res.recorded.length }) + (won ? " · 🎖 " + won : ""));
+      } catch (e) { err.textContent = e.message; ok.disabled = false; ok.textContent = "✓ " + t("deb.squad.record"); }
+      finally { busy = false; }
+    };
+    cancel.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("deb.squad.title")])]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0" }, [t("deb.squad.confirm")])].concat(rows, [err])),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [ok, cancel])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   function debriefPanel() {
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
-    if (m.oath) kids.push(el("div", { class: "readout-q", style: "margin:0 0 12px;font-style:normal" }, [t("deb.oath", { name: t("oath." + m.oath + ".name"), rule: t("oath." + m.oath + ".rule") })]));
+    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
@@ -1373,17 +1590,34 @@
           const token = me && me.id === target.id ? meRec().token : store.creator(LID);
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
-          const v = rr.verdict;
-          toast(v && v.passed === true && v.medal ? t("toast.medal", { name: v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal") })
-            : v && v.passed === false ? t("toast.broken") : t("toast.aar"));
+          const vs = rr.verdicts || (rr.verdict ? [rr.verdict] : []), won = vs.filter(v => v.passed === true && v.medal);
+          toast(won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
+            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar"));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
       return [up, status];
     }
+    // whole squad from one scoreboard (any member), or just yourself
+    if (me || isCreator()) {
+      const sq = fileBtn("primary", "▦ " + t("deb.squad"), false), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+      sq.querySelector("input").onchange = async ev => {
+        const f = ev.target.files[0]; ev.target.value = ""; if (!f || busy) return;
+        busy = true; lockControls([sq], true);
+        const stop = workTicker(sqStatus, lines("tick.review.", 5));
+        try {
+          const fd = new FormData(); fd.append("image", f);
+          const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, me ? meRec().token : store.creator(LID));
+          stop(); sqStatus.style.display = "none"; busy = false;
+          squadConfirm(r, me ? meRec().token : store.creator(LID));
+        } catch (e) { stop(); setStatus(sqStatus, "err", t("deb.failed", { msg: e.message })); }
+        finally { stop(); lockControls([sq], false); busy = false; }
+      };
+      kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [sq]), sqStatus, el("div", { class: "hint" }, [t("deb.squad.hint")]));
+    }
     if (me) {
-      const [up, status] = uploader(me, t("deb.submit"), true);
-      kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
+      const [up, status] = uploader(me, t("deb.submit.solo"), false);
+      kids.push(el("div", { class: "btnrow" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
     } else if (!isCreator()) {
       kids.push(el("div", { class: "alert" }, [el("b", {}, ["!"]), t("deb.nodevice")]));
     }
@@ -1399,7 +1633,7 @@
         }
       }
       else {
-        const vb = verdictBlock(aar.verdict, p.callsign); if (vb) inner.push(vb);
+        (aar.verdicts || (aar.verdict ? [aar.verdict] : [])).forEach(v => { const vb = verdictBlock(v, p.callsign); if (vb) inner.push(vb); });
         const r = aar.result || {};
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
@@ -1411,7 +1645,7 @@
       honors.appendChild(row);
     });
     kids.push(honors);
-    const anyMedal = STATE.players.some(p => p.aar && p.aar.verdict && p.aar.verdict.medal);
+    const anyMedal = STATE.players.some(p => p.aar && (p.aar.verdicts || [p.aar.verdict]).some(v => v && v.medal));
     return panel(t("deb.pid"), t("deb.title"), { tone: anyMedal ? "amber" : null }, kids);
   }
 

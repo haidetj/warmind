@@ -1,6 +1,6 @@
 {
  "source": "https://helldivers.wiki.gg",
- "fetched": "2026-10-28",
+ "fetched": "2026-10-29",
  "items": [
   {
    "title": "A-35 Recon",
@@ -2419,7 +2419,7 @@
    "source": "Scope of Authority Page 3",
    "weapon_category": "Support Weapons",
    "stratagem_type": "Support Weapon",
-   "traits": "Support Weapon {{*}} Heavy Armour Penetrating {{*}} Heat",
+   "traits": "Support Weapon {{*}} Anti-Tank {{*}} Heat",
    "base_cooldown": "480s",
    "penetration": "AP",
    "permit_type": "Supply",

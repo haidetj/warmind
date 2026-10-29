@@ -1,0 +1,111 @@
+# Operation modifiers: apply to every mission in an operation. Each one's
+# `modifiers` are additive kit-tag weights (like hazards.yaml) and feed the mission
+# read; `note` becomes a field note. faction / difficulty_min say where the game
+# rolls them (modifiers start appearing on Hard, D4). Descriptions and tactics follow
+# helldivers.wiki.gg (sync/effects_wiki.json, refreshed weekly by data-verify, which
+# warns if the wiki lists a modifier this file doesn't have). Removed from the game,
+# so not listed: AA Defenses (1.000.400), Atmospheric Interference (1.001.002),
+# Electronic Countermeasures (1.000.102).
+
+- id: roving_shriekers
+  display_name: Roving Shriekers
+  faction: terminids
+  difficulty_min: 4
+  description: Flying Shrieker swarms traverse the battlefield.
+  # wiki tactics: unarmoured, so volume and tracking win — lasers (Scythe, Laser
+  # Cannon), spread shotguns, AC-8 flak, MG/Gatling sentries, the Arc Thrower.
+  modifiers:
+    high_rof_ballistic: +0.40
+    energy: +0.30
+    sustain_fire: +0.30
+    close_quarters: +0.20
+    sentry: +0.20
+  note: unarmoured flyers in swarms. Volume beats precision (MGs, spread shotguns, lasers, Autocannon flak); break line of sight with rocks and go prone when a swarm dives.
+  source: https://helldivers.wiki.gg/wiki/Roving_Shriekers
+
+- id: gunship_patrols
+  display_name: Gunship Patrols
+  faction: automatons
+  difficulty_min: 4
+  description: Flying Gunships patrol the battlefield.
+  # wiki tactics: anything that pierces armour 3 helps; explosive / durable damage best.
+  modifiers:
+    light_pen: +0.40
+    heavy_pen: +0.40
+    support_weapon: +0.30
+    ranged: +0.30
+    strong_primary: +0.20
+  note: gunships patrol between objectives. Bring medium-penetrating or explosive fire that reaches them (launchers, Autocannon, Purifier-class primaries) and take them before they pin the squad.
+  source: https://helldivers.wiki.gg/wiki/Gunship_Patrols
+
+- id: atmospheric_spores
+  display_name: Atmospheric Spores
+  faction: terminids
+  difficulty_min: 4
+  description: The minimap is obscured; Terminid blips and bug nests don't show.
+  modifiers:
+    radar_booster: +0.40
+    mobility: +0.20
+  note: the map won't show bugs or nests. Scout pings and a lead diver replace the minimap; the LiDAR station optional marks points of interest.
+  source: https://helldivers.wiki.gg/wiki/Atmospheric_Spores
+
+- id: leviathan_blockade
+  display_name: Leviathan Blockade
+  faction: illuminate
+  difficulty_min: 8
+  description: Flying Leviathan warships patrol the battlefield (Illuminate city missions).
+  modifiers:
+    mobility: +0.30
+    heavy_pen: +0.20
+    static_position: -0.30
+  note: Leviathans overhead punish standing still. Keep moving under cover and don't dig in where they can see you.
+  source: https://helldivers.wiki.gg/wiki/Leviathan_Blockade
+
+- id: orbital_fluctuations
+  display_name: Orbital Fluctuations
+  faction: any
+  difficulty_min: 4
+  description: Stratagem cooldowns are 25% longer.
+  modifiers:
+    support_weapon: +0.30
+    backpack_sustain: +0.20
+    strong_primary: +0.20
+    orbital: -0.20
+  note: every cooldown is 25% longer, so what you carry matters more than what you call. Space strikes out across the squad.
+  source: https://helldivers.wiki.gg/wiki/Orbital_Fluctuations
+
+- id: complex_stratagem_plotting
+  display_name: Complex Stratagem Plotting
+  faction: any
+  difficulty_min: 4
+  description: Stratagem call-in time is 50% longer (extraction too, 3 minutes).
+  modifiers:
+    support_weapon: +0.30
+    strong_primary: +0.20
+    sentry: -0.20
+  note: every call-in is 50% longer, extraction included. Only the reactive diver calls under fire; everyone else calls from cover, and start extraction early.
+  source: https://helldivers.wiki.gg/wiki/Complex_Stratagem_Plotting
+
+- id: poor_intel
+  display_name: Poor Intel
+  faction: automatons
+  difficulty_min: 4
+  description: Objective locations are hidden; you search within a radius.
+  modifiers:
+    mobility: +0.30
+    radar_booster: +0.30
+  note: the Forward Eye works a beat ahead so objectives are found without the squad searching as four.
+  source: https://helldivers.wiki.gg/wiki/Poor_Intel
+
+- id: civilians_seaf
+  display_name: Civilians & SEAF in Area
+  faction: any
+  difficulty_min: 1
+  description: Civilians and SEAF soldiers fight on the map (megacity defence); each one a Helldiver kills costs the squad 25 Requisition.
+  modifiers:
+    marksman: +0.30
+    fire_kit: -0.30
+    orbital: -0.20
+    eagle: -0.20
+  note: friendlies everywhere. Every civilian or SEAF soldier you kill costs 25 Requisition, so keep fire and big strikes off the crowds.
+  source: https://helldivers.wiki.gg/wiki/Civilians_and_SEAF_in_Area

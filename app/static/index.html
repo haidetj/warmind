@@ -441,6 +441,33 @@ ul.review .tx .tag{margin-left:6px}
 }
 @media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .medal .share{border-color:var(--amber);color:var(--amber)}
+/* squad scoreboard: who is who */
+.squadmatch .sqrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,45%);gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
+.squadmatch .sqrow b{font-family:var(--mono);overflow-wrap:anywhere}
+/* feedback dialog */
+dialog.modal.fbmodal textarea{width:100%;resize:vertical;min-height:110px;font:inherit;color:var(--ink);background:rgba(2,5,8,.7);
+  border:1px solid var(--line-2);padding:10px}
+dialog.modal.fbmodal input[type=text]{width:100%}
+/* medals at stake (preview) */
+.stakes{display:grid;gap:8px} .medal.preview{margin-top:0;border-style:dashed;background:rgba(255,194,58,.04)}
+.medal.preview .hex{opacity:.85} .medal .proof{color:var(--amber);font-size:11.5px}
+/* gear: sticky save footer + unsaved-changes dialog */
+.gearfoot{position:sticky;bottom:0;z-index:5;display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:10px;
+  margin:12px -14px -14px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line-2);
+  background:rgba(4,7,11,.94);backdrop-filter:blur(4px);box-shadow:0 -8px 20px rgba(0,0,0,.45)}
+.gearfoot .fstat{font-family:var(--mono);font-size:11.5px;line-height:1.3;min-width:0;flex:1 1 auto}
+.gearfoot .btn{flex:0 0 auto;white-space:nowrap}
+body:has(details.fold[open] .gearfoot) #toast{bottom:86px}   /* keep toasts clear of the save bar */ .gearfoot .fstat.dirty{color:var(--amber)}
+.gearfoot .fstat.unset{color:var(--amber)} .gearfoot .fstat.ok{color:var(--green)}
+dialog.modal.confirm{width:min(440px,calc(100vw - 24px))}
+/* why this kit */
+.whykit{margin:4px 16px 14px 18px;padding:10px 12px;border:1px solid var(--line);border-left:2px solid var(--acc,var(--cyan));background:rgba(2,5,8,.55)}
+.whykit .wk-h{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--acc,var(--cyan));margin-bottom:6px}
+.whykit ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.whykit li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;font-size:12.5px;line-height:1.4;color:var(--ink-2)}
+.whykit .ic{color:var(--acc,var(--cyan));text-align:center}
+.whykit li.w-thin .ic{color:var(--red)} .whykit li.w-growth .ic,.whykit li.w-handling .ic{color:var(--amber)}
+.whykit li.w-nostats,.whykit li.w-reroll{color:var(--muted);font-size:11.5px}
 /* gear filter: a button + summary line, and a modal that filters live */
 .filterbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 0 4px}
 .filterbar .fsum{flex:1 1 160px;min-width:0;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
