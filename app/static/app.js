@@ -450,7 +450,7 @@
         el("span", { class: "tn" }, [i === 5 ? "FM" : "0" + i]),
         el("b", {}, [i === 5 ? t("gl.short") : t("phase." + i)]),
       ]);
-      b.onclick = () => setTab(i, true);
+      b.onclick = () => (curTab === 1 && i !== 1 ? guardGear(() => setTab(i, true)) : setTab(i, true));
       R.tabbar.appendChild(b);
     });
   }
@@ -481,7 +481,7 @@
     // not joined yet: Assemble, where the join form is (a late joiner must not land on Debrief)
     const target = !myPlayer() ? 1 : ph.active < 0 ? 4 : ph.active + 1;
     if (curTab === null) curTab = target;
-    if (!tabPinned && curTab !== target && lastTarget !== null) { setTab(target, false); toast(t("tabs.moved", { tab: t("phase." + target) })); }
+    if (!tabPinned && !gearDirty() && curTab !== target && lastTarget !== null) { setTab(target, false); toast(t("tabs.moved", { tab: t("phase." + target) })); }
     else { if (tabPinned && lastTarget !== null && target !== lastTarget && target !== curTab) tabDots[target] = true; setTab(curTab, false); }
     lastTarget = target;
     window.scrollTo(0, y);
@@ -508,6 +508,12 @@
     return [bar].concat(nodes);
   }
 
+  function homeLink() {
+    const a = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
+    a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/"; }); };
+    return a;
+  }
+
   // ----------------------------------------------------------------- command header
   function commandPanel(ph) {
     const link = location.origin + "/?l=" + LID;
@@ -515,13 +521,13 @@
     inv.onclick = () => copy(link, t("common.copied"));
     const role = isCreator() ? tag("amber", t("common.creator")) : myPlayer() ? tag("cyan", t("common.diver")) : null;
     const fm = el("button", { class: "btn sm fmbtn", type: "button" }, ["▤ " + t("gl.short")]);
-    fm.onclick = () => setTab(5, true);
+    fm.onclick = () => guardGear(() => setTab(5, true));
     const status = ph.active < 0 ? t("phase.4") + " ✓" : t("phase." + (ph.active + 1));
     return panel(t("cmd.pid"), t("cmd.title"), { status: status, statusKind: ph.active < 0 ? "ok" : "warn" }, [
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
           el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
-        el("div", { class: "acts" }, [role, inv, fm, el("a", { class: "btn sm", href: "/" }, [t("cmd.home")])]),
+        el("div", { class: "acts" }, [role, inv, fm, homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
@@ -706,6 +712,43 @@
     return wrap;
   }
 
+  // ---- unsaved gear: drafts survive live re-renders; leaving the Assemble tab or the page with
+  // one asks first (save and continue / discard / keep editing)
+  const gearDraft = {};   // pid -> { owned: Set, total }
+  const gearDirty = () => { const me = meRec(); return !!(me && gearDraft[me.id]); };
+  async function saveGearDraft(pid) {
+    const d = gearDraft[pid]; if (!d) return true;
+    const payload = d.owned.size >= d.total ? { owned: null, v: 2 } : { owned: Array.from(d.owned), v: 2 };
+    if (busy) { toast(t("gf.wait")); return false; }
+    busy = true;
+    try {
+      await jpost("/api/lobby/" + LID + "/player/" + pid + "/owned", payload, meRec().token);
+      try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
+      delete gearDraft[pid];
+      busy = false; await refresh(); toast(t("gear.saved"));
+      return true;
+    } catch (e) { toast(e.message); return false; } finally { busy = false; }
+  }
+  function guardGear(go) {
+    if (!gearDirty()) return go();
+    const me = meRec();
+    const dlg = el("dialog", { class: "modal confirm", "aria-label": t("unsaved.title") });
+    const save = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("unsaved.save")]);
+    const drop = el("button", { type: "button", class: "btn red" }, [t("unsaved.discard")]);
+    const stay = el("button", { type: "button", class: "btn" }, [t("unsaved.stay")]);
+    save.onclick = async () => { save.disabled = true; if (await saveGearDraft(me.id)) { dlg.close(); go(); } else save.disabled = false; };
+    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); renderLive(); go(); };
+    stay.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("unsaved.title")])]),
+      el("div", { class: "mbody" }, [el("p", { style: "margin:0" }, [t("unsaved.body")])]),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [save, drop, stay])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  window.addEventListener("beforeunload", e => { if (gearDirty()) { e.preventDefault(); e.returnValue = ""; } });   // reload / close / external link
+
   // Gear checklist: the whole library (base game, warbonds, Superstore, events), laid out like the
   // in-game loadout menu — tabs per slot, stratagems under their permit colour with their icons,
   // weapons with their renders and handling stats. A Filter modal narrows it by source, owned
@@ -728,7 +771,9 @@
     if (!tabs.length) return null;
     const allItems = []; tabs.forEach(tb => tb.groups.forEach(g => g.items.forEach(i => allItems.push(i))));
     const allNames = allItems.map(i => i.name);
-    const owned = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
+    const saved = new Set(p.owned == null ? allNames : p.owned);   // null = owns everything
+    // edits build a draft (kept across live re-renders) until Save; leaving with one asks first
+    const owned = gearDraft[p.id] ? gearDraft[p.id].owned : new Set(saved);
     const unset = !p.gear_confirmed;
     const d = el("details", { class: "fold" + (unset ? " attn" : "") });
     d.open = gearOpen[p.id] !== undefined ? gearOpen[p.id] : unset;
@@ -737,20 +782,11 @@
     const body = el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear2.hint")])]);
     d.appendChild(body);
 
-    // debounced, queued save: rapid ticks all land (a save in flight no longer drops the next one)
-    let saveT = null;
-    function save(now) {
-      clearTimeout(saveT);
-      saveT = setTimeout(async function go() {
-        if (busy) { saveT = setTimeout(go, 300); return; }
-        busy = true;
-        try {
-          const payload = owned.size >= allNames.length ? { owned: null, v: 2 } : { owned: Array.from(owned), v: 2 };
-          await jpost("/api/lobby/" + LID + "/player/" + p.id + "/owned", payload, meRec().token);
-          try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
-          busy = false; await refresh(); toast(t("gear.saved"));
-        } catch (e) { toast(e.message); } finally { busy = false; }
-      }, now ? 0 : 700);
+    const changes = () => { let n = 0; owned.forEach(x => { if (!saved.has(x)) n++; }); saved.forEach(x => { if (!owned.has(x)) n++; }); return n; };
+    function save() {   // any edit: record the draft and update the sticky footer
+      if (changes()) gearDraft[p.id] = { owned: owned, total: allNames.length };
+      else delete gearDraft[p.id];
+      paintFoot();
     }
 
     // ---- filter
@@ -919,12 +955,27 @@
     body.appendChild(pane);
     paintAll();
 
+    // sticky footer: always in reach while scrolling the checklist
     const saveBtn = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("gear.save")]);
-    saveBtn.onclick = () => { delete gearOpen[p.id]; save(true); };
+    saveBtn.onclick = async () => {
+      gearDraft[p.id] = { owned: owned, total: allNames.length };   // save even with no edits: confirms the gear
+      if (await saveGearDraft(p.id)) delete gearOpen[p.id];
+    };
     const allBtn = el("button", { class: "btn sm", type: "button" }, [t("gear.everything")]);
-    allBtn.onclick = () => { if (!window.confirm(t("gear.everything.confirm"))) return; allNames.forEach(n => owned.add(n)); sync(); save(true); };
-    body.appendChild(el("div", { class: "btnrow" }, [saveBtn, allBtn]));
+    allBtn.onclick = async () => {
+      if (!window.confirm(t("gear.everything.confirm"))) return;
+      allNames.forEach(n => owned.add(n)); sync(); gearDraft[p.id] = { owned: owned, total: allNames.length }; await saveGearDraft(p.id);
+    };
+    const fstat = el("span", { class: "fstat", role: "status", "aria-live": "polite" });
+    function paintFoot() {
+      const n = changes();
+      fstat.className = "fstat " + (n ? "dirty" : unset ? "unset" : "ok");
+      fstat.textContent = n ? (n === 1 ? t("gf.unsaved1") : t("gf.unsaved", { n: n })) : unset ? t("gf.notyet") : "✓ " + t("gf.saved");
+    }
+    paintFoot();
+    body.appendChild(el("div", { class: "btnrow" }, [allBtn]));
     body.appendChild(el("div", { class: "hint" }, [t("gear.remembered")]));
+    body.appendChild(el("div", { class: "gearfoot" }, [fstat, saveBtn]));
     return d;
   }
 
@@ -948,7 +999,8 @@
     const mm = meta(m.mission_id);
     const ro = (k, v, cls) => el("div", { class: "ro " + (cls || "") }, [el("div", { class: "k" }, [k]), el("div", { class: "v" }, [v])]);
     const oath = m.oath ? t("oath." + m.oath + ".name") : t("common.none");
-    const mods = (m.operation_modifiers || []).map(x => t("mod." + x)).concat(m.is_city_map ? [t("mod.__city")] : []);
+    const mods = (m.operation_modifiers || []).map(x => t("mod." + x)).concat(m.is_city_map ? [t("mod.__city")] : [])
+      .concat(m.stealth ? [t("mod.__stealth")] : []);
     R.misReadout.appendChild(el("div", { class: "readout" }, [
       ro(t("mis.mission"), mm ? mm.name : m.mission_id, "wide"),
       m.planet_name ? ro(t("mis.planet"), m.planet_name, "wide") : null,
@@ -1032,17 +1084,19 @@
 
     // modifiers
     const ops = el("div", { class: "chips" });
-    ["complex_stratagem_plotting", "poor_intel", "__city"].forEach(id => {
-      const on = id === "__city" ? draft.is_city_map : draft.operation_modifiers.indexOf(id) >= 0;
+    ["complex_stratagem_plotting", "poor_intel", "__city", "__stealth"].forEach(id => {
+      const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
       const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on) }, [t("mod." + id)]);
       c.onclick = () => {
         if (id === "__city") draft.is_city_map = !draft.is_city_map;
+        else if (id === "__stealth") draft.stealth = !draft.stealth;
         else { const i = draft.operation_modifiers.indexOf(id); i >= 0 ? draft.operation_modifiers.splice(i, 1) : draft.operation_modifiers.push(id); }
         c.setAttribute("aria-pressed", String(c.getAttribute("aria-pressed") !== "true"));
       };
       ops.appendChild(c);
     });
-    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops]));
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops,
+      el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
 
     // planet hazards + tactical objectives: both feed the mission pressure
     const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };

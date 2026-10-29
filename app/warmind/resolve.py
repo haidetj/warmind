@@ -35,6 +35,7 @@ class Session:
     operation_modifiers: list = field(default_factory=list)
     tactical_objectives: list = field(default_factory=list)
     is_city_map: bool = False
+    stealth: bool = False   # creator's "stealth run" toggle: the whole squad goes quiet
     seed: int = 0  # creator's reroll counter; 0 = the canonical (best-scoring) loadouts
 
 
@@ -346,12 +347,19 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         for k, v in urban.items():
             p.vector[k] = round(p.vector.get(k, 0.0) + v, 4)
             p.contributors.setdefault(k, []).append(("city terrain", v))
+    if session.stealth:   # stealth run: fold the situation in, credited as its own source
+        quiet = pressure_mod.loader.mission_tag_modifiers().get("stealth_run", {}).get("modifiers", {})
+        for k, v in quiet.items():
+            p.vector[k] = round(p.vector.get(k, 0.0) + v, 4)
+            p.contributors.setdefault(k, []).append(("stealth run", v))
     if session.mode == "d100":  # the map's demands, turned up past the difficulty dial
         p.vector = {k: round(v * modes.D100_PRESSURE, 4) for k, v in p.vector.items()}
     session._pressure = p
     session._excluded = set()
     doctrine = _doctrine(session)
     commando = bool(doctrine and doctrine.get("kind") == "commando")
+    # quiet kit (no statics, no Heavy armour): forced on commando ops, chosen for a stealth run
+    quiet = commando or session.stealth
 
     poor_intel = OP_POOR_INTEL in session.operation_modifiers
     # Stats-first: each diver gets the role that fits them. Mission coverage becomes
@@ -400,7 +408,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         ctx[pl.id] = (pl, role, pstyle, hist, _diver_excluded(pl))
         as_diver(pl)
         strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
-                                 slots=COMMANDO_SLOTS if commando else None, no_static=commando)
+                                 slots=COMMANDO_SLOTS if commando else None, no_static=quiet)
         for it in strat:
             squad_used[it.name] += 1
         phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "strat": strat})
@@ -410,7 +418,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         pl, role, pstyle, hist, _ = ctx[kit["pid"]]
         as_diver(pl)
         return _pick(cands, session, pstyle, hist, squad_used=squad_used, owned_only=True)   # never swap in unowned gear
-    review = kitrules.review_squad(phase, pool, review_pick, session, commando)
+    review = kitrules.review_squad(phase, pool, review_pick, session, quiet)
 
     passive_why = {}
     gear_used = Counter()   # weapons + armour already handed out in this squad
@@ -437,7 +445,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
                         reroll_margin=REROLL_MARGIN["grenade"])
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
-        weight = "Medium" if commando and role.armor_weight == "Heavy" else role.armor_weight  # commando: no Heavy
+        weight = "Medium" if quiet and role.armor_weight == "Heavy" else role.armor_weight  # quiet: no Heavy
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map
@@ -646,6 +654,9 @@ def _notes(session, p):
     if OP_POOR_INTEL in session.operation_modifiers:
         add("note.poor_intel", "Poor Intel: the Forward Eye works a beat ahead so objectives are found "
                                "without the squad searching as four.")
+    if session.stealth:
+        add("note.stealth", "Stealth run: move as a group, go around patrols, kill flares and callers first, "
+                            "and save strikes for objectives. One loud diver breaks it for everyone.")
     if session.is_city_map:
         add("note.city", "City map: short sightlines and airborne threats. Emplacements lose arcs; "
                          "anti-air and entry tools gain value.")

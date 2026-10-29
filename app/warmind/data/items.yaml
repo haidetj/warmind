@@ -40,7 +40,7 @@ primaries:
   - {name: "AR-23A Liberator Carbine", warbond: "Viper Commandos", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "AR-23L Liberator Legacy", warbond: "Liberty Day 2186", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "AR-23P Liberator Penetrator", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "AR-59 Suppressor", warbond: "Redacted Regiment", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-59 Suppressor", warbond: "Redacted Regiment", coverage: [ch], tags: [high_rof_ballistic, ranged, stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "AR-61 Tenderizer", warbond: "Polar Patriots", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "ARC-12 Blitzer", warbond: "Cutting Edge", coverage: [], tags: [energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "BR-14 Adjudicator", warbond: "Democratic Detonation", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
@@ -51,7 +51,7 @@ primaries:
   - {name: "LAS-13 Trident", warbond: "Siege Breakers", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LAS-16 Sickle", warbond: "Cutting Edge", coverage: [], tags: [ammo_independent, energy], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LAS-17 Double-Edge Sickle", warbond: "Servants of Freedom", coverage: [ch], tags: [ammo_independent, energy, sustain_fire], grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "M7S SMG", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M7S SMG", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, high_rof_ballistic, stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "M90A Shotgun", warbond: "Halo: ODST", coverage: [ch], tags: [close_quarters, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "MA5C Assault Rifle", warbond: "Halo: ODST", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "MP-98 Knight", warbond: "Super Citizen Edition", coverage: [ch], tags: [close_quarters, high_rof_ballistic], grade: {terminids: B, automatons: B, illuminate: B}}
@@ -61,7 +61,7 @@ primaries:
   - {name: "R-2124 Constitution", warbond: "Liberty Day", coverage: [], tags: [light_pen, marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "R-4 Hyena", warbond: "Celestial Fence", coverage: [ch], tags: [fire_kit, light_pen, marksman, ranged], grade: {terminids: B, automatons: C, illuminate: B}}
   - {name: "R-6 Deadeye", warbond: "Borderline Justice", coverage: [], tags: [light_pen, marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "R-72 Censor", warbond: "Redacted Regiment", coverage: [], tags: [marksman, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "R-72 Censor", warbond: "Redacted Regiment", coverage: [], tags: [marksman, ranged, stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SG-20 Halt", warbond: "Truth Enforcers", coverage: [ch], tags: [close_quarters, light_pen, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SG-225SP Breaker Spray&Pray", coverage: [ch], tags: [close_quarters, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "SG-451 Cookout", warbond: "Freedom's Flame", coverage: [ch], tags: [close_quarters, fire_kit, stagger_primary], grade: {terminids: B, automatons: C, illuminate: B}}
@@ -92,7 +92,7 @@ secondaries:
   - {name: "CQC-73 Entrenchment Tool", coverage: [], tags: [close_quarters, melee], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "GP-20 Ultimatum", warbond: "Servants of Freedom", coverage: [ch, st], tags: [explosive_secondary], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "LAS-58 Talon", warbond: "Borderline Justice", coverage: [], tags: [ammo_independent, energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
-  - {name: "M6C/SOCOM Pistol", warbond: "Halo: ODST", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "M6C/SOCOM Pistol", warbond: "Halo: ODST", coverage: [], tags: [stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "P-19 Redeemer", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "P-33 Missile Pistol", warbond: "Exo Experts", coverage: [at, ch, st], tags: [explosive_secondary, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "P-34 Breacher", warbond: "Ironclad Democracy", coverage: [at, ch, st], tags: [explosive_secondary, heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}

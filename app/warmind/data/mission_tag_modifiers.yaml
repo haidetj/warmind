@@ -63,6 +63,21 @@ urban:
     jump_pack: +0.40
     sentry: -0.20       # arcs get blocked by buildings
 
+stealth_run:
+  description: >
+    The squad commits to a quiet drop (creator's toggle): avoid patrols, don't trip
+    reinforcement calls, fight only on objectives. Suppressed weapons, Scout-passive
+    armour (smaller detection radius, map pings) and smoke win; loud static positions
+    (sentries, emplacements) that draw and hold attention lose. Strikes still have a
+    place on objectives. Same direction as commando_op, which the game forces.
+  modifiers:
+    stealth: +0.90
+    mobility: +0.50
+    light_armor: +0.40
+    sentry: -0.80
+    static_position: -0.70
+    high_rof_ballistic: -0.20
+
 # ---------------- combat demand ----------------
 
 chaff_volume:

@@ -212,6 +212,7 @@ def _session_of(mission, lobby) -> Session:
         operation_modifiers=mission.get("operation_modifiers", []),
         tactical_objectives=mission.get("tactical_objectives", []),
         is_city_map=mission.get("is_city_map", False),
+        stealth=bool(mission.get("stealth", False)),
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -410,6 +411,7 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
         m["mode"] = "improvement"
     if m.get("oath") not in oaths.OATHS:
         m["oath"] = None
+    m["stealth"] = bool(m.get("stealth"))
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     db.set_mission(lid, m)
