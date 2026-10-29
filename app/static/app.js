@@ -1528,6 +1528,50 @@
     return el("div", { class: "unver" }, [t("deb.unver", { reason: reason })]);
   }
 
+  // Squad scoreboard: confirm which column is which diver (prefilled from the names), then
+  // every matched diver's result, oath verdicts, medals and review are recorded at once.
+  function squadConfirm(r, token) {
+    const dlg = el("dialog", { class: "modal squadmatch", "aria-label": t("deb.squad.title") });
+    const sels = [];
+    const rows = r.rows.map(row => {
+      const sel = el("select", {}, [el("option", { value: "" }, [t("deb.squad.skip")])].concat(
+        STATE.players.map(p => el("option", { value: p.id }, [p.callsign]))));
+      sel.value = r.match[String(row.i)] || "";
+      sels.push([row.i, sel]);
+      const nums = [row.kills != null ? t("sb.kills") + " " + row.kills : null, row.deaths != null ? t("sb.deaths") + " " + row.deaths : null,
+        row.accuracy_pct != null ? t("sb.accuracy") + " " + row.accuracy_pct + "%" : null].filter(Boolean).join(" · ");
+      return el("div", { class: "sqrow" }, [el("div", {}, [el("b", {}, [row.name]), el("div", { class: "hint", style: "margin:0" }, [nums])]), sel]);
+    });
+    const err = el("div", { class: "hint", style: "margin:0;color:var(--red)" });
+    const ok = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("deb.squad.record")]);
+    const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    ok.onclick = async () => {
+      const assign = {}, seen = new Set();
+      for (const [i, sel] of sels) {
+        if (!sel.value) continue;
+        if (seen.has(sel.value)) { err.textContent = t("deb.squad.dupe"); return; }
+        seen.add(sel.value); assign[i] = sel.value;
+      }
+      if (!seen.size) { err.textContent = t("deb.squad.none"); return; }
+      ok.disabled = true; busy = true; ok.textContent = t("deb.squad.writing");
+      try {
+        const res = await jpost("/api/lobby/" + LID + "/results/squad/" + r.read_id, { assign: assign, lang: LANG }, token);
+        dlg.close(); busy = false; await refresh();
+        const won = res.recorded.reduce((n, x) => n + x.verdicts.filter(v => v.passed === true && v.medal).length, 0);
+        toast(t("deb.squad.done", { n: res.recorded.length }) + (won ? " · 🎖 " + won : ""));
+      } catch (e) { err.textContent = e.message; ok.disabled = false; ok.textContent = "✓ " + t("deb.squad.record"); }
+      finally { busy = false; }
+    };
+    cancel.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("deb.squad.title")])]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0" }, [t("deb.squad.confirm")])].concat(rows, [err])),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [ok, cancel])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   function debriefPanel() {
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
@@ -1554,9 +1598,26 @@
       };
       return [up, status];
     }
+    // whole squad from one scoreboard (any member), or just yourself
+    if (me || isCreator()) {
+      const sq = fileBtn("primary", "▦ " + t("deb.squad"), false), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+      sq.querySelector("input").onchange = async ev => {
+        const f = ev.target.files[0]; ev.target.value = ""; if (!f || busy) return;
+        busy = true; lockControls([sq], true);
+        const stop = workTicker(sqStatus, lines("tick.review.", 5));
+        try {
+          const fd = new FormData(); fd.append("image", f);
+          const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, me ? meRec().token : store.creator(LID));
+          stop(); sqStatus.style.display = "none"; busy = false;
+          squadConfirm(r, me ? meRec().token : store.creator(LID));
+        } catch (e) { stop(); setStatus(sqStatus, "err", t("deb.failed", { msg: e.message })); }
+        finally { stop(); lockControls([sq], false); busy = false; }
+      };
+      kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [sq]), sqStatus, el("div", { class: "hint" }, [t("deb.squad.hint")]));
+    }
     if (me) {
-      const [up, status] = uploader(me, t("deb.submit"), true);
-      kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
+      const [up, status] = uploader(me, t("deb.submit.solo"), false);
+      kids.push(el("div", { class: "btnrow" }, [up]), status, el("div", { class: "hint" }, [t("deb.submit.hint")]));
     } else if (!isCreator()) {
       kids.push(el("div", { class: "alert" }, [el("b", {}, ["!"]), t("deb.nodevice")]));
     }

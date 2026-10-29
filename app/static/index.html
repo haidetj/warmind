@@ -441,6 +441,9 @@ ul.review .tx .tag{margin-left:6px}
 }
 @media(prefers-reduced-motion:reduce){.tabbar .tab.live .led,.sect .tt::after{animation:none}.view.scanin{animation:none}}
 .medal .share{border-color:var(--amber);color:var(--amber)}
+/* squad scoreboard: who is who */
+.squadmatch .sqrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,45%);gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
+.squadmatch .sqrow b{font-family:var(--mono);overflow-wrap:anywhere}
 /* feedback dialog */
 dialog.modal.fbmodal textarea{width:100%;resize:vertical;min-height:110px;font:inherit;color:var(--ink);background:rgba(2,5,8,.7);
   border:1px solid var(--line-2);padding:10px}

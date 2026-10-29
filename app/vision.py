@@ -229,6 +229,32 @@ def read_result(image_bytes: bytes, media_type: str) -> dict:
     return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
 
 
+SQUAD_PROMPT = (
+    "This is a Helldivers 2 end-of-mission scoreboard that shows EVERY player in the squad "
+    "(one column or row per player, each headed by the player's name). Return ONE JSON object, "
+    "no prose: {\"players\": [{\"name\": <the player's name exactly as shown>, <fields>}]} with one entry "
+    "per player in the order shown, and these fields where visible (omit any you cannot read): "
+    + ", ".join(RESULT_FIELDS) + ". objectives_completed / objectives_total only if the screen lists "
+    "them (they apply to every player). {hint}Return only the JSON object."
+)
+
+
+def read_squad_results(image_bytes: bytes, media_type: str, expected: list | None = None) -> list:
+    """Read a whole-squad scoreboard into one result per player: [{"name", ...fields}]."""
+    expected = [e for e in (expected or []) if e]
+    if MOCK:   # sample columns named after the squad, so matching can be exercised offline
+        out = []
+        for i, n in enumerate(expected or ["Diver 1", "Diver 2"]):
+            r = dict(MOCK_RESULT, kills=MOCK_RESULT["kills"] - 37 * i, deaths=(MOCK_RESULT["deaths"] + i) % 4,
+                     accuracy_pct=round(MOCK_RESULT["accuracy_pct"] - 6.5 * i, 1))
+            out.append({"name": n.upper() if i % 2 else n, **r})
+        return out
+    hint = ("The squad's callsigns in WARMIND are: " + ", ".join(expected) + " (in-game names may differ). ") if expected else ""
+    data = _extract_json(_call([(image_bytes, media_type)], SQUAD_PROMPT.replace("{hint}", hint)))
+    rows = data.get("players") if isinstance(data, dict) else data
+    return [r for r in (rows or []) if isinstance(r, dict) and r.get("name")][:8]
+
+
 def _as_list(verdicts) -> list:
     return verdicts if isinstance(verdicts, list) else [verdicts] if verdicts else []
 
@@ -291,7 +317,9 @@ def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
         "You are WARMIND, a Helldivers 2 squad coach. Grade the ADVICE you gave, not the player. "
         "Tone: stoic, state the finding then the evidence, never moralise about K/D or friendly fire. "
         "Report rates against the career baseline, not raw totals. Two or three sentences.\n\n"
-        + _oath_brief(verdict) +
+        + _oath_brief(verdict)
+        + (f"The screenshot shows the whole squad; this review is for the player in the column "
+           f"\"{context['column']}\" only.\n" if context.get("column") else "") +
         f"Role assigned: {context.get('role')}\n"
         f"Play-style: {context.get('play_style')}\n"
         f"Mode: {context.get('mode')}\n"
