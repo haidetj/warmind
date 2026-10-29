@@ -264,6 +264,7 @@
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     app.appendChild(fmFold);
     renderMyLobbies();
+    app.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn()]));
     if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
     bootSequence(term);
   }
@@ -508,6 +509,54 @@
     return [bar].concat(nodes);
   }
 
+  // Feedback: name + kind + message, saved with a timestamp and where in the app it came
+  // from. Synced daily into public GitHub issues, so the form says it's public.
+  function feedbackBtn(cls) {
+    const b = el("button", { type: "button", class: "btn sm " + (cls || "") }, ["✎ " + t("fb.button")]);
+    b.onclick = openFeedback;
+    return b;
+  }
+  function openFeedback() {
+    const me = LID && STATE ? myPlayer() : null;
+    let saved = ""; try { saved = localStorage.getItem("wm_fb_name") || ""; } catch (e) {}
+    const name = el("input", { type: "text", maxlength: "40", value: (me && me.callsign) || saved, placeholder: t("fb.name.ph"), autocomplete: "off" });
+    let kind = "idea";
+    const kinds = el("div", { class: "seg", role: "group" });
+    ["bug", "idea", "other"].forEach(k => {
+      const b = el("button", { type: "button", "aria-pressed": String(k === kind) }, [t("fb.kind." + k)]);
+      b.onclick = () => { kind = k; kinds.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
+      kinds.appendChild(b);
+    });
+    const text = el("textarea", { rows: "5", maxlength: "2000", placeholder: t("fb.text.ph") });
+    const send = el("button", { type: "button", class: "btn primary" }, ["➤ " + t("fb.send")]);
+    const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fb.title") });
+    send.onclick = async () => {
+      if (text.value.trim().length < 3) { text.focus(); return; }
+      send.disabled = true;
+      try {
+        try { localStorage.setItem("wm_fb_name", name.value.trim()); } catch (e) {}
+        await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
+          page: LID ? "tab" + (curTab || "") : "home", lang: LANG });
+        dlg.close(); toast(t("fb.thanks"));
+      } catch (e) { toast(e.message); send.disabled = false; }
+    };
+    cancel.onclick = () => dlg.close();
+    dlg.append(
+      el("div", { class: "mhead" }, [el("b", {}, [t("fb.title")])]),
+      el("div", { class: "mbody" }, [
+        el("span", { class: "label" }, [t("fb.name")]), name,
+        el("span", { class: "label" }, [t("fb.kind")]), kinds,
+        el("span", { class: "label" }, [t("fb.text")]), text,
+        el("div", { class: "hint", style: "margin:0" }, [t("fb.public")]),
+      ]),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [send, cancel])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    (name.value ? text : name).focus();
+  }
+
   function homeLink() {
     const a = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
     a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/"; }); };
@@ -527,7 +576,7 @@
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
           el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
-        el("div", { class: "acts" }, [role, inv, fm, homeLink()]),
+        el("div", { class: "acts" }, [role, inv, fm, feedbackBtn(), homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),

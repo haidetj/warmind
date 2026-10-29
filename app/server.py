@@ -344,6 +344,37 @@ def war_feed():
     return JSONResponse(war.snapshot(), headers={"Cache-Control": "public, max-age=60"})
 
 
+# ---------------------------------------------------------------- feedback
+FEEDBACK_KINDS = ("bug", "idea", "other")
+_fb_hits: dict = {}   # ip -> [timestamps]; a light brake on spam (the backlog is public)
+
+
+@app.post("/api/feedback")
+def feedback(payload: dict, request: Request):
+    """Save a feedback note (name, kind, text, where in the app). It becomes a public
+    GitHub issue on the next daily sync, so the form says so."""
+    text = str(payload.get("text") or "").strip()
+    if len(text) < 3:
+        raise HTTPException(400, "feedback is empty")
+    now, ip = time.time(), _ip(request)
+    hits = [t for t in _fb_hits.get(ip, []) if t > now - 3600]
+    if len(hits) >= 6:
+        raise HTTPException(429, "Thanks, that's plenty for this hour. Try again later.")
+    _fb_hits[ip] = hits + [now]
+    kind = payload.get("kind") if payload.get("kind") in FEEDBACK_KINDS else "other"
+    fid = _id(6)
+    db.add_feedback(fid, str(payload.get("name") or "").strip()[:40] or "Anonymous diver", kind, text[:2000],
+                    str(payload.get("lobby") or "")[:12], str(payload.get("page") or "")[:24],
+                    str(payload.get("lang") or "en")[:8])
+    return {"ok": True, "id": fid}
+
+
+@app.get("/api/feedback/export")
+def feedback_export(after: float = 0.0):
+    """Feedback for the daily GitHub sync (public by design: it's published as issues)."""
+    return {"items": db.list_feedback(after)}
+
+
 # ---------------------------------------------------------------- lobby lifecycle
 @app.post("/api/lobby")
 def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4)):
