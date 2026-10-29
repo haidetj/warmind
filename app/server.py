@@ -80,6 +80,17 @@ def _accuracy_of(p) -> float | None:
     return float(snap.get("shots_hit") or 0) / float(snap["shots_fired"])
 
 
+def _oaths_of(mission) -> list:
+    """The mission's oaths (list), reading the single-oath format older lobbies stored."""
+    ks = mission.get("oaths") if isinstance(mission.get("oaths"), list) else ([mission["oath"]] if mission.get("oath") else [])
+    return [k for k in ks if k in oaths.OATHS]
+
+
+def _verdicts_of(raw) -> list:
+    v = json.loads(raw) if raw else None
+    return v if isinstance(v, list) else [v] if v else []
+
+
 def _owned_store(owned: list | None):
     return None if owned is None else {"v": 2, "owned": owned}
 
@@ -187,7 +198,8 @@ def _resolve(lobby) -> dict:
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
-                     "verdict": json.loads(res["verdict_json"]) if res.get("verdict_json") else None}
+                     "verdicts": _verdicts_of(res.get("verdict_json")),
+                     "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
         })
     all_snaps = [json.loads(p["snapshot_json"]) for p in players_rows if p["snapshot_json"]]
@@ -413,8 +425,10 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     from warmind.modes import MODES
     if m.get("mode") not in MODES:
         m["mode"] = "improvement"
-    if m.get("oath") not in oaths.OATHS:
-        m["oath"] = None
+    # oaths: up to 3, each judged on its own; "oath" stays as the first for older clients
+    picked = m.get("oaths") if isinstance(m.get("oaths"), list) else ([m.get("oath")] if m.get("oath") else [])
+    m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
+    m["oath"] = m["oaths"][0] if m["oaths"] else None
     m["stealth"] = bool(m.get("stealth"))
     known = loader.operation_modifiers()
     m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:4]
@@ -599,18 +613,21 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
         raise HTTPException(429, str(e))
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
-    # the oath verdict is decided in code from the numbers, before any prose is written
-    verdict = oaths.evaluate(mission.get("oath"), result)
-    if verdict:
-        verdict["medal"] = oaths.medal(verdict, lobby_id=lid, player_id=pid, result=result,
-                                       mode=mission.get("mode"))
+    # oath verdicts are decided in code from the numbers, before any prose is written
+    verdicts = []
+    for key in _oaths_of(mission):
+        v = oaths.evaluate(key, result)
+        if v:
+            v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=result, mode=mission.get("mode"))
+            verdicts.append(v)
     try:
-        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdict, lang=lang)
+        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdicts, lang=lang)
     except Exception:
-        # the numbers and verdict already stand; don't lose them over the prose call
-        aar = vision._mock_oath_line(verdict) + "Review text unavailable — the scoreboard was read and recorded."
-    db.save_result(_id(5), lid, pid, result, aar, verdict)
-    return {"ok": True, "aar": aar, "result": result, "verdict": verdict}
+        # the numbers and verdicts already stand; don't lose them over the prose call
+        aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
+    db.save_result(_id(5), lid, pid, result, aar, verdicts or None)
+    return {"ok": True, "aar": aar, "result": result, "verdicts": verdicts,
+            "verdict": verdicts[0] if verdicts else None}
 
 
 @app.delete("/api/lobby/{lid}/player/{pid}")

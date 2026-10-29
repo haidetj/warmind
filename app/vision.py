@@ -229,7 +229,15 @@ def read_result(image_bytes: bytes, media_type: str) -> dict:
     return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
 
 
-def _oath_brief(verdict: dict | None) -> str:
+def _as_list(verdicts) -> list:
+    return verdicts if isinstance(verdicts, list) else [verdicts] if verdicts else []
+
+
+def _oath_brief(verdicts) -> str:
+    return "".join(_oath_brief1(v) for v in _as_list(verdicts))
+
+
+def _oath_brief1(verdict: dict | None) -> str:
     if not verdict:
         return ""
     head = f"The squad swore the oath \"{verdict['name']}\" ({verdict['rule']}). "
@@ -245,7 +253,11 @@ def _oath_brief(verdict: dict | None) -> str:
     return head + f"It could not be verified from this screenshot ({verdict['reason']}). Say so in one line — no medal, no judgement.\n"
 
 
-def _mock_oath_line(verdict: dict | None) -> str:
+def _mock_oath_line(verdicts) -> str:
+    return "".join(_mock_oath_line1(v) for v in _as_list(verdicts))
+
+
+def _mock_oath_line1(verdict: dict | None) -> str:
     if not verdict:
         return ""
     if verdict.get("passed") is True:

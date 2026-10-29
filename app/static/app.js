@@ -998,7 +998,7 @@
     if (!set) { if (!isCreator()) R.misReadout.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("mis.waiting")])); return; }
     const mm = meta(m.mission_id);
     const ro = (k, v, cls) => el("div", { class: "ro " + (cls || "") }, [el("div", { class: "k" }, [k]), el("div", { class: "v" }, [v])]);
-    const oath = m.oath ? t("oath." + m.oath + ".name") : t("common.none");
+    const oath = oathsOf(m).length ? oathsOf(m).map(k => t("oath." + k + ".name")).join(" · ") : t("common.none");
     const mods = (m.operation_modifiers || []).map(x => has("mod." + x) ? t("mod." + x) : ((META.op_modifiers || []).find(o => o.id === x) || { name: x }).name).concat(m.is_city_map ? [t("mod.__city")] : [])
       .concat(m.stealth ? [t("mod.__stealth")] : []);
     R.misReadout.appendChild(el("div", { class: "readout" }, [
@@ -1015,7 +1015,7 @@
   }
 
   function missionEditor() {
-    const base = { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null };
+    const base = { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null, oaths: [] };
     const draft = JSON.parse(JSON.stringify(Object.assign(base, (STATE && STATE.mission) || {})));
     ["operation_modifiers", "planet_hazards", "tactical_objectives"].forEach(k => { if (!Array.isArray(draft[k])) draft[k] = []; });
     const set = !!(STATE.mission && STATE.mission.mission_id);
@@ -1145,10 +1145,23 @@
 
     // oath
     const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
-    const setHint = () => { oathHint.textContent = draft.oath ? t("mis.oath.hint", { rule: t("oath." + draft.oath + ".rule"), medal: t("oath." + draft.oath + ".medal") }) : t("mis.oath.hint.none"); };
+    draft.oaths = oathsOf(draft);
+    const setHint = () => {
+      draft.oath = draft.oaths[0] || null;   // older clients read the first
+      oathHint.innerHTML = "";
+      oathHint.appendChild(draft.oaths.length ? medalPreview(draft.oaths, draft.mode === "d100") : document.createTextNode(t("mis.oath.hint.none")));
+      if (draft.oaths.length) oathHint.appendChild(el("div", { class: "hint", style: "margin-top:6px" }, [t("mis.oaths.hint")]));
+      oathRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.k ? draft.oaths.indexOf(x.dataset.k) >= 0 : !draft.oaths.length)));
+    };
     [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
-      const c = el("button", { type: "button", class: "chip", "aria-pressed": String((draft.oath || null) === k) }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
-      c.onclick = () => { draft.oath = k; oathRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === c))); setHint(); };
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => {
+        if (!k) draft.oaths = [];
+        else if (draft.oaths.indexOf(k) >= 0) draft.oaths = draft.oaths.filter(x => x !== k);
+        else if (draft.oaths.length < 3) draft.oaths = draft.oaths.concat([k]);
+        else { toast(t("mis.oaths.max")); return; }
+        setHint();
+      };
       oathRow.appendChild(c);
     });
     setHint();
@@ -1438,6 +1451,18 @@
     copy(text + " " + url, t("share.copied"));
   }
 
+  const oathsOf = m => (m && Array.isArray(m.oaths) ? m.oaths : m && m.oath ? [m.oath] : []);
+  // what's at stake: the medal each sworn oath earns, before anyone uploads a result
+  function medalPreview(keys, d100) {
+    return el("div", { class: "stakes" }, keys.map(k => {
+      const base = t("oath." + k + ".medal");
+      return el("div", { class: "medal preview" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["★"]), el("div", {}, [
+        el("div", { class: "mn" }, [d100 ? t("medal.d100", { name: base }) : base]),
+        el("div", { class: "mw" }, [t("oath." + k + ".name") + ": " + t("oath." + k + ".rule")]),
+        has("oath." + k + ".proof") ? el("div", { class: "mw proof" }, [t("oath." + k + ".proof")]) : null])]);
+    }));
+  }
+
   function verdictBlock(v, callsign) {
     if (!v) return null;
     const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
@@ -1458,7 +1483,7 @@
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
-    if (m.oath) kids.push(el("div", { class: "readout-q", style: "margin:0 0 12px;font-style:normal" }, [t("deb.oath", { name: t("oath." + m.oath + ".name"), rule: t("oath." + m.oath + ".rule") })]));
+    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
@@ -1472,9 +1497,9 @@
           const token = me && me.id === target.id ? meRec().token : store.creator(LID);
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
-          const v = rr.verdict;
-          toast(v && v.passed === true && v.medal ? t("toast.medal", { name: v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal") })
-            : v && v.passed === false ? t("toast.broken") : t("toast.aar"));
+          const vs = rr.verdicts || (rr.verdict ? [rr.verdict] : []), won = vs.filter(v => v.passed === true && v.medal);
+          toast(won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
+            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar"));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
@@ -1498,7 +1523,7 @@
         }
       }
       else {
-        const vb = verdictBlock(aar.verdict, p.callsign); if (vb) inner.push(vb);
+        (aar.verdicts || (aar.verdict ? [aar.verdict] : [])).forEach(v => { const vb = verdictBlock(v, p.callsign); if (vb) inner.push(vb); });
         const r = aar.result || {};
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
@@ -1510,7 +1535,7 @@
       honors.appendChild(row);
     });
     kids.push(honors);
-    const anyMedal = STATE.players.some(p => p.aar && p.aar.verdict && p.aar.verdict.medal);
+    const anyMedal = STATE.players.some(p => p.aar && (p.aar.verdicts || [p.aar.verdict]).some(v => v && v.medal));
     return panel(t("deb.pid"), t("deb.title"), { tone: anyMedal ? "amber" : null }, kids);
   }
 
