@@ -663,3 +663,76 @@
   tags: [objective_defense, anti_air, chaff_volume, sustained_hold]
   verified: true
 
+
+# ---- Illuminate missions exclusive to The Void (Void-consumed planets). Added 2026-11-04
+# from helldivers.wiki.gg (Category:Missions, via sync/missions_wiki.json): factions and
+# difficulty ranges from each page's Infobox Mission.
+- id: blitz_destroy_warp_gateways
+  display_name: "Blitz: Destroy Illuminate Warp Gateways"
+  archetype: blitz
+  factions: [illuminate]
+  duration_band: short
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, timer_pressure, high_traversal]
+  verified: true
+
+- id: blitz_suppress_toxic_pollination
+  display_name: "Blitz: Suppress Toxic Pollination"
+  archetype: blitz
+  factions: [illuminate]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [structure_demo, timer_pressure, high_traversal]
+  verified: true
+
+- id: democratize_the_void
+  display_name: "Democratize the Void"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, objective_defense, sustained_hold]
+  verified: true
+
+- id: destroy_gazer_spire
+  display_name: "Destroy Gazer Spire"
+  archetype: sabotage
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 5
+  difficulty_max: 10
+  tags: [structure_demo, anti_heavy, fixed_location]
+  verified: true
+
+- id: eradicate_illuminate_forces
+  display_name: "Eradicate Illuminate Forces"
+  archetype: eradicate
+  factions: [illuminate]
+  duration_band: short
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [fixed_location, chaff_volume, objective_defense]
+  verified: true
+
+- id: extract_anomalous_material
+  display_name: "Extract Anomalous Material"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 3
+  difficulty_max: 10
+  tags: [escort, high_traversal, objective_defense]
+  verified: true
+
+- id: infiltrate_illuminate_lair
+  display_name: "Infiltrate Illuminate Lair"
+  archetype: objective
+  factions: [illuminate]
+  duration_band: standard
+  difficulty_min: 1
+  difficulty_max: 10
+  tags: [structure_demo, objective_defense, chaff_volume]
+  verified: true

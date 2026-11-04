@@ -347,7 +347,9 @@
       return;
     }
     const sig = JSON.stringify(s);
-    if (sig === lastSig && STATE) return;   // nothing changed: leave the page (and any open folds) alone
+    if (sig === lastSig && STATE) return;
+    const mWas = STATE && STATE.directive && STATE.directive.mind, mNow = s.directive && s.directive.mind;
+    if (mWas && mNow && mWas.status === "thinking" && mNow.status === "ready" && mWas.sig === mNow.sig) toast(t("mind.toast"));   // nothing changed: leave the page (and any open folds) alone
     if (STATE && s.directive && (JSON.stringify(STATE.mission) !== JSON.stringify(s.mission) || (STATE.reroll || 0) !== (s.reroll || 0))) {
       busy = true;
       try { await regenScreen(null, 1500); } finally { busy = false; }
@@ -731,6 +733,19 @@
       el("div", { class: "field" }, [reread]),
     ]));
     kids.push(status);
+    // rename after joining
+    const nameIn = el("input", { id: "my-callsign", type: "text", maxlength: "24", value: p.callsign || "", autocomplete: "off" });
+    const nameBtn = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("me.rename")]);
+    nameBtn.onclick = async () => {
+      const v = nameIn.value.trim(); if (!v || v === p.callsign || busy) return;
+      busy = true; nameBtn.disabled = true;
+      try { await jpost("/api/lobby/" + LID + "/player/" + p.id + "/callsign", { callsign: v }, meRec().token); await refresh(); toast(t("toast.renamed")); }
+      catch (e) { toast(e.message); } finally { busy = false; nameBtn.disabled = false; }
+    };
+    nameIn.onkeydown = e => { if (e.key === "Enter") nameBtn.click(); };
+    kids.push(el("div", { class: "grid2", style: "margin-top:14px;align-items:end" }, [
+      el("div", { class: "field" }, [el("label", { class: "label", for: "my-callsign" }, [t("me.callsign")]), nameIn]),
+      el("div", { class: "field" }, [nameBtn])]));
     const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
     dev.onclick = () => copy(location.origin + "/?l=" + LID + "#me=" + p.id + "." + meRec().token, t("me.device.copied"));
     kids.push(el("div", { class: "btnrow" }, [dev]));
@@ -1166,6 +1181,17 @@
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops, opsDesc,
       el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
 
+    // WARMIND thinks: the AI planner on top of the engine (on unless turned off)
+    if (draft.think === undefined) draft.think = true;
+    const thinkSeg = el("div", { class: "seg", role: "group", "aria-label": t("mis.think.label") });
+    [[true, t("mis.think.on")], [false, t("mis.think.off")]].forEach(([v, label]) => {
+      const b = el("button", { type: "button", "aria-pressed": String(draft.think === v) }, [label]);
+      b.onclick = () => { draft.think = v; thinkSeg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
+      thinkSeg.appendChild(b);
+    });
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, ["◈ " + t("mis.think.label")]), thinkSeg,
+      el("div", { class: "hint" }, [t("mis.think.hint")])]));
+
     // planet hazards + tactical objectives: both feed the mission pressure
     const toggle = (arr, id, chip) => { const i = arr.indexOf(id); i >= 0 ? arr.splice(i, 1) : arr.push(id); chip.setAttribute("aria-pressed", String(i < 0)); };
     const haz = el("div", { class: "chips" });
@@ -1221,6 +1247,7 @@
     save.onclick = async () => {
       if (busy) return; busy = true; save.disabled = true;
       try {
+        draft.lang = LANG;   // the planner writes its reasons in the creator's language
         const req = jpost("/api/lobby/" + LID + "/mission", { mission: draft }, store.creator(LID));
         STATE = STATE && STATE.directive ? await regenScreen(req, 1500) : await req;
         lastSig = JSON.stringify(STATE); renderLive(); d.open = false;
@@ -1249,6 +1276,17 @@
 
   // ----------------------------------------------------------------- 03: briefing
   const sub = (k, node) => { node.dataset.sub = k; return node; };
+  // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
+  function mindBanner(m) {
+    if (!m || m.status === "off") return null;
+    if (m.status === "thinking") return el("div", { class: "mind thinking", role: "status" }, [
+      el("span", { class: "spin", "aria-hidden": "true" }), el("b", {}, ["◈ " + t("mind.thinking.t")]), " ", t("mind.thinking")]);
+    if (m.status === "ready") return el("div", { class: "mind ready" }, [
+      el("div", {}, [el("b", {}, ["◈ " + t("mind.ready.t")]), " ", m.summary || ""]),
+      el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.ready.checked", { a: m.kept || 0, b: m.total || 0 })])]);
+    return el("div", { class: "mind off" }, [el("b", {}, ["◈ "]), t(m.status === "budget" ? "mind.budget" : "mind.failed")]);
+  }
+
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
     if (!d) return [r.mission_set
@@ -1296,7 +1334,7 @@
       };
       viewSeg.appendChild(b);
     });
-    const rkids = [viewSeg, roster];
+    const rkids = [mindBanner(d.mind), viewSeg, roster].filter(Boolean);
     if (isCreator()) {
       const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {
@@ -1399,9 +1437,10 @@
   // what the mission asks for, why the weapons (mission tags, the support weapon they cover
   // for, accuracy), what the stratagems bring, why the armour.
   const WHY_ICON = { stats: "◉", role: "◆", mission: "◎", handling: "⌖", weapon: "▸", strats: "✦", armor: "⛨",
-                     growth: "↗", thin: "⚠", nostats: "ⓘ", reroll: "⟳" };
+                     growth: "↗", thin: "⚠", nostats: "ⓘ", reroll: "⟳", mind: "◈", ask: "⚑", drill: "⚔" };
   function whyLine(w) {
     const p = Object.assign({}, w.p || {});
+    if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
     if (p.mode) p.mode = t("mode." + p.mode);

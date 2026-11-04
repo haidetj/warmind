@@ -51,8 +51,26 @@ def charge(lobby_id: str, ip: str, calls: int) -> None:
             _events[key].extend([now] * calls)
 
 
+# WARMIND's planner (mind.py): one Claude call per distinct squad + mission + reroll
+PLAN_PER_LOBBY_HOUR = int(os.environ.get("WARMIND_PLAN_PER_LOBBY_HOUR", "20"))
+PLAN_PER_DAY = int(os.environ.get("WARMIND_PLAN_PER_DAY", "150"))
+
+
+def charge_plan(lobby_id: str) -> None:
+    """Reserve one planner call for this lobby, or raise OverBudget."""
+    now = time.time()
+    with _lock:
+        checks = [(f"plan:{lobby_id}", 3600, PLAN_PER_LOBBY_HOUR), ("plan:all", 86400, PLAN_PER_DAY)]
+        for key, window, cap in checks:
+            if cap and _count(key, window, now) + 1 > cap:
+                raise OverBudget("WARMIND has done a lot of thinking lately; the engine's picks stand for now.")
+        for key, _, _ in checks:
+            _events[key].append(now)
+
+
 def status() -> dict:
     now = time.time()
     with _lock:
         return {"calls_today": _count("all", 86400, now), "per_day_cap": PER_DAY,
-                "per_lobby_hour_cap": PER_LOBBY_HOUR, "per_ip_hour_cap": PER_IP_HOUR}
+                "per_lobby_hour_cap": PER_LOBBY_HOUR, "per_ip_hour_cap": PER_IP_HOUR,
+                "plans_today": _count("plan:all", 86400, now), "plans_per_day_cap": PLAN_PER_DAY}

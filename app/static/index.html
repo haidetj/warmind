@@ -560,6 +560,10 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+  .mind{border:1px solid var(--line);border-left:3px solid var(--amber);padding:10px 12px;margin:0 0 12px;font-size:14px;line-height:1.45}
+  .mind.thinking{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .mind.off{border-left-color:var(--muted);opacity:.85}
+  .whykit li.w-mind{font-weight:500}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

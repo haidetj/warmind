@@ -346,3 +346,27 @@
   kit_impact: none
   tags: [structure_demo]
   verified: true
+
+# Added 2026-11-04 from helldivers.wiki.gg (sync/missions_wiki.json)
+- id: to_lidar_station
+  display_name: "LiDAR Station"
+  faction: super_earth
+  difficulty_min: 2
+  difficulty_max: 10
+  kit_impact: rewards
+  tags: [friendly_asset, intel_reveal]
+  description: >-
+    Raise and align the dish to reveal nests / outposts / encampments, optional
+    objectives and minor points of interest on the map.
+  verified: true
+
+- id: to_secondary_extraction_zone
+  display_name: "Secondary Extraction Zone"
+  faction: super_earth
+  difficulty_min: 1
+  difficulty_max: 10
+  kit_impact: none
+  tags: [structure_demo]
+  description: >-
+    Destroy the enemy deployment structures around it to open a second extraction zone.
+  verified: true

@@ -26,6 +26,7 @@ import vision
 import war
 from warmind import coverage, kitrules, loader, oaths, passives, stats
 from warmind.resolve import Player, Session, resolve_squad
+import mind
 
 HERE = pathlib.Path(__file__).parent
 ACCENTS = ["#d7a53a", "#4c9be0", "#2f9e6f", "#c084e8", "#e0574e"]
@@ -78,6 +79,15 @@ def _accuracy_of(p) -> float | None:
     if not snap or not (snap.get("shots_fired") or 0):
         return None
     return float(snap.get("shots_hit") or 0) / float(snap["shots_fired"])
+
+
+def _derived_of(p) -> dict | None:
+    """Career rates (deaths / mission, Eagle share, ...) from the diver's stat read, if any."""
+    try:
+        snap = json.loads(p["snapshot_json"]) if p.get("snapshot_json") else None
+    except Exception:
+        return None
+    return stats.derive(snap) if snap and (snap.get("missions_played") or snap.get("total_stratagems")) else None
 
 
 def _oaths_of(mission) -> list:
@@ -138,6 +148,7 @@ def _resolve(lobby) -> dict:
             owned_items=_owned_of(p),
             accent_hex=ACCENTS[i % len(ACCENTS)],
             accuracy=_accuracy_of(p),
+            derived=_derived_of(p),
         ))
     directive = None
     by_pid = {}
@@ -156,11 +167,19 @@ def _resolve(lobby) -> dict:
         rest = [p for p in roster if p not in core]
         groups = [core[i:i + SQUAD_MAX] for i in range(0, len(core), SQUAD_MAX)]
         groups += [rest[i:i + SQUAD_MAX] for i in range(0, len(rest), SQUAD_MAX)]
-        taken, d = set(), None
+        taken, d, mind_status = set(), None, {"status": "off"}
         for gi, grp in enumerate(groups):
             for pl in grp:  # later groups avoid the stratagems the squad already brings
                 pl.excluded_items = sorted(taken)
             dg = resolve_squad(_session_of(mission, lobby), grp, {})
+            if gi == 0:   # WARMIND thinks it over: the planner's picks, checked by the engine
+                plan, mind_status = mind.plan_for(lobby["id"], _session_of(mission, lobby), grp, mission)
+                if plan:
+                    try:
+                        dg, info = mind.apply(_session_of(mission, lobby), grp, plan)
+                        mind_status.update(info)
+                    except Exception as e:   # a bad plan never breaks the briefing
+                        mind_status = {"status": "failed", "error": str(e)[:200]}
             taken |= {s for a in dg.assignments for s in a.stratagems}
             if d is None:
                 d = dg
@@ -177,6 +196,7 @@ def _resolve(lobby) -> dict:
             "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
             # squad redundancy/impact review, each line carrying its research sources
             "review": [dict(r, sources=_RULES.get(r["rule"], {}).get("sources", [])) for r in d.review],
+            "mind": mind_status,   # WARMIND's planner: off / thinking / ready / failed / budget
         }
 
     players_out = []
@@ -461,6 +481,8 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
     m["oath"] = m["oaths"][0] if m["oaths"] else None
     m["stealth"] = bool(m.get("stealth"))
+    m["think"] = m.get("think") is not False   # WARMIND's planner on unless the creator turned it off
+    m["lang"] = m.get("lang") if m.get("lang") in vision.LANG_NAMES else "en"   # language of the planner's reasons
     known = loader.operation_modifiers()
     m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:4]
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
@@ -576,6 +598,20 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     db.add_or_update_player(pid, lid, p["token"], p["callsign"], ps, "manual",
                             "Chosen by the diver.", json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
     return {"ok": True}
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/callsign")
+def set_callsign(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Rename after joining (the diver, or the creator for them)."""
+    p = _require_player_or_creator(lid, pid, x_token)
+    name = " ".join(str(payload.get("callsign") or "").split())[:24]
+    if not name:
+        raise HTTPException(400, "callsign can't be empty")
+    snap = json.loads(p["snapshot_json"]) if p["snapshot_json"] else None
+    db.add_or_update_player(pid, lid, p["token"], name, p["play_style"], p["style_source"], p["style_note"], snap)
+    if snap:   # remember the stat read under the new name too
+        db.remember_callsign(name, snap, _conf_of(p), p["play_style"], p["style_note"])
+    return {"ok": True, "callsign": name}
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/owned")
@@ -822,4 +858,5 @@ def picture(name: str):
 @app.get("/health")
 def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
-            "vision": vision.status(), "budget": budget.status(), "war": war.status()}
+            "vision": vision.status(), "budget": budget.status(), "war": war.status(),
+            "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST}}
