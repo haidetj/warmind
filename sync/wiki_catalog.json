@@ -1,6 +1,6 @@
 {
  "source": "https://helldivers.wiki.gg",
- "fetched": "2026-10-29",
+ "fetched": "2026-11-04",
  "items": [
   {
    "title": "A-35 Recon",
@@ -3402,7 +3402,7 @@
    "penetration": "ap",
    "image": "LAS-16 Sickle Primary Render.png",
    "damage": "60",
-   "capacity": "8s (105)",
+   "capacity": "8.4s (106)",
    "recoil": "2",
    "reload_time": "2.25s",
    "fire_rate": "750 rpm",
