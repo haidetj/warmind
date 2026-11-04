@@ -14040,3 +14040,96 @@ for (const [l, v] of Object.entries({
   "lk.homepage": "Home port"
  }
 })) Object.assign(window.WM_I18N.dict[l], v);
+// locker header
+for (const [l, v] of Object.entries({
+ "en": {
+  "lk.edit": "Edit",
+  "lk.savename": "Save name",
+  "lk.copylink": "Copy locker link"
+ },
+ "es": {
+  "lk.edit": "Editar",
+  "lk.savename": "Guardar nombre",
+  "lk.copylink": "Copiar enlace de la taquilla"
+ },
+ "pt": {
+  "lk.edit": "Editar",
+  "lk.savename": "Salvar nome",
+  "lk.copylink": "Copiar link do armário"
+ },
+ "fr": {
+  "lk.edit": "Modifier",
+  "lk.savename": "Enregistrer le nom",
+  "lk.copylink": "Copier le lien du casier"
+ },
+ "de": {
+  "lk.edit": "Bearbeiten",
+  "lk.savename": "Name speichern",
+  "lk.copylink": "Spind-Link kopieren"
+ },
+ "it": {
+  "lk.edit": "Modifica",
+  "lk.savename": "Salva nome",
+  "lk.copylink": "Copia link dell'armadietto"
+ },
+ "pl": {
+  "lk.edit": "Edytuj",
+  "lk.savename": "Zapisz nazwę",
+  "lk.copylink": "Kopiuj link do szafki"
+ },
+ "ru": {
+  "lk.edit": "Изменить",
+  "lk.savename": "Сохранить имя",
+  "lk.copylink": "Копировать ссылку на шкафчик"
+ },
+ "ja": {
+  "lk.edit": "編集",
+  "lk.savename": "名前を保存",
+  "lk.copylink": "ロッカーのリンクをコピー"
+ },
+ "ko": {
+  "lk.edit": "편집",
+  "lk.savename": "이름 저장",
+  "lk.copylink": "사물함 링크 복사"
+ },
+ "zh": {
+  "lk.edit": "编辑",
+  "lk.savename": "保存名称",
+  "lk.copylink": "复制储物柜链接"
+ },
+ "hu": {
+  "lk.edit": "Szerkesztés",
+  "lk.savename": "Név mentése",
+  "lk.copylink": "Szekrénylink másolása"
+ },
+ "sv": {
+  "lk.edit": "Redigera",
+  "lk.savename": "Spara namn",
+  "lk.copylink": "Kopiera skåplänk"
+ },
+ "nl": {
+  "lk.edit": "Bewerken",
+  "lk.savename": "Naam opslaan",
+  "lk.copylink": "Kluislink kopiëren"
+ },
+ "tl": {
+  "lk.edit": "I-edit",
+  "lk.savename": "I-save ang pangalan",
+  "lk.copylink": "Kopyahin ang locker link"
+ },
+ "sq": {
+  "lk.edit": "Ndrysho",
+  "lk.savename": "Ruaj emrin",
+  "lk.copylink": "Kopjo lidhjen e dollapit"
+ },
+ "bs": {
+  "lk.edit": "Uredi",
+  "lk.savename": "Sačuvaj ime",
+  "lk.copylink": "Kopiraj link ormarića"
+ },
+ "pirate": {
+  "lk.edit": "Amend",
+  "lk.savename": "Stow the name",
+  "lk.copylink": "Copy sea chest link"
+ }
+})) Object.assign(window.WM_I18N.dict[l], v);
