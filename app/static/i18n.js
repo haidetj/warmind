@@ -13965,3 +13965,78 @@ for (const [l, v] of Object.entries({
  "bs": "{s}: {a} vojnik(a) ih može uništiti (odredu treba {b}).",
  "pirate": "{s}: {a} hand(s) can sink 'em (the crew needs {b})."
 })) window.WM_I18N.dict[l]["rev.chk.closers"] = v;
+// locker way back
+for (const [l, v] of Object.entries({
+ "en": {
+  "lk.back": "Back to {name}",
+  "lk.homepage": "Home"
+ },
+ "es": {
+  "lk.back": "Volver a {name}",
+  "lk.homepage": "Inicio"
+ },
+ "pt": {
+  "lk.back": "Voltar para {name}",
+  "lk.homepage": "Início"
+ },
+ "fr": {
+  "lk.back": "Retour à {name}",
+  "lk.homepage": "Accueil"
+ },
+ "de": {
+  "lk.back": "Zurück zu {name}",
+  "lk.homepage": "Start"
+ },
+ "it": {
+  "lk.back": "Torna a {name}",
+  "lk.homepage": "Home"
+ },
+ "pl": {
+  "lk.back": "Wróć do {name}",
+  "lk.homepage": "Start"
+ },
+ "ru": {
+  "lk.back": "Назад: {name}",
+  "lk.homepage": "Главная"
+ },
+ "ja": {
+  "lk.back": "{name}に戻る",
+  "lk.homepage": "ホーム"
+ },
+ "ko": {
+  "lk.back": "{name}(으)로 돌아가기",
+  "lk.homepage": "홈"
+ },
+ "zh": {
+  "lk.back": "返回 {name}",
+  "lk.homepage": "首页"
+ },
+ "hu": {
+  "lk.back": "Vissza ide: {name}",
+  "lk.homepage": "Kezdőlap"
+ },
+ "sv": {
+  "lk.back": "Tillbaka till {name}",
+  "lk.homepage": "Start"
+ },
+ "nl": {
+  "lk.back": "Terug naar {name}",
+  "lk.homepage": "Start"
+ },
+ "tl": {
+  "lk.back": "Bumalik sa {name}",
+  "lk.homepage": "Home"
+ },
+ "sq": {
+  "lk.back": "Kthehu te {name}",
+  "lk.homepage": "Kreu"
+ },
+ "bs": {
+  "lk.back": "Nazad na {name}",
+  "lk.homepage": "Početna"
+ },
+ "pirate": {
+  "lk.back": "Back to {name}",
+  "lk.homepage": "Home port"
+ }
+})) Object.assign(window.WM_I18N.dict[l], v);
