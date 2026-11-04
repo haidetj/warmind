@@ -8,6 +8,12 @@ labelled `feedback` in this repo. At the start of a session, list the open
 first), and agree what to pick up. Close an issue (with a short comment) when
 it's done or declined.
 
+## Who and how
+WARMIND is a phone-first app, used by a Discord squad on their phones, and built by one
+engineer (the user) who usually works from a phone. So: check every UI change at phone
+widths first (360 and 448 px, then desktop); keep replies short and say clearly what, if
+anything, the user has to do; when they say "push" / "push all" / "deploy", merge and deploy.
+
 ## Deploys
 Merging to `main` deploys to Render (restart: about a minute of 502s). Don't
 deploy while the squad is playing; ask first. `health.yml` runs after every
