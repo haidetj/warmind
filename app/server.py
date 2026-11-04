@@ -1028,7 +1028,15 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
             "history": history, "record": record, "medals": medals,
-            "loadouts": db.list_loadouts(lid), "tables": tables}
+            "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables}
+
+
+def _with_armor(o):
+    """Saved kits get their armour's weight + passive, so the locker can draw them like a briefing card."""
+    a = next((r for r in loader.items().get("armor", []) if r["name"] == o["kit"].get("armor")), None)
+    if a:
+        o["kit"] = dict(o["kit"], armor_weight=a.get("weight", ""), armor_passive=a.get("passive", ""))
+    return o
 
 
 @app.post("/api/locker/{lid}/callsign")

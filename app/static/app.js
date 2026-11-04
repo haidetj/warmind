@@ -511,6 +511,7 @@
   }
   function renderLive() {
     maybeLinkLocker();
+    try { if (LID) localStorage.setItem("wm_last_lobby", JSON.stringify({ id: LID, name: STATE.name || "" })); } catch (e) {}
     if (!liveRoot) return render();
     const y = window.scrollY;
     const ph = phases();
@@ -1623,7 +1624,7 @@
   // A diver's own page across war tables: stat history, record + medals, saved loadouts, gear.
   function missionLabel() {
     const m = STATE && STATE.mission, md = m && (META.missions || []).find(x => x.id === m.mission_id);
-    return md ? md.display_name : "";
+    return md ? (md.name || md.display_name || "") : "";
   }
   function saveKitDialog(a) {
     const def = [missionLabel(), a.role].filter(Boolean).join(" · ") || t("lk.loadout");
@@ -1650,8 +1651,9 @@
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", ""); name.select();
   }
   function lockerLine() {
-    const a = el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]);
-    a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/?locker"; }); };
+    const href = "/?locker&from=" + encodeURIComponent(LID || "");
+    const a = el("a", { class: "btn sm primary", href: href }, ["🗄 " + t("lk.open")]);
+    a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = href; }); };
     return el("div", { class: "lkline" }, [el("span", {}, [t("lk.line")]), a]);
   }
   function lockerHomePanel() {
@@ -1705,12 +1707,20 @@
     };
     const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
     dev.onclick = () => copy(location.origin + "/?locker#locker=" + L.id + "." + L.key, t("lk.device.copied"));
+    // way out: back to the war table you came from, or the home page
+    const go = href => e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = href; }); };
+    let last = null; try { last = JSON.parse(localStorage.getItem("wm_last_lobby")); } catch (e) {}
+    const from = new URLSearchParams(location.search).get("from") || (last && last.id);
+    const nav = el("div", { class: "lknav" });
+    if (from) { const a = el("a", { class: "btn primary sm", href: "/?l=" + from }, ["← " + t("lk.back", { name: (last && last.id === from && last.name) || from })]); a.onclick = go("/?l=" + from); nav.appendChild(a); }
+    const hm = el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]); hm.onclick = go("/"); nav.appendChild(hm);
+    app.appendChild(nav);
     const home = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
-    home.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/"; }); };
+    home.onclick = go("/");
     app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.callsign || "—", statusKind: "warn", tone: "amber" }, [
       el("div", { class: "grid2", style: "align-items:end" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.callsign")]), nameIn]), el("div", { class: "field" }, [nameBtn])]),
       LK.play_style ? el("div", { class: "hint" }, [t("lk.style", { style: styleLabel(LK.play_style) })]) : el("div", { class: "hint" }, [t("me.noread")]),
-      el("div", { class: "btnrow" }, [up, dev, home]), status,
+      el("div", { class: "btnrow" }, [up, dev]), status,
       el("div", { class: "hint" }, [t("lk.private")]),
     ]));
     // sub-tabs
@@ -1775,16 +1785,29 @@
     const L = store.locker();
     const neu = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]);
     neu.onclick = () => buildKitDialog();
-    const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.hint")]), el("div", { class: "btnrow" }, [neu])];
+    const viewSeg = el("div", { class: "seg kitview", role: "group", "aria-label": t("kv.label") });
+    [["screen", "▦ " + t("kv.screen")], ["list", "☰ " + t("kv.list")]].forEach(([k, label]) => {
+      const b = el("button", { type: "button", "aria-pressed": String(kitView === k) }, [label]);
+      b.onclick = () => { kitView = k; try { localStorage.setItem("wm_kitview", k); } catch (e) {} paintLocker(); };
+      viewSeg.appendChild(b);
+    });
+    const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.hint")]), el("div", { class: "btnrow" }, [neu]), viewSeg];
     if (!LK.loadouts.length) kids.push(el("div", { class: "hint" }, [t("lk.loadouts.none")]));
+    const grid = el("div", { class: "roster" }); kids.push(grid);
     LK.loadouts.forEach(o => {
       const del = el("button", { class: "btn sm red", type: "button" }, ["✕ " + t("lk.delete")]);
       del.onclick = async () => { if (!window.confirm(t("lk.delete.confirm", { name: o.name }))) return; await lpost("/api/locker/" + L.id + "/loadouts/" + o.id + "/delete"); await loadLocker(); };
       const src = o.source || {};
-      kids.push(el("div", { class: "lkload" }, [
-        el("div", { class: "hd" }, [el("b", {}, [o.name]), o.kit.role ? tag("amber", o.kit.role) : null]),
-        el("div", { class: "hint", style: "margin:2px 0 6px" }, [[src.mission, src.mode ? t("mode." + src.mode) : "", src.difficulty ? "D" + src.difficulty : "", dt(o.created_at)].filter(Boolean).join(" · ")]),
-        kitLines(o.kit), o.note ? el("div", { class: "hint" }, [o.note]) : null, el("div", { class: "btnrow" }, [del])]));
+      const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ffc23a");
+      card.appendChild(el("div", { class: "hd" }, [
+        el("div", { class: "role" }, [o.kit.role || o.name]),
+        el("div", { class: "meta" }, [o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
+          [src.mission, src.mode ? t("mode." + src.mode) : "", src.difficulty ? "D" + src.difficulty : "", dt(o.created_at)].filter(Boolean).map(x => " · " + x).join("")]),
+      ]));
+      card.appendChild(kitView === "list" ? kitLines(o.kit) : locker(o.kit));
+      if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
+      card.appendChild(el("div", { class: "btnrow" }, [del]));
+      grid.appendChild(card);
     });
     return panel("LKR-04", t("lk.tab.loadouts"), {}, kids);
   }
