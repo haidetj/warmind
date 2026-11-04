@@ -245,6 +245,7 @@ def _session_of(mission, lobby) -> Session:
         tactical_objectives=mission.get("tactical_objectives", []),
         is_city_map=mission.get("is_city_map", False),
         stealth=bool(mission.get("stealth", False)),
+        roles=dict(mission.get("roles") or {}),
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -414,6 +415,35 @@ def brief_now(lid: str, x_token: str = Header(None)):
     return _resolve(db.get_lobby(lid))
 
 
+def _clean_roles(v) -> dict:
+    from warmind import roles as roles_mod
+    if not isinstance(v, dict):
+        return {}
+    return {str(k)[:40]: r for k, r in list(v.items())[:8] if r in roles_mod.ROLES}
+
+
+@app.post("/api/lobby/{lid}/roles")
+def set_roles(lid: str, payload: dict, x_token: str = Header(None)):
+    """Creator applies suggested swaps: {"roles": {pid: ROLE_KEY}} merges in; {"reset": true} clears."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    m = _mission_from(lobby) or {}
+    if not m.get("mission_id"):
+        raise HTTPException(400, "set the mission first")
+    pids = {p["id"] for p in db.list_players(lid)}
+    new = {} if payload.get("reset") else dict(m.get("roles") or {})
+    for pid, r in _clean_roles(payload.get("roles")).items():
+        if pid in pids:
+            new[pid] = r
+    m["roles"] = new
+    db.set_mission(lid, m)
+    if lobby.get("briefed"):
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
+    return _resolve(db.get_lobby(lid))
+
+
 @app.post("/api/lobby/{lid}/reroll")
 def reroll(lid: str, x_token: str = Header(None)):
     """Creator asks for a different-but-equally-sound set of loadouts."""
@@ -481,6 +511,7 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
     m["oath"] = m["oaths"][0] if m["oaths"] else None
     m["stealth"] = bool(m.get("stealth"))
+    m["roles"] = _clean_roles(m.get("roles"))
     m["think"] = m.get("think") is not False   # WARMIND's planner on unless the creator turned it off
     m["lang"] = m.get("lang") if m.get("lang") in vision.LANG_NAMES else "en"   # language of the planner's reasons
     known = loader.operation_modifiers()

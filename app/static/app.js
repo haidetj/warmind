@@ -257,6 +257,20 @@
         ]),
       ]),
     ]));
+    // join with a code (or a pasted invite link)
+    const codeIn = el("input", { type: "text", id: "join-code", placeholder: t("home.code.ph"), maxlength: "200", autocomplete: "off",
+      autocapitalize: "off", spellcheck: "false" });
+    const codeGo = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("home.code.go")]);
+    codeGo.onclick = async () => {
+      const raw = codeIn.value.trim(), m = raw.match(/[?&]l=([A-Za-z0-9_-]+)/);
+      const code = (m ? m[1] : raw).replace(/[^A-Za-z0-9_-]/g, "").toLowerCase();
+      if (!code) { codeIn.focus(); return; }
+      codeGo.disabled = true;
+      try { await api("/api/lobby/" + code); location.search = "?l=" + code; }
+      catch (e) { toast(t("home.code.bad")); codeGo.disabled = false; }
+    };
+    codeIn.addEventListener("keydown", e => { if (e.key === "Enter") codeGo.click(); });
+    app.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
     app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
       el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
     app.appendChild(warPanel());
@@ -577,7 +591,8 @@
     return panel(t("cmd.pid"), t("cmd.title"), { status: status, statusKind: ph.active < 0 ? "ok" : "warn" }, [
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
-          el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
+          el("div", { class: "code" }, [t("cmd.code") + ": ", (() => { const b = el("button", { type: "button", class: "codebtn", title: t("common.copy") }, [LID]);
+            b.onclick = () => copy(LID, t("cmd.code.copied")); return b; })()])]),
         el("div", { class: "acts" }, [role, inv, fm, feedbackBtn(), homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
@@ -1276,6 +1291,54 @@
 
   // ----------------------------------------------------------------- 03: briefing
   const sub = (k, node) => { node.dataset.sub = k; return node; };
+  // suggested swaps: a callout on the loadouts, a confirm dialog to apply, a way back
+  function lockedRoles() {
+    const r = (STATE.mission && STATE.mission.roles) || {};
+    const rows = Object.keys(r).map(pid => { const p = STATE.players.find(x => x.id === pid); return p ? p.callsign + " → " + r[pid].replace(/_/g, " ") : null; }).filter(Boolean);
+    return rows.length ? rows : null;
+  }
+  function lockedLine(rows) {
+    const kids = [el("span", {}, [t("swap.locked", { list: rows.join(", ") })])];
+    if (isCreator()) {
+      const b = el("button", { class: "btn sm", type: "button" }, ["↺ " + t("swap.reset")]);
+      b.onclick = () => applyRoles({ reset: true });
+      kids.push(" ", b);
+    }
+    return el("div", { class: "hint swaplock" }, kids);
+  }
+  function swapCallout(d) {
+    if (!isCreator() || !d.swaps || !d.swaps.length) return null;
+    const b = el("button", { class: "btn sm primary", type: "button" }, ["⇄ " + t("swap.review")]);
+    b.onclick = () => openSwaps(d.swaps);
+    return el("div", { class: "mind swapcall" }, [el("span", {}, [t("swap.callout", { n: d.swaps.length })]), " ", b]);
+  }
+  async function applyRoles(body) {
+    if (busy) return; busy = true;
+    try { STATE = await regenScreen(jpost("/api/lobby/" + LID + "/roles", body, store.creator(LID)), 1200); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.swapped")); }
+    catch (e) { toast(e.message); } finally { busy = false; }
+  }
+  function openSwaps(list) {
+    const dlg = el("dialog", { class: "modal swapmodal", "aria-label": t("swap.modal.t") });
+    const boxes = list.map(s => {
+      const cb = el("input", { type: "checkbox", checked: "" }); cb.checked = true;
+      return [s, cb, el("label", { class: "swaprow" }, [cb, el("span", {}, [el("b", {}, [s.callsign]), ": " + s.from_role + " → ", el("b", {}, [s.to_role]),
+        el("small", {}, [t("swap.why", { to: s.to_role, callsign: s.callsign, from: s.from_role })])])])];
+    });
+    const go = el("button", { type: "button", class: "btn primary" }, ["⇄ " + t("swap.modal.go")]);
+    const keep = el("button", { type: "button", class: "btn" }, [t("swap.modal.keep")]);
+    go.onclick = () => {
+      const roles = {}; boxes.forEach(([s, cb]) => { if (cb.checked) roles[s.player_id] = s.to_role.replace(/ /g, "_"); });
+      dlg.close(); if (Object.keys(roles).length) applyRoles({ roles: roles });
+    };
+    keep.onclick = () => dlg.close();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("swap.modal.t")])]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.modal.d")])].concat(boxes.map(x => x[2]))),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, keep])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
@@ -1312,13 +1375,22 @@
       out.push(sub("plan", panel(t("doc.pid"), has("doctrine." + k + ".title") ? t("doctrine." + k + ".title") : d.doctrine.title, { status: k, statusKind: "info" }, [ol])));
     }
 
-    // mission-coverage swaps
-    if (d.swaps && d.swaps.length) {
-      out.push(sub("review", panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
-        d.swaps.map(s => el("div", { class: "swap" }, [
+    // mission-coverage swaps: the creator can apply them (one, or several through a confirm dialog)
+    const locked = lockedRoles();
+    if ((d.swaps && d.swaps.length) || locked) {
+      const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
+        (d.swaps || []).map(s => el("div", { class: "swap" }, [
           el("div", { class: "mv" }, [s.callsign + ": ", el("b", {}, [s.from_role]), " → ", el("b", {}, [s.to_role])]),
           el("div", { class: "why" }, [t("swap.why", { to: s.to_role, callsign: s.callsign, from: s.from_role })]),
-        ]))))));
+          isCreator() ? el("div", { class: "btnrow", style: "margin:6px 0 0" }, [(() => {
+            const b = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("swap.apply")]); b.onclick = () => openSwaps([s]); return b; })()]) : null,
+        ])));
+      if (isCreator() && d.swaps && d.swaps.length > 1) {
+        const all = el("button", { class: "btn primary sm", type: "button" }, ["⇄ " + t("swap.apply_all")]); all.onclick = () => openSwaps(d.swaps);
+        kids.push(el("div", { class: "btnrow" }, [all]));
+      }
+      if (locked) kids.push(lockedLine(locked));
+      out.push(sub("review", panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, kids)));
     }
 
     // loadouts
@@ -1334,7 +1406,7 @@
       };
       viewSeg.appendChild(b);
     });
-    const rkids = [mindBanner(d.mind), viewSeg, roster].filter(Boolean);
+    const rkids = [swapCallout(d), mindBanner(d.mind), viewSeg, roster].filter(Boolean);
     if (isCreator()) {
       const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {

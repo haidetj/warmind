@@ -489,7 +489,42 @@ def missions_wiki() -> dict:
     return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
 
 
+STRUCTURE_PAGES = ("Bug Hole", "Terminid Nest", "Bug Nest", "Spore Spewer", "Shrieker Nest", "Stalker Lair",
+                   "Fabricator", "Automaton Fabricator", "Automaton Outpost", "Detector Tower", "Gunship Facility",
+                   "Stratagem Jammer", "Warp Ship", "Illuminate Warp Ship", "Warp Gateway", "Gazer Spire",
+                   "Illuminate Encampment", "Harvester", "Monolith", "Void Blossom", "Explosive",
+                   "Terminids", "Automatons", "Illuminate")
+STRUCTURE_CATEGORIES = ("Terminid Structures", "Automaton Structures", "Illuminate Structures", "Structures",
+                        "Throwables", "Grenades")
+
+
+def structures_wiki() -> dict:
+    """Enemy structures (bug holes, fabricators, warp ships ...) and throwables: the pages'
+    wikitext, so what destroys what can be checked against the wiki, not memory."""
+    members, pages = {}, {}
+    for cat in STRUCTURE_CATEGORIES:
+        d = api(action="query", list="categorymembers", cmtitle="Category:" + cat, cmlimit=200, cmnamespace=0)
+        names = [m["title"] for m in d.get("query", {}).get("categorymembers", [])]
+        if names:
+            members[cat] = names
+        time.sleep(0.3)
+    for t in list(STRUCTURE_PAGES) + [n for v in members.values() for n in v]:
+        if t in pages:
+            continue
+        title, text = wikitext(t)
+        if text and title not in pages:
+            pages[title] = text[:24000]
+        time.sleep(0.15)
+    return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
+
+
 if __name__ == "__main__":
+    if "--structures" in sys.argv:
+        out = ROOT / "sync" / "structures_wiki.json"
+        data = structures_wiki()
+        out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {len(data['pages'])} structure/throwable pages; categories: { {k: len(v) for k, v in data['categories'].items()} }")
+        sys.exit(0)
     if "--missions" in sys.argv:
         out = ROOT / "sync" / "missions_wiki.json"
         data = missions_wiki()

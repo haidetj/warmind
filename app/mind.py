@@ -210,6 +210,7 @@ Drills (Challenge / D100 only) are habits the engine read from the diver's caree
 
 How to answer:
 - Use ONLY item names that appear in that diver's own lists, copied exactly. Never invent gear.
+- Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
 - Across the squad: at least two divers who can kill heavies with their support weapon, at least one \
 anti-tank strike, enough chaff and structure coverage, no duplicated support weapons, one Supply Pack at most.
@@ -247,7 +248,7 @@ def _mission_block(session, mission: dict, directive) -> dict:
     }
 
 
-def _diver_block(pl, a, sl) -> dict:
+def _diver_block(pl, a, sl, locked=False) -> dict:
     d = pl.derived or {}
     pct = lambda k: round(100 * d[k]) if k in d else None
     stats = None
@@ -267,6 +268,7 @@ def _diver_block(pl, a, sl) -> dict:
         "play_style": ps.label, "comfort_zone_tags": sorted(ps.signature),
         "career_stats": stats or "no stats uploaded",
         "drills": sl["drills"],
+        "role_locked": locked or None,   # the squad leader set this role: keep it
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},
@@ -303,7 +305,7 @@ def build_request(session, players, mission, directive, lang: str) -> tuple[str,
     brief = {
         "language": vision.LANG_NAMES.get(lang, "English"),
         "drop": _mission_block(session, mission, directive),
-        "squad": [_diver_block(pl, by_pid[pl.id], sl[pl.id]) for pl in players if pl.id in sl],
+        "squad": [_diver_block(pl, by_pid[pl.id], sl[pl.id], pl.id in (session.roles or {})) for pl in players if pl.id in sl],
         "engine_review": [r for r in directive.review if r.get("status") != "ok"] or "all squad checks pass",
     }
     user = ("Plan this squad's loadouts. Answer with the JSON object only.\n\n"

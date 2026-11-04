@@ -36,6 +36,7 @@ class Session:
     tactical_objectives: list = field(default_factory=list)
     is_city_map: bool = False
     stealth: bool = False   # creator's "stealth run" toggle: the whole squad goes quiet
+    roles: dict = field(default_factory=dict)   # creator-set roles {pid: ROLE_KEY} (an applied swap)
     seed: int = 0  # creator's reroll counter; 0 = the canonical (best-scoring) loadouts
 
 
@@ -424,12 +425,26 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
     else:
         role_map = _assign_roles_by_fit(players, session.mode)
         swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
-    wanted = {pid: o.get("role") for pid, o in override.items() if o.get("role") in roles_mod.ROLES and pid in role_map}
+    fixed = {pid: r for pid, r in (session.roles or {}).items() if r in roles_mod.ROLES and pid in role_map}
+    if fixed:   # the creator applied a swap: those divers take that role; whoever had it takes theirs
+        trial = dict(role_map)
+        for pid, r in fixed.items():
+            holder = next((q for q, rr in trial.items() if rr == r and q != pid), None)
+            if holder is not None and holder not in fixed:
+                trial[holder] = trial[pid]
+            trial[pid] = r
+        if len(set(trial.values())) == len(trial):
+            role_map = trial
+            swaps = [] if session.mode == "optimize" else [
+                sw for sw in _coverage_swaps(role_map, players, mission_ideal, session.mode) if sw["player_id"] not in fixed]
+    wanted = {pid: o.get("role") for pid, o in override.items()
+              if o.get("role") in roles_mod.ROLES and pid in role_map and pid not in fixed}
     if wanted:
         trial = dict(role_map, **wanted)
         if len(set(trial.values())) == len(trial):   # roles stay distinct, or the planner's roles are ignored
             role_map = trial
-            swaps = [] if session.mode == "optimize" else _coverage_swaps(role_map, players, mission_ideal, session.mode)
+            swaps = [] if session.mode == "optimize" else [
+                sw for sw in _coverage_swaps(role_map, players, mission_ideal, session.mode) if sw["player_id"] not in fixed]
 
     # Ownership: a diver's own equip slots are limited to the gear they own; boosters
     # are limited to what the diver carrying them owns.
