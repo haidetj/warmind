@@ -434,9 +434,14 @@ def discover(n: int) -> int:
     return 0
 
 
-EFFECT_PAGES = ("Effects and Modifiers", "Effects", "Operation Modifiers", "Environmental Hazards", "Planetary Hazards")
+EFFECT_PAGES = ("Effects and Modifiers", "Effects", "Operation Modifiers", "Environmental Hazards", "Planetary Hazards",
+                # planet / campaign effects shown on the galactic map (enemy subfactions, Gloom, DSS ...)
+                "Noxious Strain", "Hive World", "Gloom", "Gloom Research Expedition", "Democracy Space Station",
+                "Weapons Experimentation", "Arsenal Augmentation", "Eagle Storm", "Orbital Blockade",
+                "Heavy Ordnance Distribution", "Biomes", "Subfactions", "Enemy Subfactions")
 EFFECT_CATEGORIES = ("Operation Modifiers", "Operation modifiers", "Effects", "Planetary Effects", "Environmental Hazards",
-                     "Planetary Hazards", "Hazards")
+                     "Planetary Hazards", "Hazards", "Subfactions", "Terminid Subfactions", "Automaton Subfactions",
+                     "Illuminate Subfactions", "Enemy Divisions", "Strains", "Biomes", "DSS Actions")
 
 
 def effects() -> dict:
@@ -450,6 +455,15 @@ def effects() -> dict:
         if text:
             pages[title] = text[:20000]
         time.sleep(0.3)
+    eff = pages.get("Effects", "")
+    if "== Combatant Forces ==" in eff:   # every subfaction / division the map can show, linked from Effects
+        sec = eff.split("== Combatant Forces ==", 1)[1].split("\n== ", 1)[0]
+        for link in re.findall(r"\[\[([^|\]#]+)", sec):
+            if link not in pages and not link.startswith(("File:", "Category:")):
+                title, text = wikitext(link)
+                if text:
+                    pages[title] = text[:8000]
+                time.sleep(0.2)
     for cat in EFFECT_CATEGORIES:
         d = api(action="query", list="categorymembers", cmtitle="Category:" + cat, cmlimit=200, cmnamespace=0)
         names = [m["title"] for m in d.get("query", {}).get("categorymembers", [])]

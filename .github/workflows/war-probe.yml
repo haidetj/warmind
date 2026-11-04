@@ -45,3 +45,34 @@ jobs:
           print("hazard names with no WARMIND mapping:", miss)
           assert w["ok"], "war feed failed"
           PY
+      - name: Look for planet effects in the API (subfactions, Gloom, DSS, Weapons Experimentation)
+        working-directory: app
+        run: |
+          python3 - <<'PY'
+          import json, war, urllib.request
+          def get(url):
+              try:
+                  req = urllib.request.Request(url, headers=war.HEADERS)
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      return json.loads(r.read().decode())
+              except Exception as e:
+                  return {"error": str(e)[:200]}
+          camp = war._get("campaigns")
+          p = (camp[0] or {}).get("planet", {}) if camp else {}
+          print("campaign keys:", list((camp[0] or {}).keys()) if camp else None)
+          print("planet keys:", list(p.keys()))
+          print("first planet (trimmed):", json.dumps({k: v for k, v in p.items() if k not in ("waypoints", "position")}, indent=1)[:2500])
+          for c in camp[:40]:
+              pl = c.get("planet") or {}
+              print("  ", pl.get("name"), "| biome:", (pl.get("biome") or {}).get("name"), "| hazards:", [h.get("name") for h in pl.get("hazards") or []],
+                    "| effects:", pl.get("effects") or pl.get("activePlanetEffects") or pl.get("planetEffects"))
+          base = war.BASE.replace("/api/v1/", "")
+          for path in ("/api/v2/space-stations", "/api/v2/dispatches", "/raw/api/WarSeason/current/WarID", "/raw/api/WarSeason/801/Status"):
+              d = get(base + path)
+              txt = json.dumps(d)
+              print("==", path, "| keys:", list(d.keys())[:30] if isinstance(d, dict) else type(d).__name__, "| len", len(txt))
+              if isinstance(d, dict) and "planetActiveEffects" in d:
+                  print("   planetActiveEffects sample:", json.dumps(d["planetActiveEffects"][:40]))
+              elif isinstance(d, list):
+                  print("   sample:", txt[:1500])
+          PY
