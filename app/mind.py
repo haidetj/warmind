@@ -34,7 +34,7 @@ import httpx
 import budget
 import db
 import vision
-from warmind import ask as ask_mod, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
+from warmind import ask as ask_mod, fronts, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
 from warmind.items import Pool
 from warmind.resolve import COMMANDO_SLOTS, diver_excluded, resolve_squad
 
@@ -100,6 +100,9 @@ def _stats_line(name: str) -> str:
     return " ".join(f"{lab} {st[k]}" for k, lab in keys if isinstance(st.get(k), (int, float)))
 
 
+_FACTION = [None]   # set per brief, so grenade lines say whether they kill this front's spawners
+
+
 def _item_line(it, score: float) -> str:
     v, reason = ask_mod.ask(it)
     bits = [it.name]
@@ -117,6 +120,10 @@ def _item_line(it, score: float) -> str:
             bits.append(s)
     if v is not None:
         bits.append(f"ask {v:.2f}" + (f" ({reason})" if reason else ""))
+    if it.slot == "grenade" and _FACTION[0]:
+        fv = fronts.verdict(it.name, _FACTION[0])
+        if fv:
+            bits.append(f"kills {fronts.front(_FACTION[0])['name'].lower()}: {fv}")
     bits.append(f"engine {score:+.2f}")
     return " | ".join(bits)
 
@@ -215,6 +222,8 @@ How to answer:
 and mode (in Challenge / D100, use them to see the comfort zone to push off).
 - Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
+- The front's spawners (bug holes, fabricators, warp ships) keep spawning until killed: at least two divers \
+need a way to kill them (a grenade that says "kills ...: yes/hard/outside/any", or an explosive weapon).
 - Across the squad: at least two divers who can kill heavies with their support weapon, at least one \
 anti-tank strike, enough chaff and structure coverage, no duplicated support weapons, one Supply Pack at most.
 - Give each diver 2-4 "why" lines, second person, specific: tie a pick to the mission, a hazard or modifier, \
@@ -248,6 +257,8 @@ def _mission_block(session, mission: dict, directive) -> dict:
                           "from": [f"{lab} {d:+.2f}" for lab, d in p.contributors.get(t, [])][:3]}
                          for t, v in p.top(8)],
         "engine_notes": directive.notes,
+        "front": ({k: v for k, v in (fronts.front(session.faction) or {}).items() if k != "structure"}
+                  | {"squad_spawner_killers": (directive.front or {}).get("closers")}) if fronts.front(session.faction) else None,
     }
 
 
@@ -304,6 +315,7 @@ SCHEMA = {
 
 
 def build_request(session, players, mission, directive, lang: str) -> tuple[str, str, dict]:
+    _FACTION[0] = session.faction
     sl = _shortlists(session, players, directive)
     by_pid = {a.player_id: a for a in directive.assignments}
     brief = {

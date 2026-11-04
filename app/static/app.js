@@ -1400,6 +1400,19 @@
     }
     out.push(sub("plan", panel(t("read.pid"), t("read.title"), {}, readKids)));
 
+    // the front: how this faction's spawners die, and who in the squad kills them / the heavies / the chaff
+    if (d.front) {
+      const f = d.front, who = list => list.length ? list.join(", ") : t("front.nobody");
+      const row = (ic, label, val, bad) => el("div", { class: "frow" + (bad ? " gap" : "") }, [el("span", { class: "ic" }, [ic]), el("b", {}, [label]), el("span", {}, [val])]);
+      out.push(sub("plan", panel(t("front.pid"), t("front.title", { name: t("front.name." + f.structure) }), {}, [
+        el("div", { class: "hint", style: "margin:0 0 8px" }, [t("front.how." + f.faction)]),
+        el("div", { class: "hint", style: "margin:0 0 12px" }, [t("front.ranged." + f.faction)]),
+        row("✹", t("front.closers"), f.closers.length ? f.closers.map(c => c.callsign + " (" + c.item + ")").join(", ") : t("front.nobody"), f.closers.length < Math.min(2, STATE.players.length)),
+        row("⛨", t("front.at") + " · " + f.heavies, who(f.at), !f.at.length),
+        row("≋", t("front.chaff") + " · " + f.chaff_names, who(f.chaff), !f.chaff.length),
+      ])));
+    }
+
     // doctrine (e.g. Commando)
     if (d.doctrine) {
       const k = d.doctrine.kind, orders = d.doctrine.orders || [];
@@ -1456,7 +1469,7 @@
       const lines = el("ul", { class: "review" }, d.review.map(r => el("li", { class: r.status }, [
         el("span", { class: "st" }, [r.status === "ok" ? "✓" : r.status === "fixed" ? "⟳" : "!"]),
         el("span", { class: "tx" }, [
-          has(r.k) ? t(r.k, r.p) : r.k,
+          has(r.k) ? t(r.k, r.k === "rev.chk.closers" ? Object.assign({}, r.p, { s: t("front.name." + r.p.s) }) : r.p) : r.k,
           r.status === "fixed" ? tag("amber", t("rev.fixed")) : r.status === "gap" ? tag("red", t("rev.gap")) : null,
           (r.sources || []).length ? el("span", { class: "src" }, [t("rev.sources") + ": "].concat(
             r.sources.filter((u, i, a) => a.findIndex(x => host(x) === host(u)) === i)   // one link per site

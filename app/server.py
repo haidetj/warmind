@@ -198,7 +198,8 @@ def _resolve(lobby) -> dict:
             "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
             # squad redundancy/impact review, each line carrying its research sources
             "review": [dict(r, sources=_RULES.get(r["rule"], {}).get("sources", [])) for r in d.review],
-            "mind": mind_status,   # WARMIND's planner: off / thinking / ready / failed / budget
+            "mind": mind_status,
+            "front": d.front,      # this faction's spawners and who in the squad kills them   # WARMIND's planner: off / thinking / ready / failed / budget
         }
 
     players_out = []

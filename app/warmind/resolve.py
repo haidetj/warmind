@@ -16,7 +16,7 @@ import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import ask as ask_mod, coverage, handling, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
+from . import ask as ask_mod, coverage, fronts, handling, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -88,6 +88,7 @@ class Directive:
     doctrine: dict | None = None  # mission-type doctrine card (e.g. Commando), or None
     notes_i18n: list = field(default_factory=list)  # [{"k","p"}] parallel to notes
     review: list = field(default_factory=list)  # squad redundancy/impact review: [{"k","p","rule","status"}]
+    front: dict | None = None   # how this faction's spawners die and who in the squad kills them
 
 
 # ---------------------------------------------------------------- kit filling
@@ -501,9 +502,11 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         return _pick(cands, session, pstyle, hist, squad_used=squad_used, owned_only=True)   # never swap in unowned gear
     review = kitrules.review_squad(phase, pool, review_pick, session, quiet)
 
+    mission_tags = (loader_mod.missions().get(session.mission_id) or {}).get("tags", [])
     passive_why = {}
     gear_used = Counter()   # weapons + armour already handed out in this squad
     chaff_for = {}          # pid -> the anti-tank support weapon their primary is covering for
+    front_kits = []         # for the front brief: who kills spawners, heavies, chaff
     # phase 3 — carried weapons complement the final stratagems: an anti-tank support
     # weapon wants a chaff primary; no anti-tank support means the grenade brings it
     for kit in phase:
@@ -524,8 +527,9 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         secondary = _chosen(pool.secondaries, ov.get("secondary"), session) or \
             _pick(pool.secondaries, session, pstyle, hist, extra=lambda it: hfit(it) + dup(it),
                   reroll_margin=REROLL_MARGIN["secondary"])
+        front_g = lambda it: dup(it) + fronts.grenade_term(it, session.faction, session.mode, mission_tags)
         grenade = _chosen(pool.grenades, ov.get("grenade"), session) or \
-            _pick(pool.grenades, session, pstyle, hist, extra=dup,
+            _pick(pool.grenades, session, pstyle, hist, extra=front_g,
                   pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9,
                   reroll_margin=REROLL_MARGIN["grenade"])
         # phase 4 — armour last, so its passive can answer the finished kit
@@ -548,6 +552,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         # armor counts toward coverage (Scout armour is a break-contact answer)
         kits_by_role[role.name] = [primary, secondary, grenade, armor] + strat
         assignments.append((pl, role, pstyle, primary, secondary, grenade, armor, strat))
+        front_kits.append({"callsign": pl.callsign, "role": role.name, "primary": primary, "secondary": secondary,
+                           "grenade": grenade, "strat": strat})
         chaff_for[pl.id] = main.name if (has_at and main and "ch" in primary.coverage) else None
 
     # coverage pass + rationale
@@ -587,6 +593,11 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
             thin=[coverage.AXIS_LABEL[a] for a in thin], rationale=rationale, rationale_parts=rparts,
         ))
 
+    front = fronts.brief(session.faction, front_kits)
+    if front:   # squad review: enough divers who can kill this faction's spawners
+        need = 2 if len(front_kits) >= 4 else 1
+        review.append({"k": "rev.chk.closers", "p": {"a": len(front["closers"]), "b": need, "s": front["structure"]},
+                       "rule": "spawner_killers", "status": "ok" if len(front["closers"]) >= need else "gap"})
     reactive = next((r.name for k, r in
                      ((k, roles_mod.ROLES[k]) for k in role_map.values()) if r.reactive), None)
     note_phrases = _notes(session, p)
@@ -596,7 +607,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         session=session, pressure=p, assignments=final,
         capability_matrix=matrix, loop=_loop(list(kits_by_role.keys())),
         cadence=_cadence(list(kits_by_role.keys())), reactive_role=reactive, notes=notes,
-        swaps=swaps, doctrine=doctrine, review=review,
+        swaps=swaps, doctrine=doctrine, review=review, front=front,
         notes_i18n=[{"k": n["k"], "p": n["p"]} for n in note_phrases],
     )
 

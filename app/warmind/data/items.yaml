@@ -116,14 +116,14 @@ grenades:
   - {name: "G-10 Incendiary", warbond: "Steeled Veterans", coverage: [ch, st], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
   - {name: "G-109 Urchin", warbond: "Force of Law", coverage: [bc], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-142 Pyrotech", warbond: "Masters of Ceremony", coverage: [ch, st], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
-  - {name: "G-31 Arc", warbond: "Control Group", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-31 Arc", warbond: "Control Group", coverage: [ch], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-4 Gas", warbond: "Chemical Agents", coverage: [bc, ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-48 Giga Grenade", warbond: "Entrenched Division", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-50 Seeker", warbond: "Servants of Freedom", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-60 Anti-Tank Seeker", warbond: "Ironclad Democracy", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-7 Pineapple", warbond: "Dust Devils", coverage: [ch, st], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G-8 Immolation", warbond: "Ironclad Democracy", coverage: [ch], tags: [fire_kit], grade: {terminids: B, automatons: C, illuminate: B}}
-  - {name: "G-89 Smokescreen", warbond: Superstore, coverage: [bc, ch, st], tags: [stealth], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "G-89 Smokescreen", warbond: Superstore, coverage: [bc, ch], tags: [stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "G/SH-39 Shield", warbond: "Siege Breakers", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "K-2 Throwing Knife", warbond: "Viper Commandos", coverage: [], tags: [], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "TED-63 Dynamite", warbond: "Borderline Justice", coverage: [at, ch, st], tags: [heavy_pen], grade: {terminids: B, automatons: B, illuminate: B}}

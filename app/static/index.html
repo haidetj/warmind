@@ -579,6 +579,9 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
   .lkstrats{display:grid;grid-template-columns:1fr 1fr;gap:6px} .lkmine{display:flex;align-items:center;gap:6px;margin:6px 0 10px}
   .lkrec summary{cursor:pointer}
   .subtabs.four{grid-template-columns:repeat(4,minmax(0,1fr))} .subtabs button{min-width:0;overflow-wrap:anywhere}
+  .frow{display:grid;grid-template-columns:22px auto 1fr;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line)}
+  .frow b{font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-2)} .frow.gap span:last-child{color:var(--red)}
+  @media (max-width:560px){.frow{grid-template-columns:22px 1fr}.frow span:last-child{grid-column:2}}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

@@ -1,0 +1,67 @@
+# How each front's spawners die, and which throwables answer them.
+# Source: helldivers.wiki.gg (Bug Hole, Bug Nest, Automaton Fabricator, Grounded Warp Ship,
+# Warp Ship, Warp Gateway and each throwable's page), pulled by
+# `sync/verify_wiki.py --structures` into sync/structures_wiki.json on 2026-11-04.
+#
+# The rule behind all of it: an explosive with demolition force (DF) 20+ destroys a bug
+# hole / fabricator vent / warp gateway aperture / warp ship bay door from INSIDE; DF 40+
+# destroys it from outside. Bile Titan holes (D6+) need DF 40.
+#
+# per throwable and structure:
+#   yes      thrown in, it destroys it
+#   hard     it can, but it detonates on contact, so the throw has to be precise
+#   outside  destroys it without going in (DF 40)
+#   any      destroys it from anywhere, even shielded
+#   no       can't (no / too little demolition force)
+#   (absent) not stated on the wiki: treated as neutral
+
+fronts:
+  terminids:
+    structure: holes
+    name: Bug holes
+    how: An explosive (DF 20) thrown into the hole closes it; Bile Titan holes (D6+) need DF 40 (Dynamite, Eagle 500kg, Orbital Laser, a Hellpod, Ultimatum).
+    ranged: Grenade Launcher, Grenade Pistol, Autocannon, Eruptor, Exploding Crossbow and Recoilless close holes from a distance.
+    # nests hold clusters of holes and bugs come in swarms: splash closers beat a single-target Thermite
+    prefer: [G-6 Frag, G-12 High Explosive, G-10 Incendiary, G-4 Gas, G-7 Pineapple, TED-63 Dynamite]
+    heavies: Chargers, Bile Titans, Impalers
+    chaff: Scavengers, Hunters, Warriors, Shriekers
+  automatons:
+    structure: fabs
+    name: Fabricators
+    how: An explosive (DF 20) into the vent destroys it; from outside it takes DF 40 (Dynamite, Ultimatum, a Hellpod) or AP5 hits. Quasar / Nova kill one from any angle.
+    ranged: Quasar Cannon, Nova, Recoilless, EAT, Spear and Autocannon (into the vent) kill fabricators from range.
+    # one throw per fabricator, and Hulks / Devastators want sticky or contact blasts
+    prefer: [G-123 Thermite, G-16 Impact, G-12 High Explosive, TED-63 Dynamite]
+    heavies: Hulks, Tanks, Factory Striders, Devastators
+    chaff: Troopers, Berserkers, Scout Striders
+  illuminate:
+    structure: ships
+    name: Warp ships and gateways
+    how: An explosive (DF 20) through a grounded warp ship's bay door or into a gateway's open aperture destroys it; one Thermite, C4 brick or Ultimatum shot kills a grounded warp ship anywhere, even shielded.
+    ranged: Spear or Recoilless kill an airborne warp ship in one rocket once its shield is down; anti-tank also grinds grounded ones.
+    prefer: [G-123 Thermite, G-16 Impact]
+    heavies: Harvesters, Leviathans, Fleshmobs
+    chaff: Voteless, Overseers, Watchers
+
+throwables:
+  G-6 Frag:              {holes: yes, fabs: yes, ships: yes}
+  G-12 High Explosive:   {holes: yes, fabs: yes, ships: yes}
+  G-10 Incendiary:       {holes: yes, fabs: yes, ships: yes}
+  G-13 Incendiary Impact: {holes: hard, fabs: hard, ships: yes}
+  G-16 Impact:           {holes: hard, fabs: hard, ships: yes}
+  G-4 Gas:               {holes: yes, fabs: yes, ships: yes}
+  G-7 Pineapple:         {holes: yes, fabs: yes}
+  G-123 Thermite:        {holes: yes, fabs: yes, ships: any}
+  TED-63 Dynamite:       {holes: outside, fabs: outside, ships: yes}
+  G-50 Seeker:           {holes: no, fabs: yes, ships: yes}
+  G-60 Anti-Tank Seeker: {holes: no, fabs: yes, ships: yes}
+  G/40-K Melta Mine:     {fabs: yes, ships: yes}
+  TM-1 Lure Mine:        {holes: hard, fabs: hard}
+  G-31 Arc:              {holes: no, fabs: no, ships: no}
+  G-23 Stun:             {holes: no, fabs: no, ships: no}
+  G-3 Smoke:             {holes: no, fabs: no, ships: no}
+  G-89 Smokescreen:      {holes: no, fabs: no, ships: no}
+  G-109 Urchin:          {holes: no, fabs: no, ships: no}
+  G-8 Immolation:        {holes: no, fabs: no, ships: no}
+  K-2 Throwing Knife:    {holes: no, fabs: no, ships: no}
+  G/SH-39 Shield:        {holes: no, fabs: no, ships: no}
