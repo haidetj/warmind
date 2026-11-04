@@ -77,8 +77,10 @@ def _dss(stations) -> dict:
         idx = (st.get("planet") or {}).get("index")
         if idx is None:
             continue
-        acts = [a.get("name") for a in st.get("tacticalActions") or [] if a.get("status") == DSS_ACTIVE and a.get("name")]
-        out[idx] = {"actions": acts}
+        acts = [a for a in st.get("tacticalActions") or [] if a.get("status") == DSS_ACTIVE and a.get("name")]
+        out[idx] = {"actions": [a["name"] for a in acts],
+                    "details": [{"name": a["name"][:60], "desc": str(a.get("strategicDescription") or a.get("description") or "")[:300]}
+                                for a in acts]}
     return out
 
 

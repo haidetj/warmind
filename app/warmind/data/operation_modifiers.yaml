@@ -263,6 +263,25 @@
   note: "Friendly SEAF squads drop in, so mind your splash."
   source: https://helldivers.wiki.gg/wiki/Heavy_SEAF_Presence
 
+- id: noxious_strain
+  group: forces
+  display_name: "Noxious Strain"
+  faction: terminids
+  difficulty_min: 1
+  description: "Noxious Terminids spew toxins that slow or outright damage Helldivers."
+  modifiers: {ranged: +0.30, stagger_primary: +0.20, close_quarters: -0.20, mobility: +0.20}
+  note: "toxin-spewing bugs slow you down and wear you down up close. Fight from range and keep moving out of the clouds."
+  source: https://helldivers.wiki.gg/wiki/Noxious_Strain
+- id: caustic_strain
+  group: forces
+  display_name: "Caustic Strain"
+  faction: terminids
+  difficulty_min: 1
+  description: "Acidic Caustic Spitters, Warriors, Spewers and Chargers burst on death; Caustic Spewers lob long-range mortar bile."
+  modifiers: {ranged: +0.40, marksman: +0.30, stagger_primary: +0.30, close_quarters: -0.40, melee: -0.40}
+  note: "they burst into bile when killed, so give yourself space: high-stagger primaries and long-range options (Anti-Materiel Rifle, Diligence) beat close-quarters tools, and exosuits fare badly."
+  source: https://helldivers.wiki.gg/wiki/Caustic_Strain
+
 # ---- planet conditions (the Gloom) ----
 - id: light_gloom_cover
   group: planet
@@ -282,6 +301,15 @@
   modifiers: {eagle: -0.30, orbital: +0.20, sentry: +0.10}
   note: "Extraction +30s and Eagles re-arm 20% slower: lean on orbitals."
   source: https://helldivers.wiki.gg/wiki/Effects
+- id: heavy_gloom_shroud
+  group: planet
+  display_name: "Heavy Gloom Shroud"
+  faction: any
+  difficulty_min: 1
+  description: "Extraction times increased by 40 seconds, Eagle re-arm time by 30%, and ammo from pickups reduced by 50%."
+  modifiers: {ammo_independent: +0.50, backpack_sustain: +0.30, eagle: -0.40, orbital: +0.20}
+  note: "extraction +40s, Eagles re-arm 30% slower and pickups give half the ammo: ammo-independent weapons or a Supply Pack, and orbitals over Eagles."
+  source: https://helldivers.wiki.gg/wiki/The_Gloom
 - id: gloom_source
   group: planet
   display_name: "Gloom Source (Hive World)"

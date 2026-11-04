@@ -253,6 +253,7 @@ def _mission_block(session, mission: dict, directive) -> dict:
         "tactical_objectives": [tac[t].get("display_name", t) for t in session.tactical_objectives if t in tac],
         "city_map": session.is_city_map, "stealth_run": session.stealth,
         "free_stratagems_for_everyone": list(getattr(session, "free_stratagems", None) or []) or None,
+        "democracy_space_station_actions": list(getattr(session, "dss_actions", None) or []) or None,
         "oaths": [f"{oaths.OATHS[k]['name']}: {oaths.OATHS[k]['rule']}" for k in (mission.get("oaths") or []) if k in oaths.OATHS],
         "mode": session.mode,
         "doctrine": directive.doctrine.get("kind") if directive.doctrine else None,

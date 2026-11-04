@@ -1163,6 +1163,7 @@
       draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
       draft.planet_hazards = p.hazards.slice();
       (p.effects || []).forEach(id => { if (draft.operation_modifiers.indexOf(id) < 0) draft.operation_modifiers.push(id); });   // Hive World -> Gloom Source
+      draft.dss_actions = (p.dss && p.dss.details) || [];   // the Democracy Space Station's active actions, for the briefing
       paintHaz(); fillMissions(); fillTacticals(); fillOps();
       planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null,
         p.dss ? "🛰 " + t("war.dss") + (p.dss.actions && p.dss.actions.length ? ": " + p.dss.actions.join(", ") : "") : null].filter(Boolean).join(" · ");
