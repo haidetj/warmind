@@ -1264,7 +1264,7 @@
   "group": "Energy-Based",
   "img": "/img/las-16-sickle.webp",
   "stats": {
-   "capacity": 8,
+   "capacity": 8.4,
    "damage": 60,
    "dps": 750,
    "mags": 3,

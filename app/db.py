@@ -71,6 +71,14 @@ CREATE TABLE IF NOT EXISTS feedback (
   page TEXT,
   lang TEXT
 );
+CREATE TABLE IF NOT EXISTS plan (
+  lobby_id TEXT,
+  sig TEXT,
+  created_at REAL,
+  status TEXT,
+  plan_json TEXT,
+  PRIMARY KEY (lobby_id, sig)
+);
 CREATE INDEX IF NOT EXISTS idx_player_lobby ON player(lobby_id);
 CREATE INDEX IF NOT EXISTS idx_result_player ON result(player_id);
 """
@@ -269,3 +277,24 @@ def list_feedback(after: float = 0.0, limit: int = 200) -> list:
         rows = c.execute("SELECT * FROM feedback WHERE created_at > ? ORDER BY created_at LIMIT ?",
                          (after, limit)).fetchall()
     return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------- WARMIND's thought-out plans
+def put_plan(lobby_id, sig, status, plan):
+    """The planner's result for one exact set of inputs (sig): ready / failed."""
+    with _lock, _conn() as c:
+        c.execute("INSERT OR REPLACE INTO plan(lobby_id,sig,created_at,status,plan_json) VALUES(?,?,?,?,?)",
+                  (lobby_id, sig, time.time(), status, json.dumps(plan)))
+        # keep the last few per lobby (rerolls make new ones)
+        c.execute("DELETE FROM plan WHERE lobby_id=? AND sig NOT IN "
+                  "(SELECT sig FROM plan WHERE lobby_id=? ORDER BY created_at DESC LIMIT 12)", (lobby_id, lobby_id))
+
+
+def get_plan(lobby_id, sig):
+    with _lock, _conn() as c:
+        row = c.execute("SELECT * FROM plan WHERE lobby_id=? AND sig=?", (lobby_id, sig)).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["plan"] = json.loads(d.pop("plan_json") or "null")
+    return d

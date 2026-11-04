@@ -16,7 +16,7 @@ import zlib
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import coverage, handling, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
+from . import ask as ask_mod, coverage, handling, items as items_mod, kitrules, loader as loader_mod, modes, passives, pressure as pressure_mod, roles as roles_mod, scoring
 from .items import Pool
 
 # operation modifiers we understand well enough to act on
@@ -49,6 +49,7 @@ class Player:
     owned_items: list | None = None  # every item this diver owns; None = owns everything
     accent_hex: str = "#D9CBA3"
     accuracy: float | None = None    # career shots hit / fired, when the diver uploaded stats
+    derived: dict | None = None      # career rates (stats.derive), when the diver uploaded stats
 
 
 @dataclass
@@ -112,6 +113,11 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
             s += cover_weight
         if extra:
             s += extra(it)
+        # challenge / d100: what the item asks of the diver (weapons: handling already does it when
+        # the diver's accuracy is known), and the habits this diver's Challenge sets out to break
+        if not (it.slot in ("primary", "secondary") and getattr(session, "_sk", None) is not None):
+            s += ask_mod.ask_term(it, session.mode)
+        s += ask_mod.drill_term(it, getattr(session, "_drills", ()))
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
@@ -145,6 +151,14 @@ REROLL_MARGIN = {"primary": 0.7, "secondary": 0.7, "grenade": 0.6, "armor": 0.5}
 GEAR_DUP_W = 0.45   # two divers on the same weapon or armour: allowed, but variety is worth something
 
 
+def _chosen(cands, name, session):
+    """The planner's pick for a slot, if it's a real item there the diver owns."""
+    if not name:
+        return None
+    it = next((c for c in cands if c.name == name), None)
+    return it if it and it.name not in session_excluded(session) else None
+
+
 def session_excluded(session) -> set:
     return getattr(session, "_excluded", set())
 
@@ -157,7 +171,7 @@ COMMANDO_SLOTS = ({"support"}, {"backpack"}, {"orbital", "eagle"}, {"orbital", "
 _STATIC = {"sentry", "emplacement", "relay", "mine"}
 
 
-def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=None, no_static=False):
+def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=None, no_static=False, pre=None):
     """Fill the role's four stratagem slots under the kit rules (kitrules.diver_allows):
     one held support weapon (+ one expendable beside it), one backpack-slot item, the
     Eagle cap, a cap on statics. Squad-level redundancy (duplicate support weapons, a
@@ -171,7 +185,17 @@ def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=Non
                 and not (squad_rule and kitrules.squad_excludes(c, squad_names, session))]
 
     anything = [s for s in pool.stratagems if s.category != "vehicle"]
-    for slot in (slots or role.slots):
+    slots = list(slots or role.slots)
+    if pre:   # picks made elsewhere (the planner): keep each one that's owned and legal here
+        by_name = {s.name: s for s in pool.stratagems}
+        excl = session_excluded(session)
+        for name in pre[:4]:
+            it = by_name.get(name)
+            if it and it.name not in excl and it in legal([it]) and (not slots_need_commando(slots) or _fits_slot(it, slots, picks)):
+                picks.append(it)
+        slots = slots[len(picks):] if not slots_need_commando(slots) else \
+            [sl for sl in slots if not any(p.category in sl for p in picks)][:4 - len(picks)]
+    for slot in slots:
         # widen step by step, owned gear first: the role's category, then anything legal,
         # then a squad duplicate; unowned gear only if the diver owns nothing legal at all
         choice = None
@@ -186,6 +210,21 @@ def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=Non
             continue
         picks.append(choice)
     return picks
+
+
+def slots_need_commando(slots) -> bool:
+    return tuple(slots) == COMMANDO_SLOTS
+
+
+def _fits_slot(it, slots, picks) -> bool:
+    """Commando: a planner pick must still fit one of the free commando slots."""
+    free = list(slots)
+    for p in picks:
+        for i, sl in enumerate(free):
+            if p.category in sl:
+                free.pop(i)
+                break
+    return any(it.category in sl for sl in free)
 
 
 def _growth_pick(strat_items, pstyle, session):
@@ -332,8 +371,20 @@ def _cadence(present_role_names):
 
 # ---------------------------------------------------------------- top level
 
-def resolve_squad(session: Session, players: list, history: dict | None = None) -> Directive:
+def diver_excluded(pl) -> set:
+    """Everything this diver can't bring: explicit excludes plus whatever they don't own."""
+    if pl.owned_items is None:
+        return set(pl.excluded_items or [])
+    return set(pl.excluded_items or []) | (set(loader_mod.warbond_catalog()["map"]) - set(pl.owned_items))
+
+
+def resolve_squad(session: Session, players: list, history: dict | None = None,
+                  override: dict | None = None) -> Directive:
+    """override: {pid: {"role", "primary", "secondary", "grenade", "armor", "booster",
+    "stratagems": [...]}} — picks made elsewhere (WARMIND's planner). Each is used only if
+    it's legal for that diver (owned, right slot, kit rules); anything else is filled here."""
     history = history or {}
+    override = override or {}
     pool = Pool()
 
     # fold city terrain into the pressure as an 'urban' situation, and note intel/plotting
@@ -373,19 +424,27 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     else:
         role_map = _assign_roles_by_fit(players, session.mode)
         swaps = _coverage_swaps(role_map, players, mission_ideal, session.mode)
+    wanted = {pid: o.get("role") for pid, o in override.items() if o.get("role") in roles_mod.ROLES and pid in role_map}
+    if wanted:
+        trial = dict(role_map, **wanted)
+        if len(set(trial.values())) == len(trial):   # roles stay distinct, or the planner's roles are ignored
+            role_map = trial
+            swaps = [] if session.mode == "optimize" else _coverage_swaps(role_map, players, mission_ideal, session.mode)
 
     # Ownership: a diver's own equip slots are limited to the gear they own; boosters
     # are limited to what the diver carrying them owns.
-    everything = set(loader_mod.warbond_catalog()["map"])
-
-    def _diver_excluded(pl):   # owned_items lists every item the diver has (base gear included)
-        if pl.owned_items is None:
-            return set(pl.excluded_items or [])
-        return set(pl.excluded_items or []) | (everything - set(pl.owned_items))
+    _diver_excluded = diver_excluded
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
     boosters = _assign_boosters(order, pool, session.seed)
+    if override:   # the planner's boosters: owned by that diver and not doubled up
+        names = {b["name"] for b in pool.boosters}
+        for pl in players:
+            want, rname = override.get(pl.id, {}).get("booster"), roles_mod.ROLES[role_map[pl.id]].name if pl.id in role_map else None
+            if rname and want in names and want not in _diver_excluded(pl) and want not in \
+                    {v for k, v in boosters.items() if k != rname}:
+                boosters[rname] = want
 
     assignments, kits_by_role = [], {}
     squad_used = Counter()
@@ -396,6 +455,10 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
     def as_diver(pl):
         session._excluded = ctx[pl.id][4]
         session._salt = pl.id
+        session._sk = handling.skill(pl.accuracy)
+        session._drills = drills.get(pl.id, [])
+
+    drills = {pl.id: ask_mod.drills(pl.derived, session.mode) for pl in players}
 
     # phase 1 — armour + stratagems for every diver, under the kit rules
     phase = []
@@ -409,7 +472,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         ctx[pl.id] = (pl, role, pstyle, hist, _diver_excluded(pl))
         as_diver(pl)
         strat = _fill_stratagems(role, pool, session, pstyle, hist, squad_used,
-                                 slots=COMMANDO_SLOTS if commando else None, no_static=quiet)
+                                 slots=COMMANDO_SLOTS if commando else None, no_static=quiet,
+                                 pre=override.get(pl.id, {}).get("stratagems"))
         for it in strat:
             squad_used[it.name] += 1
         phase.append({"pid": pl.id, "callsign": pl.callsign, "role": role.name, "strat": strat})
@@ -436,21 +500,29 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
         sk = handling.skill(pl.accuracy)
         hfit = lambda it: handling.fit(it.name, sk, session.mode)
         dup = lambda it: -GEAR_DUP_W * gear_used[it.name]
-        primary = _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
-                        pref_cover="ch" if has_at else None, cover_weight=0.4,
-                        extra=lambda it: hfit(it) + dup(it), reroll_margin=REROLL_MARGIN["primary"])
-        secondary = _pick(pool.secondaries, session, pstyle, hist, extra=lambda it: hfit(it) + dup(it),
-                          reroll_margin=REROLL_MARGIN["secondary"])
-        grenade = _pick(pool.grenades, session, pstyle, hist, extra=dup,
-                        pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9,
-                        reroll_margin=REROLL_MARGIN["grenade"])
+        ov = override.get(pl.id, {})
+        primary = _chosen(pool.primaries, ov.get("primary"), session) or \
+            _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
+                  pref_cover="ch" if has_at else None, cover_weight=0.4,
+                  extra=lambda it: hfit(it) + dup(it), reroll_margin=REROLL_MARGIN["primary"])
+        secondary = _chosen(pool.secondaries, ov.get("secondary"), session) or \
+            _pick(pool.secondaries, session, pstyle, hist, extra=lambda it: hfit(it) + dup(it),
+                  reroll_margin=REROLL_MARGIN["secondary"])
+        grenade = _chosen(pool.grenades, ov.get("grenade"), session) or \
+            _pick(pool.grenades, session, pstyle, hist, extra=dup,
+                  pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9,
+                  reroll_margin=REROLL_MARGIN["grenade"])
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
-        weight = "Medium" if quiet and role.armor_weight == "Heavy" else role.armor_weight  # quiet: no Heavy
+        # quiet: no Heavy; a glass-cannon drill goes a weight class lighter
+        weight = ask_mod.armor_weight_for(role.armor_weight, drills.get(pl.id, []), quiet)
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map
-        armor = _pick(pool.armor_of_weight(weight), session, pstyle, hist,
+        chosen_armor = _chosen(pool.armor, ov.get("armor"), session)
+        if chosen_armor and quiet and chosen_armor.weight == "Heavy":
+            chosen_armor = None   # quiet runs never wear Heavy
+        armor = chosen_armor or _pick(pool.armor_of_weight(weight), session, pstyle, hist,
                       extra=lambda a: passives.bonus(a.passive, pk, session.faction)[0]
                       - ARMOR_PRESSURE_DISCOUNT * scoring.pressure_dot(a, session._pressure) + dup(a),
                       reroll_margin=REROLL_MARGIN["armor"])
@@ -487,7 +559,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None) 
                           "for each Super Destroyer window.")
             rparts.append({"k": "rat.commando", "p": {}})
         why = _why_kit(pl, role, session, role_map.get(pl.id), primary, secondary, armor, strat,
-                       chaff_for.get(pl.id), passive_why.get(pl.id), growth, thin, matrix)
+                       chaff_for.get(pl.id), passive_why.get(pl.id), growth, thin, matrix,
+                       grenade=grenade, drills=drills.get(pl.id, []))
         final.append(Assignment(
             why=why,
             player_id=pl.id, callsign=pl.callsign, role=role.name,
@@ -538,7 +611,7 @@ def _tag_reasons(item, pressure, n=2):
 
 
 def _why_kit(pl, role, session, role_key, primary, secondary, armor, strat, chaff_for,
-             passive_why, growth, thin, matrix) -> list:
+             passive_why, growth, thin, matrix, grenade=None, drills=()) -> list:
     """'Why this kit', one line per decision WARMIND made for this diver: how the role
     was chosen from their read, what the mission asks for, why each weapon (mission
     tags, the support weapon it covers for, their accuracy), what their stratagems
@@ -579,11 +652,37 @@ def _why_kit(pl, role, session, role_key, primary, secondary, armor, strat, chaf
         owner = coverage.cover_owner(a, matrix, role.name)
         if owner:
             out.append({"kind": "thin", "k": "rat.thin", "p": {"axis": a, "owner": owner}})
+    if mode in ("challenge", "d100"):
+        for d in drills:
+            out.append({"kind": "drill", "k": "why.drill." + d, "p": _drill_params(d, pl.derived)})
+        # the two hardest picks, and what each asks of the diver
+        hard = []
+        weapons = [] if pl.accuracy is not None else [primary, secondary]   # with stats, handling explains them
+        for it in weapons + [grenade, armor] + list(strat):
+            if it is None:
+                continue
+            v, reason = ask_mod.ask(it)
+            if v is not None and v >= 0.5 and reason and reason != "crutch":
+                hard.append((v, it.name, reason))
+        for v, name, reason in sorted(hard, reverse=True)[:2]:
+            out.append({"kind": "ask", "k": "why.ask." + reason, "p": {"item": name}})
     if pl.accuracy is None:
         out.append({"kind": "nostats", "k": "why.nostats", "p": {}})
     if session.seed:
         out.append({"kind": "reroll", "k": "why.reroll", "p": {"n": session.seed}})
     return out
+
+
+def _drill_params(d, derived):
+    g = lambda k: float((derived or {}).get(k) or 0.0)
+    if d in ("survive", "tidy"):
+        return {"n": f"{g('deaths_per_mission'):.1f}"}
+    if d in ("eagles", "orbitals", "turrets"):
+        key = {"eagles": "eagle_share", "orbitals": "orb_share", "turrets": "def_share"}[d]
+        return {"pct": f"{g(key) * 100:.0f}"}
+    if d == "clean":
+        return {"n": f"{g('friendly_per_mission'):.1f}"}
+    return {}
 
 
 HANDLING_WHY_EN = {

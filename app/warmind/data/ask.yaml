@@ -1,0 +1,143 @@
+# What each item ASKS of the diver carrying it: 0 = forgiving (it covers mistakes),
+# 1 = punishing (it only pays off when played well). Challenge and D100 lean towards
+# high-ask kit that still answers the mission; the "why" line names the reason.
+#
+# Weapons (primaries / secondaries) are rated from their wiki stats instead
+# (handling.py: recoil, rate of fire, magazine). This table covers stratagems,
+# grenades and armour. Items not listed take their category's default.
+#
+# reasons (each has a translated phrase, why.ask.<reason>):
+#   precision    every shot has to land on a weak spot
+#   timing       a delay before it lands: lead the target, read the fight
+#   danger_close big splash: it kills you or the squad if you're careless
+#   stance       reloads or sets up standing still: pick your moment
+#   charge       has to charge or spin up before it fires
+#   heat         overheats or runs dry if you don't pace it
+#   close        only works up close: you have to get in
+#   setup        pays off only if it's placed before the fight
+#   few          few uses: a wasted one hurts
+#   mobile       only pays off if you use it to reposition
+#   crutch       forgiving: it covers mistakes (Challenge steers away from it)
+#   fragile      light armour: one mistake and you're down
+
+defaults:
+  support: 0.45
+  backpack: 0.35
+  eagle: 0.35
+  orbital: 0.4
+  sentry: 0.25
+  emplacement: 0.45
+  mine: 0.5
+  relay: 0.2
+  vehicle: 0.35
+  grenade: 0.4
+
+armor_weight:   # armour: weight sets the base ask, a crutch passive lowers it
+  Light: [0.65, fragile]
+  Medium: [0.4, null]
+  Heavy: [0.2, crutch]
+armor_passive:
+  Democracy Protects: -0.15
+  Fortified: -0.1
+  Extra Padding: -0.1
+  Med-Kit: -0.05
+
+items:
+  # support weapons
+  GR-8 Recoilless Rifle: [0.6, stance]
+  FAF-14 Spear: [0.45, few]
+  AC-8 Autocannon: [0.55, stance]
+  LAS-99 Quasar Cannon: [0.4, charge]
+  EAT-17 Expendable Anti-Tank: [0.45, few]
+  MLS-4X Commando: [0.4, few]
+  LAS-98 Laser Cannon: [0.45, heat]
+  MG-43 Machine Gun: [0.45, stance]
+  M-105 Stalwart: [0.2, crutch]
+  GL-21 Grenade Launcher: [0.5, danger_close]
+  APW-1 Anti-Materiel Rifle: [0.8, precision]
+  ARC-3 Arc Thrower: [0.55, charge]
+  FLAM-40 Flamethrower: [0.55, close]
+  TX-41 Sterilizer: [0.5, close]
+  GL-28 Belt-Fed Grenade Launcher: [0.45, danger_close]
+  M-1000 Maxigun: [0.4, charge]
+  MG-206 Heavy Machine Gun: [0.65, stance]
+  PLAS-45 Epoch: [0.8, charge]
+  RL-77 Airburst Rocket Launcher: [0.75, danger_close]
+  RS-422 Railgun: [0.75, precision]
+  S-11 Speargun: [0.7, precision]
+  StA-X3 W.A.S.P. Launcher: [0.25, crutch]
+  EAT-700 Expendable Napalm: [0.45, few]
+  MS-11 Solo Silo: [0.5, setup]
+  B/MD C4 Pack: [0.6, setup]
+  CQC-1 One True Flag: [0.8, close]
+  CQC-20 Breaching Hammer: [0.8, close]
+  CQC-9 Defoliation Tool: [0.7, close]
+  # backpacks and companions
+  LIFT-850 Jump Pack: [0.55, mobile]
+  LIFT-182 Warp Pack: [0.55, mobile]
+  LIFT-860 Hover Pack: [0.5, mobile]
+  SH-32 Shield Generator Pack: [0.1, crutch]
+  SH-20 Ballistic Shield Backpack: [0.3, crutch]
+  SH-51 Directional Shield: [0.35, crutch]
+  B-1 Supply Pack: [0.25, crutch]
+  B-100 Portable Hellbomb: [0.75, danger_close]
+  AX/LAS-5 Rover: [0.15, crutch]
+  AX/AR-23 Guard Dog: [0.15, crutch]
+  AX/ARC-3 K-9: [0.2, crutch]
+  AX/FLAM-75 Hot Dog: [0.25, crutch]
+  AX/TX-13 Dog Breath: [0.3, crutch]
+  # eagles
+  Eagle Airstrike: [0.3, null]
+  Eagle Cluster Bomb: [0.4, danger_close]
+  Eagle 110mm Rocket Pods: [0.3, null]
+  Eagle 500kg Bomb: [0.45, timing]
+  Eagle Napalm Airstrike: [0.4, danger_close]
+  Eagle Smoke Strike: [0.65, setup]
+  Eagle Gas Airstrike: [0.4, null]
+  Eagle Strafing Run: [0.45, timing]
+  # orbitals
+  Orbital Precision Strike: [0.65, timing]
+  Orbital Railcannon Strike: [0.2, crutch]
+  Orbital Laser: [0.15, crutch]
+  Orbital Gatling Barrage: [0.4, null]
+  Orbital Walking Barrage: [0.55, setup]
+  Orbital Napalm Barrage: [0.55, danger_close]
+  Orbital Gas Strike: [0.35, null]
+  Orbital EMS Strike: [0.55, setup]
+  Orbital Smoke Strike: [0.65, setup]
+  Orbital 120mm HE Barrage: [0.6, danger_close]
+  Orbital 380mm HE Barrage: [0.7, danger_close]
+  Orbital Airburst Strike: [0.45, timing]
+  # statics
+  FX-12 Shield Generator Relay: [0.1, crutch]
+  A/AC-8 Autocannon Sentry: [0.25, crutch]
+  A/G-16 Gatling Sentry: [0.2, crutch]
+  A/MG-43 Machine Gun Sentry: [0.2, crutch]
+  A/M-12 Mortar Sentry: [0.4, danger_close]
+  A/GM-17 Gas Mortar Sentry: [0.4, danger_close]
+  A/M-23 EMS Mortar Sentry: [0.3, null]
+  A/ARC-3 Tesla Tower: [0.5, danger_close]
+  E/MG-101 HMG Emplacement: [0.5, stance]
+  E/AT-12 Anti-Tank Emplacement: [0.5, stance]
+  E/GL-21 Grenadier Battlement: [0.4, stance]
+  MD-6 Anti-Personnel Minefield: [0.5, setup]
+  MD-I4 Incendiary Mines: [0.5, setup]
+  MD-17 Anti-Tank Mines: [0.55, setup]
+  MD-8 Gas Mines: [0.5, setup]
+  # grenades
+  G-6 Frag: [0.4, timing]
+  G-16 Impact: [0.2, crutch]
+  G-123 Thermite: [0.55, precision]
+  G-3 Smoke: [0.6, setup]
+  G-13 Incendiary Impact: [0.3, null]
+  G-12 High Explosive: [0.45, danger_close]
+  G-23 Stun: [0.6, setup]
+  G-10 Incendiary: [0.4, timing]
+  G-31 Arc: [0.4, null]
+  G-4 Gas: [0.4, null]
+  G-50 Seeker: [0.15, crutch]
+  G-60 Anti-Tank Seeker: [0.2, crutch]
+  G/SH-39 Shield: [0.2, crutch]
+  K-2 Throwing Knife: [0.8, precision]
+  TED-63 Dynamite: [0.65, timing]
+  TM-1 Lure Mine: [0.5, setup]
