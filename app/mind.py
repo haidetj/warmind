@@ -221,6 +221,8 @@ How to answer:
 - saved_loadouts are kits a diver kept for reference: lean towards their picks when they fit the mission \
 and mode (in Challenge / D100, use them to see the comfort zone to push off).
 - Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
+- free_stratagems_for_everyone (Weapons Experimentation) are handed to every diver outside their four slots: \
+never spend a slot on one; plan around it.
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
 - The front's spawners (bug holes, fabricators, warp ships) keep spawning until killed: at least two divers \
 need a way to kill them (a grenade that says "kills ...: yes/hard/outside/any", or an explosive weapon).
@@ -250,6 +252,8 @@ def _mission_block(session, mission: dict, directive) -> dict:
                                 for x in session.operation_modifiers if x in om],
         "tactical_objectives": [tac[t].get("display_name", t) for t in session.tactical_objectives if t in tac],
         "city_map": session.is_city_map, "stealth_run": session.stealth,
+        "free_stratagems_for_everyone": list(getattr(session, "free_stratagems", None) or []) or None,
+        "democracy_space_station_actions": list(getattr(session, "dss_actions", None) or []) or None,
         "oaths": [f"{oaths.OATHS[k]['name']}: {oaths.OATHS[k]['rule']}" for k in (mission.get("oaths") or []) if k in oaths.OATHS],
         "mode": session.mode,
         "doctrine": directive.doctrine.get("kind") if directive.doctrine else None,

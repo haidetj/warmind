@@ -66,7 +66,25 @@ def _faction(name) -> str | None:
     return FACTIONS.get(_norm(name or ""))
 
 
-def _planets(campaigns: list, mo_planets: set) -> list:
+BIOME_EFFECTS = {"hive world": ["gloom_source"]}   # biome -> planet effects in operation_modifiers.yaml
+DSS_ACTIVE = 2                                       # tactical action status: 2 = active (community API)
+
+
+def _dss(stations) -> dict:
+    """planet index -> {"actions": [active tactical action names]} for the Democracy Space Station."""
+    out = {}
+    for st in stations if isinstance(stations, list) else []:
+        idx = (st.get("planet") or {}).get("index")
+        if idx is None:
+            continue
+        acts = [a for a in st.get("tacticalActions") or [] if a.get("status") == DSS_ACTIVE and a.get("name")]
+        out[idx] = {"actions": [a["name"] for a in acts],
+                    "details": [{"name": a["name"][:60], "desc": str(a.get("strategicDescription") or a.get("description") or "")[:300]}
+                                for a in acts]}
+    return out
+
+
+def _planets(campaigns: list, mo_planets: set, dss: dict | None = None) -> list:
     hz = _hazard_index()
     out = []
     for c in campaigns or []:
@@ -91,11 +109,15 @@ def _planets(campaigns: list, mo_planets: set) -> list:
         else:
             pct = round(100 * (1 - hp / mx)) if mx else None
         regions = p.get("regions") or []
+        biome = (p.get("biome") or {}).get("name") or ""
+        station = (dss or {}).get(p.get("index"))
         out.append({
             "index": p.get("index"),
             "name": _title(p.get("name") or ""),
             "sector": p.get("sector") or "",
-            "biome": (p.get("biome") or {}).get("name") or "",
+            "biome": biome,
+            "effects": BIOME_EFFECTS.get(biome.lower(), []),     # e.g. Hive World -> Gloom Source
+            "dss": station,                                    # Democracy Space Station overhead (+ active actions)
             "enemy": enemy,
             "defense": bool(ev),
             "hazards": ids,
@@ -149,9 +171,9 @@ def _orders(assignments: list) -> tuple[list, set]:
     return orders, planets
 
 
-def _build(assignments, campaigns) -> dict:
+def _build(assignments, campaigns, stations=None) -> dict:
     orders, mo_planets = _orders(assignments if isinstance(assignments, list) else [])
-    planets = _planets(campaigns if isinstance(campaigns, list) else [], mo_planets)
+    planets = _planets(campaigns if isinstance(campaigns, list) else [], mo_planets, _dss(stations))
     names = {p["index"]: p["name"] for p in planets}
     for o in orders:  # name the planet a liberate/hold task points at, when it's an active front
         for tk in o["tasks"]:
@@ -166,8 +188,18 @@ def _refresh() -> dict:
     fx = os.environ.get("WARMIND_WAR_FIXTURE")  # tests: {"assignments": [...], "campaigns": [...]} instead of the network
     if fx:
         raw = json.loads(open(fx).read())
-        return _build(raw.get("assignments") or [], raw.get("campaigns") or [])
-    return _build(_get("assignments"), _get("campaigns"))
+        return _build(raw.get("assignments") or [], raw.get("campaigns") or [], raw.get("space_stations") or [])
+    try:
+        stations = _get_v2("space-stations")
+    except Exception:   # the station feed is a bonus: never lose the war feed over it
+        stations = []
+    return _build(_get("assignments"), _get("campaigns"), stations)
+
+
+def _get_v2(path: str):
+    req = urllib.request.Request(BASE.replace("/api/v1/", "/api/v2/") + path, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+        return json.loads(r.read().decode("utf-8"))
 
 
 def snapshot() -> dict:

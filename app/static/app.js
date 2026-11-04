@@ -1162,8 +1162,11 @@
       if (!p) { draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); return; }
       draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
       draft.planet_hazards = p.hazards.slice();
+      (p.effects || []).forEach(id => { if (draft.operation_modifiers.indexOf(id) < 0) draft.operation_modifiers.push(id); });   // Hive World -> Gloom Source
+      draft.dss_actions = (p.dss && p.dss.details) || [];   // the Democracy Space Station's active actions, for the briefing
       paintHaz(); fillMissions(); fillTacticals(); fillOps();
-      planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null].filter(Boolean).join(" · ");
+      planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null,
+        p.dss ? "🛰 " + t("war.dss") + (p.dss.actions && p.dss.actions.length ? ": " + p.dss.actions.join(", ") : "") : null].filter(Boolean).join(" · ");
     };
 
     // faction / difficulty / mission
@@ -1210,7 +1213,14 @@
       const dv = parseInt(diffSel.value, 10);
       const list = (META.op_modifiers || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin);
       draft.operation_modifiers = draft.operation_modifiers.filter(id => list.some(x => x.id === id));   // this front can't have it
-      list.map(x => x.id).concat(["__city", "__stealth"]).forEach(id => {
+      const GROUPS = ["operation", "forces", "planet", "effect"];
+      const ordered = [];
+      GROUPS.forEach(g => {
+        const ids = list.filter(x => (x.group || "operation") === g).map(x => x.id).concat(g === "operation" ? ["__city", "__stealth"] : []);
+        if (ids.length) ordered.push("@" + g), ids.forEach(id => ordered.push(id));
+      });
+      ordered.forEach(id => {
+        if (id[0] === "@") { ops.appendChild(el("div", { class: "chiphead" }, [t("mis.grp." + id.slice(1))])); return; }
         const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
         const m = (META.op_modifiers || []).find(x => x.id === id);
         const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on), title: m ? m.desc : null }, [opName(id)]);
@@ -1228,6 +1238,15 @@
     fillOps();
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops, opsDesc,
       el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
+
+    // Weapons Experimentation: a stratagem handed to everyone, outside the four slots
+    draft.free_stratagems = draft.free_stratagems || [];
+    const stratNames = []; (META.armory || []).forEach(tb => { if (tb.slot === "Stratagem") tb.groups.forEach(g => g.items.forEach(i => stratNames.push(i.name))); });
+    const freeSel = el("select", { id: "m-free" }, [el("option", { value: "" }, ["— " + t("mis.free.none")])].concat(stratNames.sort().map(n => el("option", { value: n }, [n]))));
+    freeSel.value = draft.free_stratagems[0] || "";
+    freeSel.onchange = () => { draft.free_stratagems = freeSel.value ? [freeSel.value] : []; };
+    body.appendChild(el("div", { class: "blk field" }, [el("label", { class: "label", for: "m-free" }, [t("mis.free.label")]), freeSel,
+      el("div", { class: "hint" }, [t("mis.free.hint")])]));
 
     // WARMIND thinks: the AI planner on top of the engine (on unless turned off)
     if (draft.think === undefined) draft.think = true;
@@ -1536,11 +1555,11 @@
       el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [name ? wk(name) : "—"]),
       stats && statLine(statsOf(name)) ? el("div", { class: "st" }, [statLine(statsOf(name))]) : null]);
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-    const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
+    const eff = !a.armor_passive ? null : has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
     const armor = el("div", { class: "armorfig" }, [
       el("span", { class: "lab" }, [t("card.armor")]), el("div", { class: "pv" }, [pic(a.armor, "img")]),
       el("div", { class: "nm" }, [wk(a.armor)]),
-      el("div", { class: "ps", title: eff || "" }, [(has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive]),
+      a.armor_weight || a.armor_passive ? el("div", { class: "ps", title: eff || "" }, [[has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight, a.armor_passive].filter(Boolean).join(" · ")]) : null,
     ]);
     return el("div", { class: "locker" }, [
       strats,
@@ -1663,6 +1682,7 @@
     return panel("SYS-L", t("lk.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.home.hint")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
   }
 
+  let lkEdit = false;
   let LK = null, lkTab = (() => { try { return localStorage.getItem("wm_lktab") || "stats"; } catch (e) { return "stats"; } })();
   async function loadLocker() {
     const L = store.locker();
@@ -1692,10 +1712,16 @@
     const y = window.scrollY;
     app.innerHTML = ""; app.className = "stack";
     const L = store.locker();
-    // header: callsign (rename), the stat read, device link
+    // header: the callsign as the title; the name field only in edit mode (or while there's no name yet)
+    const editing = lkEdit || !LK.callsign;
     const nameIn = el("input", { type: "text", maxlength: "24", value: LK.callsign || "", placeholder: t("lk.callsign.ph"), autocomplete: "off" });
-    const nameBtn = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("me.rename")]);
-    nameBtn.onclick = async () => { const v = nameIn.value.trim(); if (!v) return; try { await lpost("/api/locker/" + L.id + "/callsign", { callsign: v }); toast(t("toast.renamed")); await loadLocker(); } catch (e) { toast(e.message); } };
+    const nameBtn = el("button", { class: "btn sm primary", type: "button" }, ["✓ " + t("lk.savename")]);
+    nameBtn.onclick = async () => { const v = nameIn.value.trim(); if (!v) { nameIn.focus(); return; } try { await lpost("/api/locker/" + L.id + "/callsign", { callsign: v }); lkEdit = false; toast(t("toast.renamed")); await loadLocker(); } catch (e) { toast(e.message); } };
+    nameIn.onkeydown = e => { if (e.key === "Enter") nameBtn.click(); if (e.key === "Escape" && LK.callsign) { lkEdit = false; paintLocker(); } };
+    const cancel = el("button", { class: "btn sm", type: "button" }, [t("fb.cancel")]);
+    cancel.onclick = () => { lkEdit = false; paintLocker(); };
+    const editBtn = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("lk.edit")]);
+    editBtn.onclick = () => { lkEdit = true; paintLocker(); };
     const up = fileBtn("", t("me.upload_new"), true);
     const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
     up.querySelector("input").onchange = async ev => {
@@ -1705,7 +1731,7 @@
         if (r.ok === false) setStatus(status, "warn", r.over_budget ? r.vision_error : t("me.reread.bad")); else { toast(t("lk.stats.saved")); busy = false; await loadLocker(); } }
       catch (e) { stop(); setStatus(status, "err", e.message); } finally { stop(); busy = false; }
     };
-    const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
+    const dev = el("button", { class: "btn sm", type: "button" }, ["🔗 " + t("lk.copylink")]);
     dev.onclick = () => copy(location.origin + "/?locker#locker=" + L.id + "." + L.key, t("lk.device.copied"));
     // way out: back to the war table you came from, or the home page
     const go = href => e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = href; }); };
@@ -1717,26 +1743,61 @@
     app.appendChild(nav);
     const home = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
     home.onclick = go("/");
-    app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.callsign || "—", statusKind: "warn", tone: "amber" }, [
-      el("div", { class: "grid2", style: "align-items:end" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.callsign")]), nameIn]), el("div", { class: "field" }, [nameBtn])]),
-      LK.play_style ? el("div", { class: "hint" }, [t("lk.style", { style: styleLabel(LK.play_style) })]) : el("div", { class: "hint" }, [t("me.noread")]),
+    const head = editing
+      ? el("div", { class: "grid2", style: "align-items:end" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.callsign")]), nameIn]),
+          el("div", { class: "field" }, [el("div", { class: "btnrow", style: "margin:0" }, LK.callsign ? [nameBtn, cancel] : [nameBtn])])])
+      : el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [LK.callsign]),
+          el("div", { class: "hint", style: "margin:4px 0 0" }, [LK.play_style ? t("lk.style", { style: styleLabel(LK.play_style) }) : t("me.noread")])]), editBtn]);
+    app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.medals.length ? "🎖 " + LK.medals.length : "", statusKind: "warn", tone: "amber" }, [
+      head,
       el("div", { class: "btnrow" }, [up, dev]), status,
       el("div", { class: "hint" }, [t("lk.private")]),
     ]));
+    if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
+    // up top: a carousel of saved loadouts, then the stats
+    app.appendChild(lkCarousel());
+    app.appendChild(lkStats());
     // sub-tabs
-    const tabs = [["stats", t("lk.tab.stats")], ["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
+    const tabs = [["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
       ["loadouts", t("lk.tab.loadouts") + " " + LK.loadouts.length], ["gear", t("lk.tab.gear")]];
-    const bar = el("div", { class: "seg subtabs four", role: "tablist" });
+    const bar = el("div", { class: "seg subtabs", role: "tablist" });
     const body = el("div");
     const show = k => {
       lkTab = k; try { localStorage.setItem("wm_lktab", k); } catch (e) {}
       bar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
-      body.innerHTML = ""; body.appendChild(({ stats: lkStats, record: lkRecord, loadouts: lkLoadouts, gear: lkGear })[k]());
+      body.innerHTML = ""; body.appendChild(({ record: lkRecord, loadouts: lkLoadouts, gear: lkGear })[k]());
     };
     tabs.forEach(([k, label]) => { const b = el("button", { type: "button", "data-k": k }, [label]); b.onclick = () => guardGear(() => show(k)); bar.appendChild(b); });
     app.appendChild(bar); app.appendChild(body);
-    show(tabs.some(x => x[0] === lkTab) ? lkTab : "stats");
+    show(tabs.some(x => x[0] === lkTab) ? lkTab : "record");
     window.scrollTo(0, y);
+  }
+  function lkCarousel() {
+    const L = LK.loadouts || [];
+    if (!L.length) {
+      const b = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]); b.onclick = () => buildKitDialog();
+      return panel("LKR-00", t("lk.tab.loadouts"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.none")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
+    }
+    const track = el("div", { class: "lkcar", tabindex: "0", "aria-label": t("lk.tab.loadouts") });
+    L.forEach(o => {
+      const src = o.source || {};
+      const card = el("article", { class: "dcard lkslide" }); card.style.setProperty("--acc", "#ffc23a");
+      card.appendChild(el("div", { class: "hd" }, [el("div", { class: "role" }, [o.kit.role || o.name]),
+        el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
+          [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
+      card.appendChild(locker(o.kit));
+      if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
+      track.appendChild(card);
+    });
+    const count = el("span", { class: "lkcount" }, ["1 / " + L.length]);
+    const step = d => { const w = (track.firstElementChild || {}).offsetWidth || 300; track.scrollBy({ left: d * (w + 12), behavior: "smooth" }); };
+    const prev = el("button", { class: "btn sm", type: "button", "aria-label": "‹" }, ["‹"]); prev.onclick = () => step(-1);
+    const next = el("button", { class: "btn sm", type: "button", "aria-label": "›" }, ["›"]); next.onclick = () => step(1);
+    track.addEventListener("scroll", () => { const w = ((track.firstElementChild || {}).offsetWidth || 300) + 12; count.textContent = (Math.round(track.scrollLeft / w) + 1) + " / " + L.length; }, { passive: true });
+    track.addEventListener("keydown", e => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
+    const neu = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); neu.onclick = () => buildKitDialog();
+    return panel("LKR-00", t("lk.tab.loadouts"), { status: String(L.length), statusKind: "info" }, [track,
+      el("div", { class: "lkcarnav" }, [prev, count, next, el("span", { style: "flex:1" }), neu])]);
   }
   function lkStats() {
     const kids = [];
@@ -1752,9 +1813,9 @@
           el("td", {}, [num(x.kills_per_min, 2) + arrow(x.kills_per_min, prev && prev.kills_per_min, true)]),
           el("td", {}, [num(x.deaths_per_mission, 2) + arrow(x.deaths_per_mission, prev && prev.deaths_per_mission, false)]),
           el("td", {}, [pct(x.win_rate) + arrow(x.win_rate, prev && prev.win_rate, true)])]); });
-      kids.push(el("div", { class: "sub-h" }, [t("lk.history")]),
+      kids.push(el("details", { class: "fold" }, [el("summary", {}, [t("lk.history") + " · " + h.length]), el("div", { class: "body" }, [
         el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [el("thead", {}, [el("tr", {}, [t("lk.h.date"), t("lk.h.missions"), t("sc.accuracy"), t("lk.h.kpm"), t("sc.deaths_pm"), t("sc.success")].map(x => el("th", {}, [x])))]), el("tbody", {}, rows)])]),
-        el("div", { class: "hint" }, [t("lk.history.hint")]));
+        el("div", { class: "hint" }, [t("lk.history.hint")])])]));
     }
     return panel("LKR-02", t("lk.tab.stats"), {}, kids);
   }
@@ -1801,7 +1862,7 @@
       const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ffc23a");
       card.appendChild(el("div", { class: "hd" }, [
         el("div", { class: "role" }, [o.kit.role || o.name]),
-        el("div", { class: "meta" }, [o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
+        el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
           [src.mission, src.mode ? t("mode." + src.mode) : "", src.difficulty ? "D" + src.difficulty : "", dt(o.created_at)].filter(Boolean).map(x => " · " + x).join("")]),
       ]));
       card.appendChild(kitView === "list" ? kitLines(o.kit) : locker(o.kit));

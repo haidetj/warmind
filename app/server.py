@@ -250,6 +250,8 @@ def _session_of(mission, lobby) -> Session:
         is_city_map=mission.get("is_city_map", False),
         stealth=bool(mission.get("stealth", False)),
         roles=dict(mission.get("roles") or {}),
+        free_stratagems=list(mission.get("free_stratagems") or []),
+        dss_actions=list(mission.get("dss_actions") or []),
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -338,7 +340,8 @@ def meta():
     ]
     hazards = [{"id": k, "name": v["display_name"]} for k, v in loader.hazards().items()]
     op_mods = [{"id": m["id"], "name": m["display_name"], "faction": m.get("faction", "any"),
-                "dmin": m.get("difficulty_min", 1), "desc": m.get("description", "")}
+                "dmin": m.get("difficulty_min", 1), "desc": m.get("description", ""),
+                "group": m.get("group", "operation")}
                for m in loader.operation_modifiers().values()]
     tacticals = [{"id": t["id"], "name": t["display_name"], "faction": t.get("faction", "any"),
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
@@ -519,7 +522,11 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     m["think"] = m.get("think") is not False   # WARMIND's planner on unless the creator turned it off
     m["lang"] = m.get("lang") if m.get("lang") in vision.LANG_NAMES else "en"   # language of the planner's reasons
     known = loader.operation_modifiers()
-    m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:4]
+    m["operation_modifiers"] = [x for x in (m.get("operation_modifiers") or []) if x in known][:12]
+    strat_names = {s["name"] for s in loader.items().get("stratagems", [])}
+    m["free_stratagems"] = [x for x in (m.get("free_stratagems") or []) if x in strat_names][:2]   # Weapons Experimentation
+    m["dss_actions"] = [{"name": str(x.get("name") or "")[:60], "desc": str(x.get("desc") or "")[:300]}
+                        for x in (m.get("dss_actions") or []) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     db.set_mission(lid, m)
