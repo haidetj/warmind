@@ -461,7 +461,45 @@ def effects() -> dict:
     return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
 
 
+MISSION_CATEGORIES = ("Missions", "Terminid Missions", "Automaton Missions", "Illuminate Missions",
+                      "Mission Types", "Operations", "Commando Missions", "Blitz Missions", "Defense Missions",
+                      "Removed Missions", "Story Missions")
+
+
+def missions_wiki() -> dict:
+    """Every mission page the wiki lists (by category), each page's wikitext trimmed, so
+    missions.yaml can be checked for missing missions and wrong factions/difficulties."""
+    members, pages = {}, {}
+    for cat in MISSION_CATEGORIES:
+        d = api(action="query", list="categorymembers", cmtitle="Category:" + cat, cmlimit=500, cmnamespace=0)
+        names = [m["title"] for m in d.get("query", {}).get("categorymembers", [])]
+        if names:
+            members[cat] = names
+        time.sleep(0.3)
+    title, text = wikitext("Missions")
+    if text:
+        pages[title] = text[:40000]
+    for names in members.values():
+        for n in names:
+            if n not in pages:
+                t2, tx = wikitext(n)
+                if tx:
+                    pages[t2] = tx[:3000]
+                time.sleep(0.15)
+    return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
+
+
 if __name__ == "__main__":
+    if "--missions" in sys.argv:
+        out = ROOT / "sync" / "missions_wiki.json"
+        data = missions_wiki()
+        out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        ours = {norm(m["display_name"]) for m in loader.missions().values()}
+        seen = sorted({n for v in data["categories"].values() for n in v})
+        missing = [n for n in seen if norm(n) not in ours]
+        print(f"wiki mission pages: {len(seen)}; categories: { {k: len(v) for k, v in data['categories'].items()} }")
+        print("not in missions.yaml:", missing)
+        sys.exit(0)
     if "--effects" in sys.argv:
         out = ROOT / "sync" / "effects_wiki.json"
         data = effects()
