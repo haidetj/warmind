@@ -35,16 +35,22 @@ SECTIONS = ("primaries", "secondaries", "grenades", "stratagems", "armor", "boos
 def api(**params) -> dict:
     params.setdefault("format", "json")
     url = API + "?" + urllib.parse.urlencode(params)
-    for attempt in range(4):
+    for attempt in range(7):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as r:
                 return json.loads(r.read().decode())
         except Exception as e:  # noqa: BLE001 — retry transient errors, then surface
-            if attempt == 3:
+            if attempt == 6:
                 raise
-            time.sleep(2 ** attempt)
-            last = e  # noqa: F841
+            # 429: the wiki is rate-limiting (e.g. two runs at once): honour Retry-After, back off longer
+            wait = 2 ** attempt
+            if getattr(e, "code", None) == 429:
+                try:
+                    wait = max(wait, int(e.headers.get("Retry-After") or 0), 10 * (attempt + 1))
+                except Exception:   # noqa: BLE001
+                    wait = max(wait, 10 * (attempt + 1))
+            time.sleep(min(wait, 90))
     return {}
 
 

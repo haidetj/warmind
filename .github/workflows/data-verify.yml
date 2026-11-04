@@ -21,6 +21,11 @@ on:
 permissions:
   contents: write
 
+# one wiki crawl at a time (two at once get rate-limited with HTTP 429)
+concurrency:
+  group: wiki-crawl
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
