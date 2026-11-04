@@ -37,6 +37,7 @@ class Session:
     is_city_map: bool = False
     stealth: bool = False   # creator's "stealth run" toggle: the whole squad goes quiet
     roles: dict = field(default_factory=dict)   # creator-set roles {pid: ROLE_KEY} (an applied swap)
+    free_stratagems: list = field(default_factory=list)   # Weapons Experimentation: everyone gets these free
     seed: int = 0  # creator's reroll counter; 0 = the canonical (best-scoring) loadouts
 
 
@@ -182,8 +183,10 @@ def _fill_stratagems(role, pool, session, pstyle, history, squad_used, slots=Non
     picks = []
     squad_names = {n for n, c in squad_used.items() if c > 0}
 
+    free = set(getattr(session, "free_stratagems", None) or [])   # handed out free: never spend a slot on it
+
     def legal(cands, squad_rule=True):
-        return [c for c in cands if c.name not in {p.name for p in picks}
+        return [c for c in cands if c.name not in {p.name for p in picks} and c.name not in free
                 and kitrules.diver_allows(c, picks, role.name, no_static)
                 and not (squad_rule and kitrules.squad_excludes(c, squad_names, session))]
 
@@ -786,6 +789,9 @@ def _notes(session, p):
         rec = opmods.get(mid)
         if rec and rec.get("note") and mid not in (OP_PLOTTING, OP_POOR_INTEL):
             add(f"opmod.{mid}.note", f"{rec['display_name']}: {rec['note']}")
+    for name in getattr(session, "free_stratagems", None) or []:
+        add("note.free_strat", f"Weapons Experimentation: everyone gets {name} free, so nobody spends a slot on it. "
+                               "Agree who calls it and when.", item=name)
     if session.stealth:
         add("note.stealth", "Stealth run: move as a group, go around patrols, kill flares and callers first, "
                             "and save strikes for objectives. One loud diver breaks it for everyone.")

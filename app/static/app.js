@@ -1162,8 +1162,10 @@
       if (!p) { draft.planet_name = ""; planetInfo.textContent = t("war.pick.hint"); return; }
       draft.planet_name = p.name; draft.faction = p.enemy; facSel.value = p.enemy;
       draft.planet_hazards = p.hazards.slice();
+      (p.effects || []).forEach(id => { if (draft.operation_modifiers.indexOf(id) < 0) draft.operation_modifiers.push(id); });   // Hive World -> Gloom Source
       paintHaz(); fillMissions(); fillTacticals(); fillOps();
-      planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null].filter(Boolean).join(" · ");
+      planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null,
+        p.dss ? "🛰 " + t("war.dss") + (p.dss.actions && p.dss.actions.length ? ": " + p.dss.actions.join(", ") : "") : null].filter(Boolean).join(" · ");
     };
 
     // faction / difficulty / mission
@@ -1210,7 +1212,14 @@
       const dv = parseInt(diffSel.value, 10);
       const list = (META.op_modifiers || []).filter(x => (x.faction === "any" || x.faction === facSel.value) && dv >= x.dmin);
       draft.operation_modifiers = draft.operation_modifiers.filter(id => list.some(x => x.id === id));   // this front can't have it
-      list.map(x => x.id).concat(["__city", "__stealth"]).forEach(id => {
+      const GROUPS = ["operation", "forces", "planet", "effect"];
+      const ordered = [];
+      GROUPS.forEach(g => {
+        const ids = list.filter(x => (x.group || "operation") === g).map(x => x.id).concat(g === "operation" ? ["__city", "__stealth"] : []);
+        if (ids.length) ordered.push("@" + g), ids.forEach(id => ordered.push(id));
+      });
+      ordered.forEach(id => {
+        if (id[0] === "@") { ops.appendChild(el("div", { class: "chiphead" }, [t("mis.grp." + id.slice(1))])); return; }
         const on = id === "__city" ? draft.is_city_map : id === "__stealth" ? !!draft.stealth : draft.operation_modifiers.indexOf(id) >= 0;
         const m = (META.op_modifiers || []).find(x => x.id === id);
         const c = el("button", { type: "button", class: "chip", "aria-pressed": String(on), title: m ? m.desc : null }, [opName(id)]);
@@ -1228,6 +1237,15 @@
     fillOps();
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.mods.label")]), ops, opsDesc,
       el("div", { class: "hint" }, [t("mis.stealth.hint")])]));
+
+    // Weapons Experimentation: a stratagem handed to everyone, outside the four slots
+    draft.free_stratagems = draft.free_stratagems || [];
+    const stratNames = []; (META.armory || []).forEach(tb => { if (tb.slot === "Stratagem") tb.groups.forEach(g => g.items.forEach(i => stratNames.push(i.name))); });
+    const freeSel = el("select", { id: "m-free" }, [el("option", { value: "" }, ["— " + t("mis.free.none")])].concat(stratNames.sort().map(n => el("option", { value: n }, [n]))));
+    freeSel.value = draft.free_stratagems[0] || "";
+    freeSel.onchange = () => { draft.free_stratagems = freeSel.value ? [freeSel.value] : []; };
+    body.appendChild(el("div", { class: "blk field" }, [el("label", { class: "label", for: "m-free" }, [t("mis.free.label")]), freeSel,
+      el("div", { class: "hint" }, [t("mis.free.hint")])]));
 
     // WARMIND thinks: the AI planner on top of the engine (on unless turned off)
     if (draft.think === undefined) draft.think = true;

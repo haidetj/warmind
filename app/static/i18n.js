@@ -14133,3 +14133,222 @@ for (const [l, v] of Object.entries({
   "lk.copylink": "Copy sea chest link"
  }
 })) Object.assign(window.WM_I18N.dict[l], v);
+// effects editor
+for (const [l, d] of Object.entries({
+ "en": {
+  "mis.mods.label": "Effects & modifiers",
+  "mis.grp.operation": "Operation modifiers",
+  "mis.grp.forces": "Enemy forces",
+  "mis.grp.planet": "Planet conditions",
+  "mis.grp.effect": "Operational effects",
+  "mis.free.label": "Weapons Experimentation (free stratagem)",
+  "mis.free.none": "none",
+  "mis.free.hint": "If the operation screen lists Weapons Experimentation or Arsenal Augmentation, pick the stratagem it hands out. Everyone gets it outside their four slots, so nobody spends a slot on it.",
+  "war.dss": "Democracy Space Station overhead",
+  "note.free_strat": "Weapons Experimentation: everyone gets {item} free, so nobody spends a slot on it. Agree who calls it and when."
+ },
+ "es": {
+  "mis.mods.label": "Efectos y modificadores",
+  "mis.grp.operation": "Modificadores de operación",
+  "mis.grp.forces": "Fuerzas enemigas",
+  "mis.grp.planet": "Condiciones del planeta",
+  "mis.grp.effect": "Efectos operativos",
+  "mis.free.label": "Experimentación de armas (estratagema gratis)",
+  "mis.free.none": "ninguna",
+  "mis.free.hint": "Si la pantalla de operación muestra Experimentación de armas o Aumento del arsenal, elige la estratagema que entrega. Todos la reciben fuera de sus cuatro huecos, así que nadie gasta uno en ella.",
+  "war.dss": "Estación espacial de la democracia en órbita",
+  "note.free_strat": "Experimentación de armas: todos reciben {item} gratis, así que nadie gasta un hueco en ella. Acordad quién la pide y cuándo."
+ },
+ "pt": {
+  "mis.mods.label": "Efeitos e modificadores",
+  "mis.grp.operation": "Modificadores de operação",
+  "mis.grp.forces": "Forças inimigas",
+  "mis.grp.planet": "Condições do planeta",
+  "mis.grp.effect": "Efeitos operacionais",
+  "mis.free.label": "Experimentação de armas (estratagema grátis)",
+  "mis.free.none": "nenhum",
+  "mis.free.hint": "Se a tela da operação mostrar Experimentação de armas ou Aumento do arsenal, escolha o estratagema que ela entrega. Todos recebem fora dos quatro espaços, então ninguém gasta um espaço com ele.",
+  "war.dss": "Estação Espacial da Democracia em órbita",
+  "note.free_strat": "Experimentação de armas: todos recebem {item} de graça, então ninguém gasta um espaço com ele. Combinem quem chama e quando."
+ },
+ "fr": {
+  "mis.mods.label": "Effets et modificateurs",
+  "mis.grp.operation": "Modificateurs d'opération",
+  "mis.grp.forces": "Forces ennemies",
+  "mis.grp.planet": "Conditions planétaires",
+  "mis.grp.effect": "Effets opérationnels",
+  "mis.free.label": "Expérimentation d'armes (stratagème gratuit)",
+  "mis.free.none": "aucun",
+  "mis.free.hint": "Si l'écran d'opération affiche Expérimentation d'armes ou Augmentation de l'arsenal, choisissez le stratagème fourni. Tout le monde l'a hors de ses quatre emplacements : personne n'en gaspille un.",
+  "war.dss": "Station spatiale de la démocratie en orbite",
+  "note.free_strat": "Expérimentation d'armes : tout le monde reçoit {item} gratuitement, personne n'y consacre d'emplacement. Décidez qui l'appelle et quand."
+ },
+ "de": {
+  "mis.mods.label": "Effekte & Modifikatoren",
+  "mis.grp.operation": "Operationsmodifikatoren",
+  "mis.grp.forces": "Feindliche Kräfte",
+  "mis.grp.planet": "Planetenbedingungen",
+  "mis.grp.effect": "Operative Effekte",
+  "mis.free.label": "Waffenerprobung (Gratis-Strategem)",
+  "mis.free.none": "keins",
+  "mis.free.hint": "Zeigt der Operationsbildschirm Waffenerprobung oder Arsenalaufwertung, wähle das ausgegebene Strategem. Alle haben es zusätzlich zu ihren vier Plätzen, also verschwendet niemand einen Platz dafür.",
+  "war.dss": "Demokratie-Raumstation im Orbit",
+  "note.free_strat": "Waffenerprobung: Alle bekommen {item} gratis, also verbraucht niemand einen Platz dafür. Klärt, wer es wann ruft."
+ },
+ "it": {
+  "mis.mods.label": "Effetti e modificatori",
+  "mis.grp.operation": "Modificatori dell'operazione",
+  "mis.grp.forces": "Forze nemiche",
+  "mis.grp.planet": "Condizioni del pianeta",
+  "mis.grp.effect": "Effetti operativi",
+  "mis.free.label": "Sperimentazione armi (stratagemma gratuito)",
+  "mis.free.none": "nessuno",
+  "mis.free.hint": "Se la schermata dell'operazione mostra Sperimentazione armi o Potenziamento arsenale, scegli lo stratagemma fornito. Tutti lo hanno oltre ai quattro slot, quindi nessuno ne spreca uno.",
+  "war.dss": "Stazione spaziale della democrazia in orbita",
+  "note.free_strat": "Sperimentazione armi: tutti ricevono {item} gratis, quindi nessuno spreca uno slot. Decidete chi lo chiama e quando."
+ },
+ "pl": {
+  "mis.mods.label": "Efekty i modyfikatory",
+  "mis.grp.operation": "Modyfikatory operacji",
+  "mis.grp.forces": "Siły wroga",
+  "mis.grp.planet": "Warunki planety",
+  "mis.grp.effect": "Efekty operacyjne",
+  "mis.free.label": "Eksperymenty z bronią (darmowy stratagem)",
+  "mis.free.none": "brak",
+  "mis.free.hint": "Jeśli ekran operacji pokazuje Eksperymenty z bronią lub Wzmocnienie arsenału, wybierz przydzielany stratagem. Każdy ma go poza czterema miejscami, więc nikt nie marnuje na niego miejsca.",
+  "war.dss": "Stacja Kosmiczna Demokracji na orbicie",
+  "note.free_strat": "Eksperymenty z bronią: każdy dostaje {item} za darmo, więc nikt nie marnuje na nie miejsca. Ustalcie, kto i kiedy je wzywa."
+ },
+ "ru": {
+  "mis.mods.label": "Эффекты и модификаторы",
+  "mis.grp.operation": "Модификаторы операции",
+  "mis.grp.forces": "Силы противника",
+  "mis.grp.planet": "Условия планеты",
+  "mis.grp.effect": "Оперативные эффекты",
+  "mis.free.label": "Испытания оружия (бесплатная стратагема)",
+  "mis.free.none": "нет",
+  "mis.free.hint": "Если на экране операции есть «Испытания оружия» или «Усиление арсенала», выберите выдаваемую стратагему. Она есть у всех сверх четырёх слотов, так что слот на неё никто не тратит.",
+  "war.dss": "Космическая станция демократии на орбите",
+  "note.free_strat": "Испытания оружия: {item} у всех бесплатно, слот на неё никто не тратит. Договоритесь, кто и когда её вызывает."
+ },
+ "ja": {
+  "mis.mods.label": "効果と修飾",
+  "mis.grp.operation": "作戦修飾",
+  "mis.grp.forces": "敵戦力",
+  "mis.grp.planet": "惑星の状態",
+  "mis.grp.effect": "作戦効果",
+  "mis.free.label": "兵器試験（無料ストラタジェム）",
+  "mis.free.none": "なし",
+  "mis.free.hint": "作戦画面に「兵器試験」や「兵装増強」があれば、配布されるストラタジェムを選択。全員が4枠とは別に持つので、枠を使わない。",
+  "war.dss": "民主主義宇宙ステーションが軌道上",
+  "note.free_strat": "兵器試験：全員が{item}を無料で使えるので枠を使わない。誰がいつ呼ぶか決めておこう。"
+ },
+ "ko": {
+  "mis.mods.label": "효과 및 수정자",
+  "mis.grp.operation": "작전 수정자",
+  "mis.grp.forces": "적 전력",
+  "mis.grp.planet": "행성 상태",
+  "mis.grp.effect": "작전 효과",
+  "mis.free.label": "무기 실험 (무료 스트라타젬)",
+  "mis.free.none": "없음",
+  "mis.free.hint": "작전 화면에 무기 실험이나 무기고 증강이 있으면 지급되는 스트라타젬을 고르세요. 모두가 네 칸과 별도로 받으므로 아무도 칸을 쓰지 않습니다.",
+  "war.dss": "민주주의 우주 정거장 궤도 위",
+  "note.free_strat": "무기 실험: 모두가 {item}을(를) 무료로 받으니 칸을 쓰지 마세요. 누가 언제 부를지 정하세요."
+ },
+ "zh": {
+  "mis.mods.label": "效果与修正",
+  "mis.grp.operation": "作战修正",
+  "mis.grp.forces": "敌方部队",
+  "mis.grp.planet": "星球状况",
+  "mis.grp.effect": "作战效果",
+  "mis.free.label": "武器试验（免费战备）",
+  "mis.free.none": "无",
+  "mis.free.hint": "如果作战界面显示武器试验或军械增强，请选择发放的战备。每个人都在四个栏位之外获得它，所以没人需要为它占栏位。",
+  "war.dss": "民主空间站在轨",
+  "note.free_strat": "武器试验：每人免费获得 {item}，无需占用栏位。商量好由谁、何时呼叫。"
+ },
+ "hu": {
+  "mis.mods.label": "Hatások és módosítók",
+  "mis.grp.operation": "Hadművelet-módosítók",
+  "mis.grp.forces": "Ellenséges erők",
+  "mis.grp.planet": "Bolygókörülmények",
+  "mis.grp.effect": "Hadműveleti hatások",
+  "mis.free.label": "Fegyverkísérlet (ingyen stratagem)",
+  "mis.free.none": "nincs",
+  "mis.free.hint": "Ha a hadművelet képernyőjén Fegyverkísérlet vagy Arzenálbővítés áll, válaszd ki a kiosztott stratagemet. Mindenki megkapja a négy helyén felül, így senki nem pazarol rá helyet.",
+  "war.dss": "Demokrácia-űrállomás a pályán",
+  "note.free_strat": "Fegyverkísérlet: mindenki ingyen kapja: {item}, így senki nem pazarol rá helyet. Beszéljétek meg, ki és mikor hívja."
+ },
+ "sv": {
+  "mis.mods.label": "Effekter & modifierare",
+  "mis.grp.operation": "Operationsmodifierare",
+  "mis.grp.forces": "Fiendestyrkor",
+  "mis.grp.planet": "Planetförhållanden",
+  "mis.grp.effect": "Operativa effekter",
+  "mis.free.label": "Vapenexperiment (gratis stratagem)",
+  "mis.free.none": "inget",
+  "mis.free.hint": "Om operationsskärmen visar Vapenexperiment eller Arsenalförstärkning, välj stratagemet som delas ut. Alla får det utöver sina fyra platser, så ingen lägger en plats på det.",
+  "war.dss": "Demokratins rymdstation i omloppsbana",
+  "note.free_strat": "Vapenexperiment: alla får {item} gratis, så ingen lägger en plats på det. Bestäm vem som kallar in det och när."
+ },
+ "nl": {
+  "mis.mods.label": "Effecten & modificaties",
+  "mis.grp.operation": "Operatiemodificaties",
+  "mis.grp.forces": "Vijandelijke troepen",
+  "mis.grp.planet": "Planeetcondities",
+  "mis.grp.effect": "Operationele effecten",
+  "mis.free.label": "Wapenexperiment (gratis stratagem)",
+  "mis.free.none": "geen",
+  "mis.free.hint": "Toont het operatiescherm Wapenexperiment of Arsenaaluitbreiding, kies dan het uitgedeelde stratagem. Iedereen krijgt het naast de vier plekken, dus niemand verspilt er een plek aan.",
+  "war.dss": "Democratie-ruimtestation in een baan",
+  "note.free_strat": "Wapenexperiment: iedereen krijgt {item} gratis, dus niemand verspilt er een plek aan. Spreek af wie het oproept en wanneer."
+ },
+ "tl": {
+  "mis.mods.label": "Mga effect at modifier",
+  "mis.grp.operation": "Mga operation modifier",
+  "mis.grp.forces": "Mga kalaban",
+  "mis.grp.planet": "Kondisyon ng planeta",
+  "mis.grp.effect": "Mga operational effect",
+  "mis.free.label": "Weapons Experimentation (libreng stratagem)",
+  "mis.free.none": "wala",
+  "mis.free.hint": "Kung may Weapons Experimentation o Arsenal Augmentation sa operation screen, piliin ang stratagem na ibinibigay nito. Nasa lahat ito labas sa apat nilang slot, kaya walang gagamit ng slot para dito.",
+  "war.dss": "Democracy Space Station sa orbit",
+  "note.free_strat": "Weapons Experimentation: libre ang {item} sa lahat, kaya walang gagamit ng slot para dito. Pag-usapan kung sino at kailan tatawag."
+ },
+ "sq": {
+  "mis.mods.label": "Efekte dhe modifikues",
+  "mis.grp.operation": "Modifikuesit e operacionit",
+  "mis.grp.forces": "Forcat armike",
+  "mis.grp.planet": "Kushtet e planetit",
+  "mis.grp.effect": "Efektet operative",
+  "mis.free.label": "Eksperimentim armësh (stratagem falas)",
+  "mis.free.none": "asnjë",
+  "mis.free.hint": "Nëse ekrani i operacionit shfaq Eksperimentim armësh ose Zgjerim arsenali, zgjidh stratagemin që jep. Të gjithë e marrin jashtë katër vendeve të tyre, ndaj askush nuk harxhon vend për të.",
+  "war.dss": "Stacioni Hapësinor i Demokracisë në orbitë",
+  "note.free_strat": "Eksperimentim armësh: të gjithë marrin {item} falas, ndaj askush nuk harxhon vend për të. Bini dakord kush e thërret dhe kur."
+ },
+ "bs": {
+  "mis.mods.label": "Efekti i modifikatori",
+  "mis.grp.operation": "Modifikatori operacije",
+  "mis.grp.forces": "Neprijateljske snage",
+  "mis.grp.planet": "Uslovi planete",
+  "mis.grp.effect": "Operativni efekti",
+  "mis.free.label": "Eksperimentisanje oružjem (besplatni stratagem)",
+  "mis.free.none": "ništa",
+  "mis.free.hint": "Ako ekran operacije prikazuje Eksperimentisanje oružjem ili Pojačanje arsenala, izaberi stratagem koji se dijeli. Svi ga dobiju izvan svoja četiri mjesta, pa niko ne troši mjesto na njega.",
+  "war.dss": "Svemirska stanica demokratije u orbiti",
+  "note.free_strat": "Eksperimentisanje oružjem: svi dobiju {item} besplatno, pa niko ne troši mjesto na njega. Dogovorite ko ga i kada poziva."
+ },
+ "pirate": {
+  "mis.mods.label": "Effects & modifiers",
+  "mis.grp.operation": "Operation modifiers",
+  "mis.grp.forces": "Enemy forces",
+  "mis.grp.planet": "Planet conditions",
+  "mis.grp.effect": "Operational effects",
+  "mis.free.label": "Weapons Experimentation (free stratagem)",
+  "mis.free.none": "none",
+  "mis.free.hint": "If the operation screen lists Weapons Experimentation or Arsenal Augmentation, pick the stratagem it hands out. Every hand gets it outside their four slots, so nobody wastes a slot on it.",
+  "war.dss": "Democracy Space Station overhead",
+  "note.free_strat": "Weapons Experimentation: every hand gets {item} free, so nobody wastes a slot on it. Agree who calls it an' when."
+ }
+})) Object.assign(window.WM_I18N.dict[l], d);
