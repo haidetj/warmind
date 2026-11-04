@@ -848,7 +848,7 @@
     const drop = el("button", { type: "button", class: "btn red" }, [t("unsaved.discard")]);
     const stay = el("button", { type: "button", class: "btn" }, [t("unsaved.stay")]);
     save.onclick = async () => { save.disabled = true; if (await saveGearDraft(me.id)) { dlg.close(); go(); } else save.disabled = false; };
-    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); if (LOCKER_PAGE) paintLocker(); else renderLive(); go(); };
+    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); if (!LOCKER_PAGE) renderLive(); go(); };   // the locker re-renders the tab it goes to
     stay.onclick = () => dlg.close();
     dlg.append(
       el("div", { class: "mhead" }, [el("b", {}, [t("unsaved.title")])]),
