@@ -51,6 +51,7 @@ class Player:
     accent_hex: str = "#D9CBA3"
     accuracy: float | None = None    # career shots hit / fired, when the diver uploaded stats
     derived: dict | None = None      # career rates (stats.derive), when the diver uploaded stats
+    favorites: list = field(default_factory=list)   # loadouts the diver saved in their locker (planner context)
 
 
 @dataclass

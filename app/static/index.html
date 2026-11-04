@@ -570,6 +570,15 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
   .swaprow{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
   .swaprow input{margin-top:3px;flex:none} .swaprow small{display:block;color:var(--muted);margin-top:3px}
   .swaplock{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .lkline{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px dashed var(--line-2);padding:10px 12px;margin-top:12px}
+  .tblwrap{overflow-x:auto} .lktable{width:100%;border-collapse:collapse;font-size:13px} .lktable th,.lktable td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .lktable th{font-family:var(--mono);font-size:10.5px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+  .lkmedals{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+  .lkmedal{border:1px solid var(--amber-2);padding:8px} .lkmedal small{display:block;color:var(--muted);margin-top:3px}
+  .lkload{border:1px solid var(--line);padding:10px 12px;margin:10px 0} .lkload .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .lkstrats{display:grid;grid-template-columns:1fr 1fr;gap:6px} .lkmine{display:flex;align-items:center;gap:6px;margin:6px 0 10px}
+  .lkrec summary{cursor:pointer}
+  .subtabs.four{grid-template-columns:repeat(4,minmax(0,1fr))} .subtabs button{min-width:0;overflow-wrap:anywhere}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

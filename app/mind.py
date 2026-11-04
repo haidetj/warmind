@@ -84,7 +84,8 @@ def signature(session, players, mission: dict) -> str:
         "seed": session.seed,
         "p": [[p.id, p.play_style, sorted(p.owned_items) if p.owned_items is not None else None,
                round(p.accuracy, 3) if p.accuracy is not None else None,
-               {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or [])]
+               {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or []),
+               [f.get("name") for f in (p.favorites or [])]]
               for p in players],
         "v": 1,
     }
@@ -210,6 +211,8 @@ Drills (Challenge / D100 only) are habits the engine read from the diver's caree
 
 How to answer:
 - Use ONLY item names that appear in that diver's own lists, copied exactly. Never invent gear.
+- saved_loadouts are kits a diver kept for reference: lean towards their picks when they fit the mission \
+and mode (in Challenge / D100, use them to see the comfort zone to push off).
 - Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
 - Across the squad: at least two divers who can kill heavies with their support weapon, at least one \
@@ -269,6 +272,7 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         "career_stats": stats or "no stats uploaded",
         "drills": sl["drills"],
         "role_locked": locked or None,   # the squad leader set this role: keep it
+        "saved_loadouts": pl.favorites or None,   # kits this diver saved in their locker: a hint at what they like
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},

@@ -71,6 +71,37 @@ CREATE TABLE IF NOT EXISTS feedback (
   page TEXT,
   lang TEXT
 );
+CREATE TABLE IF NOT EXISTS locker (
+  id TEXT PRIMARY KEY,
+  key TEXT,
+  callsign TEXT,
+  owned_json TEXT,
+  gear_set INTEGER DEFAULT 0,
+  snapshot_json TEXT,
+  confidence_json TEXT,
+  play_style TEXT,
+  style_note TEXT,
+  created_at REAL,
+  updated_at REAL
+);
+CREATE TABLE IF NOT EXISTS locker_stats (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  locker_id TEXT,
+  at REAL,
+  snapshot_json TEXT,
+  source TEXT
+);
+CREATE TABLE IF NOT EXISTS locker_loadout (
+  id TEXT PRIMARY KEY,
+  locker_id TEXT,
+  name TEXT,
+  kit_json TEXT,
+  note TEXT,
+  source_json TEXT,
+  created_at REAL
+);
+CREATE INDEX IF NOT EXISTS idx_lstats ON locker_stats(locker_id);
+CREATE INDEX IF NOT EXISTS idx_lload ON locker_loadout(locker_id);
 CREATE TABLE IF NOT EXISTS plan (
   lobby_id TEXT,
   sig TEXT,
@@ -109,6 +140,8 @@ def init():
             c.execute("ALTER TABLE callsign_stats ADD COLUMN owned_json TEXT")
         if "gear_set" not in ccols:
             c.execute("ALTER TABLE callsign_stats ADD COLUMN gear_set INTEGER DEFAULT 0")
+        if "locker_id" not in cols:   # the diver's locker (gear, stat history, record), if linked
+            c.execute("ALTER TABLE player ADD COLUMN locker_id TEXT")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
         if "verdict_json" not in rcols:
             c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
@@ -298,3 +331,88 @@ def get_plan(lobby_id, sig):
     d = dict(row)
     d["plan"] = json.loads(d.pop("plan_json") or "null")
     return d
+
+
+# ---------------------------------------------------------------- lockers
+# A diver's own page across war tables: gear, stat history, record, saved loadouts.
+# No accounts: the locker id + a secret key live on the diver's device (and in a
+# private link they can open on another device).
+def create_locker(lid, key, callsign):
+    now = time.time()
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO locker(id,key,callsign,created_at,updated_at) VALUES(?,?,?,?,?)",
+                  (lid, key, callsign, now, now))
+
+
+def get_locker(lid):
+    with _lock, _conn() as c:
+        row = c.execute("SELECT * FROM locker WHERE id=?", (lid,)).fetchone()
+    return dict(row) if row else None
+
+
+def update_locker(lid, **fields):
+    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note"}
+    sets = {k: v for k, v in fields.items() if k in allowed}
+    if not sets:
+        return
+    sets["updated_at"] = time.time()
+    with _lock, _conn() as c:
+        c.execute("UPDATE locker SET " + ",".join(f"{k}=?" for k in sets) + " WHERE id=?", (*sets.values(), lid))
+
+
+def add_locker_stats(lid, snapshot, source):
+    """Append a stat read to the locker's history (skips an identical repeat)."""
+    blob = json.dumps(snapshot, sort_keys=True)
+    with _lock, _conn() as c:
+        last = c.execute("SELECT snapshot_json FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT 1",
+                         (lid,)).fetchone()
+        if last and last["snapshot_json"] == blob:
+            return
+        c.execute("INSERT INTO locker_stats(locker_id,at,snapshot_json,source) VALUES(?,?,?,?)",
+                  (lid, time.time(), blob, source))
+
+
+def locker_stats(lid, limit=60):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT at, snapshot_json, source FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT ?",
+                         (lid, limit)).fetchall()
+    return [{"at": r["at"], "snapshot": json.loads(r["snapshot_json"]), "source": r["source"]} for r in rows]
+
+
+def add_loadout(oid, lid, name, kit, note, source):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO locker_loadout(id,locker_id,name,kit_json,note,source_json,created_at) VALUES(?,?,?,?,?,?,?)",
+                  (oid, lid, name, json.dumps(kit), note, json.dumps(source) if source else None, time.time()))
+
+
+def delete_loadout(lid, oid):
+    with _lock, _conn() as c:
+        c.execute("DELETE FROM locker_loadout WHERE id=? AND locker_id=?", (oid, lid))
+
+
+def list_loadouts(lid):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM locker_loadout WHERE locker_id=? ORDER BY created_at DESC", (lid,)).fetchall()
+    return [{"id": r["id"], "name": r["name"], "kit": json.loads(r["kit_json"]), "note": r["note"] or "",
+             "source": json.loads(r["source_json"]) if r["source_json"] else None, "created_at": r["created_at"]}
+            for r in rows]
+
+
+def link_player_locker(pid, lid):
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET locker_id=? WHERE id=?", (lid, pid))
+
+
+def locker_players(lid):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM player WHERE locker_id=? ORDER BY joined_at DESC", (lid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def locker_record(lid, limit=100):
+    """Every recorded result of every diver linked to this locker, newest first, with the war table."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT r.*, l.name AS lobby_name, l.mission_json AS mission_json, p.callsign AS callsign "
+                         "FROM result r JOIN player p ON p.id=r.player_id LEFT JOIN lobby l ON l.id=r.lobby_id "
+                         "WHERE p.locker_id=? ORDER BY r.created_at DESC LIMIT ?", (lid, limit)).fetchall()
+    return [dict(r) for r in rows]
