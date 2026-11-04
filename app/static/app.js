@@ -13,6 +13,7 @@
   };
   const app = $("#app");
   const LID = new URLSearchParams(location.search).get("l");
+  const LOCKER_PAGE = !LID && new URLSearchParams(location.search).has("locker");
   let META = null, STATE = null, pollT = null, busy = false, lastSig = "";
 
   // ======================================================================= i18n
@@ -52,7 +53,7 @@
       LANG = s.value;
       try { localStorage.setItem("wm_lang", LANG); } catch (e) {}
       document.documentElement.lang = LANG; s.setAttribute("aria-label", t("lang.label"));
-      if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
+      if (LOCKER_PAGE) renderLocker(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
     };
   }
 
@@ -62,7 +63,20 @@
     setCreator: (lid, tk) => { try { localStorage.setItem("wm_creator_" + lid, tk); } catch (e) {} },
     me: lid => { try { return JSON.parse(localStorage.getItem("wm_me_" + lid)); } catch (e) { return null; } },
     setMe: (lid, o) => { try { localStorage.setItem("wm_me_" + lid, JSON.stringify(o)); } catch (e) {} },
+    locker: () => { try { const v = JSON.parse(localStorage.getItem("wm_locker")); return v && v.id && v.key ? v : null; } catch (e) { return null; } },
+    setLocker: o => { try { localStorage.setItem("wm_locker", JSON.stringify(o)); } catch (e) {} },
   };
+  // the locker's own calls carry its key
+  const lget = path => { const L = store.locker(); return api(path, { headers: { "x-locker": L ? L.key : "" } }); };
+  const lpost = (path, body) => { const L = store.locker(); return api(path, { method: "POST", headers: { "content-type": "application/json", "x-locker": L ? L.key : "" }, body: JSON.stringify(body || {}) }); };
+  const lfd = (path, fd) => { const L = store.locker(); return api(path, { method: "POST", headers: { "x-locker": L ? L.key : "" }, body: fd }); };
+  // every diver gets a locker: link this device's (or make one, adopting the diver) — once per war table
+  async function ensureLocker(pid, ptoken) {
+    const L = store.locker();
+    if (L) { await lpost("/api/locker/" + L.id + "/link", { player_id: pid, player_token: ptoken }); return L; }
+    const r = await jpost("/api/locker", { player_id: pid, player_token: ptoken });
+    const nl = { id: r.locker_id, key: r.locker_key }; store.setLocker(nl); return nl;
+  }
 
   // ======================================================================= api
   async function api(path, opts) {
@@ -208,12 +222,15 @@
   // device handoff: a "use on another device" link carries #me=<pid>.<token>
   (function claimFromHash() {
     const m = location.hash.match(/^#me=([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
+    const lk = location.hash.match(/^#locker=([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);   // a locker opened on another device
+    if (lk) { store.setLocker({ id: lk[1], key: lk[2] }); history.replaceState(null, "", location.pathname + location.search); return; }
     if (!m || !LID) return;
     store.setMe(LID, { id: m[1], token: m[2] });
     history.replaceState(null, "", location.pathname + location.search);   // don't leave the token in the address bar
   })();
   (async function boot() {
     META = await api("/api/meta");
+    if (LOCKER_PAGE) return renderLocker();
     if (!LID) return renderHome();
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
@@ -257,6 +274,21 @@
         ]),
       ]),
     ]));
+    // join with a code (or a pasted invite link)
+    const codeIn = el("input", { type: "text", id: "join-code", placeholder: t("home.code.ph"), maxlength: "200", autocomplete: "off",
+      autocapitalize: "off", spellcheck: "false" });
+    const codeGo = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("home.code.go")]);
+    codeGo.onclick = async () => {
+      const raw = codeIn.value.trim(), m = raw.match(/[?&]l=([A-Za-z0-9_-]+)/);
+      const code = (m ? m[1] : raw).replace(/[^A-Za-z0-9_-]/g, "").toLowerCase();
+      if (!code) { codeIn.focus(); return; }
+      codeGo.disabled = true;
+      try { await api("/api/lobby/" + code); location.search = "?l=" + code; }
+      catch (e) { toast(t("home.code.bad")); codeGo.disabled = false; }
+    };
+    codeIn.addEventListener("keydown", e => { if (e.key === "Enter") codeGo.click(); });
+    app.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
+    app.appendChild(lockerHomePanel());
     app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
       el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
     app.appendChild(warPanel());
@@ -470,7 +502,15 @@
     return { done: done, active: active };
   }
 
+  const linkTried = {};
+  function maybeLinkLocker() {
+    const me = meRec(), p = me && STATE && myPlayer();
+    if (!p || p.locker || linkTried[p.id]) return;
+    linkTried[p.id] = true;
+    ensureLocker(p.id, me.token).then(() => tick()).catch(() => {});
+  }
   function renderLive() {
+    maybeLinkLocker();
     if (!liveRoot) return render();
     const y = window.scrollY;
     const ph = phases();
@@ -577,7 +617,8 @@
     return panel(t("cmd.pid"), t("cmd.title"), { status: status, statusKind: ph.active < 0 ? "ok" : "warn" }, [
       el("div", { class: "cmd" }, [el("div", { class: "top" }, [
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
-          el("div", { class: "code" }, [t("cmd.code") + ": ", el("b", {}, [LID])])]),
+          el("div", { class: "code" }, [t("cmd.code") + ": ", (() => { const b = el("button", { type: "button", class: "codebtn", title: t("common.copy") }, [LID]);
+            b.onclick = () => copy(LID, t("cmd.code.copied")); return b; })()])]),
         el("div", { class: "acts" }, [role, inv, fm, feedbackBtn(), homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
@@ -618,8 +659,10 @@
     try {
       const fd = new FormData(); fd.append("callsign", (callsign || "").trim());
       list.forEach(f => fd.append("images", f));
+      const L0 = store.locker(); if (L0) { fd.append("locker_id", L0.id); fd.append("locker_key", L0.key); }
       const r = await fdpost("/api/lobby/" + LID + "/join", fd);
       store.setMe(LID, { id: r.player_id, token: r.player_token });
+      if (!L0) { try { await ensureLocker(r.player_id, r.player_token); } catch (e) {} }   // first war table: their locker starts here
       stop();
       STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE);
       render();
@@ -749,7 +792,10 @@
     const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
     dev.onclick = () => copy(location.origin + "/?l=" + LID + "#me=" + p.id + "." + meRec().token, t("me.device.copied"));
     kids.push(el("div", { class: "btnrow" }, [dev]));
-    if (gear && p.gear_confirmed) kids.push(gear);
+    if (gear && p.gear_confirmed) {
+      if (p.locker && store.locker()) kids.push(lockerLine());   // the checklist lives in the locker now
+      else kids.push(gear);
+    }
     const pn = panel(t("me.pid"), t("me.title"), { tone: "amber", status: p.callsign, statusKind: "warn" }, kids);
     return pn;
   }
@@ -779,29 +825,30 @@
   // ---- unsaved gear: drafts survive live re-renders; leaving the Assemble tab or the page with
   // one asks first (save and continue / discard / keep editing)
   const gearDraft = {};   // pid -> { owned: Set, total }
-  const gearDirty = () => { const me = meRec(); return !!(me && gearDraft[me.id]); };
+  const gearDirty = () => { if (LOCKER_PAGE) return !!gearDraft.__locker; const me = meRec(); return !!(me && gearDraft[me.id]); };
   async function saveGearDraft(pid) {
     const d = gearDraft[pid]; if (!d) return true;
     const payload = d.owned.size >= d.total ? { owned: null, v: 2 } : { owned: Array.from(d.owned), v: 2 };
     if (busy) { toast(t("gf.wait")); return false; }
     busy = true;
     try {
-      await jpost("/api/lobby/" + LID + "/player/" + pid + "/owned", payload, meRec().token);
+      if (pid === "__locker") await lpost("/api/locker/" + store.locker().id + "/gear", payload);
+      else await jpost("/api/lobby/" + LID + "/player/" + pid + "/owned", payload, meRec().token);
       try { localStorage.setItem("wm_gear", JSON.stringify(payload)); } catch (e) {}   // this device remembers too
       delete gearDraft[pid];
-      busy = false; await refresh(); toast(t("gear.saved"));
+      busy = false; if (pid === "__locker") await loadLocker(); else await refresh(); toast(t("gear.saved"));
       return true;
     } catch (e) { toast(e.message); return false; } finally { busy = false; }
   }
   function guardGear(go) {
     if (!gearDirty()) return go();
-    const me = meRec();
+    const me = LOCKER_PAGE ? { id: "__locker" } : meRec();
     const dlg = el("dialog", { class: "modal confirm", "aria-label": t("unsaved.title") });
     const save = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("unsaved.save")]);
     const drop = el("button", { type: "button", class: "btn red" }, [t("unsaved.discard")]);
     const stay = el("button", { type: "button", class: "btn" }, [t("unsaved.stay")]);
     save.onclick = async () => { save.disabled = true; if (await saveGearDraft(me.id)) { dlg.close(); go(); } else save.disabled = false; };
-    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); renderLive(); go(); };
+    drop.onclick = () => { delete gearDraft[me.id]; dlg.close(); if (!LOCKER_PAGE) renderLive(); go(); };   // the locker re-renders the tab it goes to
     stay.onclick = () => dlg.close();
     dlg.append(
       el("div", { class: "mhead" }, [el("b", {}, [t("unsaved.title")])]),
@@ -1276,6 +1323,54 @@
 
   // ----------------------------------------------------------------- 03: briefing
   const sub = (k, node) => { node.dataset.sub = k; return node; };
+  // suggested swaps: a callout on the loadouts, a confirm dialog to apply, a way back
+  function lockedRoles() {
+    const r = (STATE.mission && STATE.mission.roles) || {};
+    const rows = Object.keys(r).map(pid => { const p = STATE.players.find(x => x.id === pid); return p ? p.callsign + " → " + r[pid].replace(/_/g, " ") : null; }).filter(Boolean);
+    return rows.length ? rows : null;
+  }
+  function lockedLine(rows) {
+    const kids = [el("span", {}, [t("swap.locked", { list: rows.join(", ") })])];
+    if (isCreator()) {
+      const b = el("button", { class: "btn sm", type: "button" }, ["↺ " + t("swap.reset")]);
+      b.onclick = () => applyRoles({ reset: true });
+      kids.push(" ", b);
+    }
+    return el("div", { class: "hint swaplock" }, kids);
+  }
+  function swapCallout(d) {
+    if (!isCreator() || !d.swaps || !d.swaps.length) return null;
+    const b = el("button", { class: "btn sm primary", type: "button" }, ["⇄ " + t("swap.review")]);
+    b.onclick = () => openSwaps(d.swaps);
+    return el("div", { class: "mind swapcall" }, [el("span", {}, [t("swap.callout", { n: d.swaps.length })]), " ", b]);
+  }
+  async function applyRoles(body) {
+    if (busy) return; busy = true;
+    try { STATE = await regenScreen(jpost("/api/lobby/" + LID + "/roles", body, store.creator(LID)), 1200); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.swapped")); }
+    catch (e) { toast(e.message); } finally { busy = false; }
+  }
+  function openSwaps(list) {
+    const dlg = el("dialog", { class: "modal swapmodal", "aria-label": t("swap.modal.t") });
+    const boxes = list.map(s => {
+      const cb = el("input", { type: "checkbox", checked: "" }); cb.checked = true;
+      return [s, cb, el("label", { class: "swaprow" }, [cb, el("span", {}, [el("b", {}, [s.callsign]), ": " + s.from_role + " → ", el("b", {}, [s.to_role]),
+        el("small", {}, [t("swap.why", { to: s.to_role, callsign: s.callsign, from: s.from_role })])])])];
+    });
+    const go = el("button", { type: "button", class: "btn primary" }, ["⇄ " + t("swap.modal.go")]);
+    const keep = el("button", { type: "button", class: "btn" }, [t("swap.modal.keep")]);
+    go.onclick = () => {
+      const roles = {}; boxes.forEach(([s, cb]) => { if (cb.checked) roles[s.player_id] = s.to_role.replace(/ /g, "_"); });
+      dlg.close(); if (Object.keys(roles).length) applyRoles({ roles: roles });
+    };
+    keep.onclick = () => dlg.close();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("swap.modal.t")])]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.modal.d")])].concat(boxes.map(x => x[2]))),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, keep])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
@@ -1305,6 +1400,19 @@
     }
     out.push(sub("plan", panel(t("read.pid"), t("read.title"), {}, readKids)));
 
+    // the front: how this faction's spawners die, and who in the squad kills them / the heavies / the chaff
+    if (d.front) {
+      const f = d.front, who = list => list.length ? list.join(", ") : t("front.nobody");
+      const row = (ic, label, val, bad) => el("div", { class: "frow" + (bad ? " gap" : "") }, [el("span", { class: "ic" }, [ic]), el("b", {}, [label]), el("span", {}, [val])]);
+      out.push(sub("plan", panel(t("front.pid"), t("front.title", { name: t("front.name." + f.structure) }), {}, [
+        el("div", { class: "hint", style: "margin:0 0 8px" }, [t("front.how." + f.faction)]),
+        el("div", { class: "hint", style: "margin:0 0 12px" }, [t("front.ranged." + f.faction)]),
+        row("✹", t("front.closers"), f.closers.length ? f.closers.map(c => c.callsign + " (" + c.item + ")").join(", ") : t("front.nobody"), f.closers.length < Math.min(2, STATE.players.length)),
+        row("⛨", t("front.at") + " · " + f.heavies, who(f.at), !f.at.length),
+        row("≋", t("front.chaff") + " · " + f.chaff_names, who(f.chaff), !f.chaff.length),
+      ])));
+    }
+
     // doctrine (e.g. Commando)
     if (d.doctrine) {
       const k = d.doctrine.kind, orders = d.doctrine.orders || [];
@@ -1312,13 +1420,22 @@
       out.push(sub("plan", panel(t("doc.pid"), has("doctrine." + k + ".title") ? t("doctrine." + k + ".title") : d.doctrine.title, { status: k, statusKind: "info" }, [ol])));
     }
 
-    // mission-coverage swaps
-    if (d.swaps && d.swaps.length) {
-      out.push(sub("review", panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
-        d.swaps.map(s => el("div", { class: "swap" }, [
+    // mission-coverage swaps: the creator can apply them (one, or several through a confirm dialog)
+    const locked = lockedRoles();
+    if ((d.swaps && d.swaps.length) || locked) {
+      const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("swap.hint")])].concat(
+        (d.swaps || []).map(s => el("div", { class: "swap" }, [
           el("div", { class: "mv" }, [s.callsign + ": ", el("b", {}, [s.from_role]), " → ", el("b", {}, [s.to_role])]),
           el("div", { class: "why" }, [t("swap.why", { to: s.to_role, callsign: s.callsign, from: s.from_role })]),
-        ]))))));
+          isCreator() ? el("div", { class: "btnrow", style: "margin:6px 0 0" }, [(() => {
+            const b = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("swap.apply")]); b.onclick = () => openSwaps([s]); return b; })()]) : null,
+        ])));
+      if (isCreator() && d.swaps && d.swaps.length > 1) {
+        const all = el("button", { class: "btn primary sm", type: "button" }, ["⇄ " + t("swap.apply_all")]); all.onclick = () => openSwaps(d.swaps);
+        kids.push(el("div", { class: "btnrow" }, [all]));
+      }
+      if (locked) kids.push(lockedLine(locked));
+      out.push(sub("review", panel(t("swap.pid"), t("swap.title"), { tone: "amber" }, kids)));
     }
 
     // loadouts
@@ -1334,7 +1451,7 @@
       };
       viewSeg.appendChild(b);
     });
-    const rkids = [mindBanner(d.mind), viewSeg, roster].filter(Boolean);
+    const rkids = [swapCallout(d), mindBanner(d.mind), viewSeg, roster].filter(Boolean);
     if (isCreator()) {
       const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {
@@ -1352,7 +1469,7 @@
       const lines = el("ul", { class: "review" }, d.review.map(r => el("li", { class: r.status }, [
         el("span", { class: "st" }, [r.status === "ok" ? "✓" : r.status === "fixed" ? "⟳" : "!"]),
         el("span", { class: "tx" }, [
-          has(r.k) ? t(r.k, r.p) : r.k,
+          has(r.k) ? t(r.k, r.k === "rev.chk.closers" ? Object.assign({}, r.p, { s: t("front.name." + r.p.s) }) : r.p) : r.k,
           r.status === "fixed" ? tag("amber", t("rev.fixed")) : r.status === "gap" ? tag("red", t("rev.gap")) : null,
           (r.sources || []).length ? el("span", { class: "src" }, [t("rev.sources") + ": "].concat(
             r.sources.filter((u, i, a) => a.findIndex(x => host(x) === host(u)) === i)   // one link per site
@@ -1494,7 +1611,223 @@
     if (thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: thin.join(", ") })]));
     card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
       (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
+    if (mine && store.locker()) {   // keep this kit for reference
+      const sv = el("button", { class: "btn sm", type: "button" }, ["🗄 " + t("lk.save")]);
+      sv.onclick = () => saveKitDialog(a);
+      card.appendChild(el("div", { class: "btnrow" }, [sv]));
+    }
     return card;
+  }
+
+  // ======================================================================= locker
+  // A diver's own page across war tables: stat history, record + medals, saved loadouts, gear.
+  function missionLabel() {
+    const m = STATE && STATE.mission, md = m && (META.missions || []).find(x => x.id === m.mission_id);
+    return md ? md.display_name : "";
+  }
+  function saveKitDialog(a) {
+    const def = [missionLabel(), a.role].filter(Boolean).join(" · ") || t("lk.loadout");
+    const name = el("input", { type: "text", maxlength: "40", value: def });
+    const note = el("textarea", { rows: "3", maxlength: "400", placeholder: t("lk.note.ph") });
+    const go = el("button", { type: "button", class: "btn primary" }, ["🗄 " + t("lk.save")]);
+    const no = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    const dlg = el("dialog", { class: "modal", "aria-label": t("lk.save") });
+    go.onclick = async () => {
+      go.disabled = true;
+      const m = (STATE && STATE.mission) || {};
+      try {
+        await lpost("/api/locker/" + store.locker().id + "/loadouts", { name: name.value, note: note.value,
+          kit: { role: a.role, primary: a.primary, secondary: a.secondary, grenade: a.grenade, armor: a.armor, booster: a.booster, stratagems: a.stratagems },
+          source: { lobby_id: LID || "", mission: missionLabel(), mode: m.mode || "", faction: m.faction || "", difficulty: String(m.difficulty || "") } });
+        dlg.close(); toast(t("lk.saved"));
+      } catch (e) { toast(e.message); go.disabled = false; }
+    };
+    no.onclick = () => dlg.close();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("lk.save")])]),
+      el("div", { class: "mbody" }, [el("span", { class: "label" }, [t("lk.name")]), name, el("span", { class: "label" }, [t("lk.note")]), note]),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, no])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", ""); name.select();
+  }
+  function lockerLine() {
+    const a = el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]);
+    a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/?locker"; }); };
+    return el("div", { class: "lkline" }, [el("span", {}, [t("lk.line")]), a]);
+  }
+  function lockerHomePanel() {
+    const L = store.locker();
+    const b = el("a", { class: "btn primary", href: "/?locker" }, ["🗄 " + t(L ? "lk.open" : "lk.create")]);
+    if (!L) b.onclick = async e => { e.preventDefault(); try { const r = await jpost("/api/locker", {}); store.setLocker({ id: r.locker_id, key: r.locker_key }); location.href = "/?locker"; } catch (er) { toast(er.message); } };
+    return panel("SYS-L", t("lk.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.home.hint")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
+  }
+
+  let LK = null, lkTab = (() => { try { return localStorage.getItem("wm_lktab") || "stats"; } catch (e) { return "stats"; } })();
+  async function loadLocker() {
+    const L = store.locker();
+    LK = await lget("/api/locker/" + L.id);
+    paintLocker();
+  }
+  async function renderLocker() {
+    app.innerHTML = ""; app.className = "stack";
+    const L = store.locker();
+    if (!L) {
+      app.appendChild(lockerHomePanel());
+      app.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/" }, [t("cmd.home")])]));
+      return;
+    }
+    app.appendChild(el("div", { class: "hint" }, [t("home.loading")]));
+    try { await loadLocker(); }
+    catch (e) {
+      app.innerHTML = "";
+      app.appendChild(panel("ERR", t("lk.title"), { tone: "red" }, [el("div", { class: "hint" }, [t("lk.missing")]),
+        el("div", { class: "btnrow" }, [(() => { const b = el("button", { class: "btn", type: "button" }, [t("lk.create")]);
+          b.onclick = async () => { const r = await jpost("/api/locker", {}); store.setLocker({ id: r.locker_id, key: r.locker_key }); renderLocker(); }; return b; })()])]));
+    }
+  }
+  const dt = ts => new Date(ts * 1000).toLocaleDateString(LANG, { month: "short", day: "numeric", year: "numeric" });
+  function paintLocker() {
+    if (!LK) return;
+    const y = window.scrollY;
+    app.innerHTML = ""; app.className = "stack";
+    const L = store.locker();
+    // header: callsign (rename), the stat read, device link
+    const nameIn = el("input", { type: "text", maxlength: "24", value: LK.callsign || "", placeholder: t("lk.callsign.ph"), autocomplete: "off" });
+    const nameBtn = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("me.rename")]);
+    nameBtn.onclick = async () => { const v = nameIn.value.trim(); if (!v) return; try { await lpost("/api/locker/" + L.id + "/callsign", { callsign: v }); toast(t("toast.renamed")); await loadLocker(); } catch (e) { toast(e.message); } };
+    const up = fileBtn("", t("me.upload_new"), true);
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    up.querySelector("input").onchange = async ev => {
+      const list = Array.from(ev.target.files || []); if (!list.length || busy) return;
+      busy = true; const stop = workTicker(status, lines("tick.read.", 10));
+      try { const fd = new FormData(); list.forEach(f => fd.append("images", f)); const r = await lfd("/api/locker/" + L.id + "/career", fd); stop();
+        if (r.ok === false) setStatus(status, "warn", r.over_budget ? r.vision_error : t("me.reread.bad")); else { toast(t("lk.stats.saved")); busy = false; await loadLocker(); } }
+      catch (e) { stop(); setStatus(status, "err", e.message); } finally { stop(); busy = false; }
+    };
+    const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
+    dev.onclick = () => copy(location.origin + "/?locker#locker=" + L.id + "." + L.key, t("lk.device.copied"));
+    const home = el("a", { class: "btn sm", href: "/" }, [t("cmd.home")]);
+    home.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = "/"; }); };
+    app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.callsign || "—", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "grid2", style: "align-items:end" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.callsign")]), nameIn]), el("div", { class: "field" }, [nameBtn])]),
+      LK.play_style ? el("div", { class: "hint" }, [t("lk.style", { style: styleLabel(LK.play_style) })]) : el("div", { class: "hint" }, [t("me.noread")]),
+      el("div", { class: "btnrow" }, [up, dev, home]), status,
+      el("div", { class: "hint" }, [t("lk.private")]),
+    ]));
+    // sub-tabs
+    const tabs = [["stats", t("lk.tab.stats")], ["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
+      ["loadouts", t("lk.tab.loadouts") + " " + LK.loadouts.length], ["gear", t("lk.tab.gear")]];
+    const bar = el("div", { class: "seg subtabs four", role: "tablist" });
+    const body = el("div");
+    const show = k => {
+      lkTab = k; try { localStorage.setItem("wm_lktab", k); } catch (e) {}
+      bar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === k)));
+      body.innerHTML = ""; body.appendChild(({ stats: lkStats, record: lkRecord, loadouts: lkLoadouts, gear: lkGear })[k]());
+    };
+    tabs.forEach(([k, label]) => { const b = el("button", { type: "button", "data-k": k }, [label]); b.onclick = () => guardGear(() => show(k)); bar.appendChild(b); });
+    app.appendChild(bar); app.appendChild(body);
+    show(tabs.some(x => x[0] === lkTab) ? lkTab : "stats");
+    window.scrollTo(0, y);
+  }
+  function lkStats() {
+    const kids = [];
+    if (LK.stats) kids.push(statBlock({ scorecard: LK.scorecard, stats: LK.stats, confidence: null }));
+    else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    const h = (LK.history || []).slice();
+    if (h.length) {
+      const pct = v => v == null ? "—" : (v * 100).toFixed(1) + "%", num = (v, d) => v == null ? "—" : Number(v).toFixed(d);
+      const arrow = (a, b, better) => { if (a == null || b == null || a === b) return ""; return (a > b) === better ? " ▲" : " ▼"; };
+      const rows = h.map((r, i) => { const prev = h[i + 1] && h[i + 1].rates, x = r.rates || {};
+        return el("tr", {}, [el("td", {}, [dt(r.at)]), el("td", {}, [nf(r.missions)]),
+          el("td", {}, [pct(x.accuracy) + arrow(x.accuracy, prev && prev.accuracy, true)]),
+          el("td", {}, [num(x.kills_per_min, 2) + arrow(x.kills_per_min, prev && prev.kills_per_min, true)]),
+          el("td", {}, [num(x.deaths_per_mission, 2) + arrow(x.deaths_per_mission, prev && prev.deaths_per_mission, false)]),
+          el("td", {}, [pct(x.win_rate) + arrow(x.win_rate, prev && prev.win_rate, true)])]); });
+      kids.push(el("div", { class: "sub-h" }, [t("lk.history")]),
+        el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [el("thead", {}, [el("tr", {}, [t("lk.h.date"), t("lk.h.missions"), t("sc.accuracy"), t("lk.h.kpm"), t("sc.deaths_pm"), t("sc.success")].map(x => el("th", {}, [x])))]), el("tbody", {}, rows)])]),
+        el("div", { class: "hint" }, [t("lk.history.hint")]));
+    }
+    return panel("LKR-02", t("lk.tab.stats"), {}, kids);
+  }
+  function lkRecord() {
+    const kids = [];
+    if (LK.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, LK.medals.map(m =>
+      el("div", { class: "lkmedal", title: m.medal.id }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
+    if (!LK.record.length) kids.push(el("div", { class: "hint" }, [t("lk.record.none")]));
+    LK.record.forEach(r => {
+      const res = r.result || {}, mi = r.mission || {};
+      const bits = [res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
+        res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ");
+      const vs = (r.verdicts || []).filter(Boolean).map(v => el("span", { class: "tag " + (v.passed ? "green" : v.passed === false ? "red" : "") }, [(v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath)]));
+      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]),
+        el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
+          r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
+          r.lobby_id ? el("a", { class: "btn sm", href: "/?l=" + r.lobby_id }, [t("lk.r.open")]) : null])]));
+    });
+    return panel("LKR-03", t("lk.tab.record"), {}, kids);
+  }
+  function kitLines(k) {
+    const row = (lab, v) => v ? el("li", {}, [el("span", { class: "sl" }, [t(lab)]), el("span", { class: "vv" }, [wk(v)])]) : null;
+    return el("ul", { class: "kit" }, [row("card.primary", k.primary), row("card.secondary", k.secondary), row("card.grenade", k.grenade),
+      row("card.armor", k.armor), row("card.booster", k.booster),
+      (k.stratagems || []).length ? el("li", {}, [el("span", { class: "sl" }, [t("card.strats")]), el("span", { class: "vv" }, k.stratagems.map((n, i) => el("span", {}, [i ? ", " : "", wk(n)])))]) : null]);
+  }
+  function lkLoadouts() {
+    const L = store.locker();
+    const neu = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]);
+    neu.onclick = () => buildKitDialog();
+    const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.hint")]), el("div", { class: "btnrow" }, [neu])];
+    if (!LK.loadouts.length) kids.push(el("div", { class: "hint" }, [t("lk.loadouts.none")]));
+    LK.loadouts.forEach(o => {
+      const del = el("button", { class: "btn sm red", type: "button" }, ["✕ " + t("lk.delete")]);
+      del.onclick = async () => { if (!window.confirm(t("lk.delete.confirm", { name: o.name }))) return; await lpost("/api/locker/" + L.id + "/loadouts/" + o.id + "/delete"); await loadLocker(); };
+      const src = o.source || {};
+      kids.push(el("div", { class: "lkload" }, [
+        el("div", { class: "hd" }, [el("b", {}, [o.name]), o.kit.role ? tag("amber", o.kit.role) : null]),
+        el("div", { class: "hint", style: "margin:2px 0 6px" }, [[src.mission, src.mode ? t("mode." + src.mode) : "", src.difficulty ? "D" + src.difficulty : "", dt(o.created_at)].filter(Boolean).join(" · ")]),
+        kitLines(o.kit), o.note ? el("div", { class: "hint" }, [o.note]) : null, el("div", { class: "btnrow" }, [del])]));
+    });
+    return panel("LKR-04", t("lk.tab.loadouts"), {}, kids);
+  }
+  function buildKitDialog() {
+    const tabs = META.armory || [], by = {};
+    tabs.forEach(tb => { by[tb.slot] = []; tb.groups.forEach(g => g.items.forEach(i => by[tb.slot].push(i.name))); });
+    const ownedSet = LK.owned ? new Set(LK.owned) : null;
+    let onlyMine = !!ownedSet;
+    const sel = slot => { const s = el("select", {}); return s; };
+    const fill = (s, slot) => { const cur = s.value; s.innerHTML = ""; s.appendChild(el("option", { value: "" }, ["—"]));
+      (by[slot] || []).filter(n => !onlyMine || !ownedSet || ownedSet.has(n)).forEach(n => s.appendChild(el("option", { value: n }, [n]))); s.value = cur; };
+    const slots = [["primary", "Primary", "card.primary"], ["secondary", "Secondary", "card.secondary"], ["grenade", "Grenade", "card.grenade"],
+      ["armor", "Armor", "card.armor"], ["booster", "Booster", "card.booster"]];
+    const S = {}; slots.forEach(([k, slot]) => { S[k] = sel(); fill(S[k], slot); });
+    const strat = [0, 1, 2, 3].map(() => { const s = sel(); fill(s, "Stratagem"); return s; });
+    const mine = el("input", { type: "checkbox" }); mine.checked = onlyMine; mine.disabled = !ownedSet;
+    mine.onchange = () => { onlyMine = mine.checked; slots.forEach(([k, slot]) => fill(S[k], slot)); strat.forEach(s => fill(s, "Stratagem")); };
+    const name = el("input", { type: "text", maxlength: "40", placeholder: t("lk.name") });
+    const note = el("textarea", { rows: "2", maxlength: "400", placeholder: t("lk.note.ph") });
+    const go = el("button", { type: "button", class: "btn primary" }, ["🗄 " + t("lk.save")]);
+    const no = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
+    const dlg = el("dialog", { class: "modal", "aria-label": t("lk.new") });
+    go.onclick = async () => {
+      const kit = {}; slots.forEach(([k]) => { if (S[k].value) kit[k] = S[k].value; }); kit.stratagems = strat.map(s => s.value).filter(Boolean);
+      go.disabled = true;
+      try { await lpost("/api/locker/" + store.locker().id + "/loadouts", { name: name.value || t("lk.loadout"), note: note.value, kit: kit }); dlg.close(); toast(t("lk.saved")); await loadLocker(); }
+      catch (e) { toast(e.message); go.disabled = false; }
+    };
+    no.onclick = () => dlg.close();
+    const field = (lab, ctl) => el("div", { class: "field" }, [el("span", { class: "label" }, [lab]), ctl]);
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("lk.new")])]),
+      el("div", { class: "mbody" }, [field(t("lk.name"), name),
+        el("label", { class: "lkmine" }, [mine, " " + t("lk.onlymine")])]
+        .concat(slots.map(([k, , lab]) => field(t(lab), S[k])))
+        .concat([field(t("card.strats"), el("div", { class: "lkstrats" }, strat)), field(t("lk.note"), note)])),
+      el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, no])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  function lkGear() {
+    const g = gearFold({ id: "__locker", owned: LK.owned, gear_confirmed: LK.gear_set });
+    if (g) g.open = true;
+    return panel("LKR-05", t("lk.tab.gear"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.gear.hint")]), g]);
   }
 
   // ----------------------------------------------------------------- 04: debrief

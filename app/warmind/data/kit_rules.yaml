@@ -148,3 +148,13 @@ rules:
     not a shared-resource conflict.
   sources:
   - https://helldivers.wiki.gg/wiki/Eagle
+- id: spawner_killers
+  scope: squad
+  rule: Bug holes, fabricators and warp ships keep spawning until destroyed, and only an explosive with
+    demolition force 20+ thrown or shot inside (or 40+ from outside) kills them. A full squad needs at least two
+    divers who can (a closing grenade or an explosive weapon); Arc, Stun, Smoke, Smokescreen, Urchin, Immolation
+    and Throwing Knife can't, and Seekers don't target bug holes.
+  sources:
+  - https://helldivers.wiki.gg/wiki/Bug_Hole
+  - https://helldivers.wiki.gg/wiki/Automaton_Fabricator
+  - https://helldivers.wiki.gg/wiki/Grounded_Warp_Ship

@@ -34,7 +34,7 @@ import httpx
 import budget
 import db
 import vision
-from warmind import ask as ask_mod, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
+from warmind import ask as ask_mod, fronts, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
 from warmind.items import Pool
 from warmind.resolve import COMMANDO_SLOTS, diver_excluded, resolve_squad
 
@@ -84,7 +84,8 @@ def signature(session, players, mission: dict) -> str:
         "seed": session.seed,
         "p": [[p.id, p.play_style, sorted(p.owned_items) if p.owned_items is not None else None,
                round(p.accuracy, 3) if p.accuracy is not None else None,
-               {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or [])]
+               {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or []),
+               [f.get("name") for f in (p.favorites or [])]]
               for p in players],
         "v": 1,
     }
@@ -97,6 +98,9 @@ def _stats_line(name: str) -> str:
     st = (loader.armory_meta().get(name) or {}).get("stats") or {}
     keys = [("damage", "dmg"), ("rpm", "rpm"), ("capacity", "mag"), ("recoil", "recoil"), ("reload", "reload s")]
     return " ".join(f"{lab} {st[k]}" for k, lab in keys if isinstance(st.get(k), (int, float)))
+
+
+_FACTION = [None]   # set per brief, so grenade lines say whether they kill this front's spawners
 
 
 def _item_line(it, score: float) -> str:
@@ -116,6 +120,10 @@ def _item_line(it, score: float) -> str:
             bits.append(s)
     if v is not None:
         bits.append(f"ask {v:.2f}" + (f" ({reason})" if reason else ""))
+    if it.slot == "grenade" and _FACTION[0]:
+        fv = fronts.verdict(it.name, _FACTION[0])
+        if fv:
+            bits.append(f"kills {fronts.front(_FACTION[0])['name'].lower()}: {fv}")
     bits.append(f"engine {score:+.2f}")
     return " | ".join(bits)
 
@@ -210,7 +218,12 @@ Drills (Challenge / D100 only) are habits the engine read from the diver's caree
 
 How to answer:
 - Use ONLY item names that appear in that diver's own lists, copied exactly. Never invent gear.
+- saved_loadouts are kits a diver kept for reference: lean towards their picks when they fit the mission \
+and mode (in Challenge / D100, use them to see the comfort zone to push off).
+- Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
+- The front's spawners (bug holes, fabricators, warp ships) keep spawning until killed: at least two divers \
+need a way to kill them (a grenade that says "kills ...: yes/hard/outside/any", or an explosive weapon).
 - Across the squad: at least two divers who can kill heavies with their support weapon, at least one \
 anti-tank strike, enough chaff and structure coverage, no duplicated support weapons, one Supply Pack at most.
 - Give each diver 2-4 "why" lines, second person, specific: tie a pick to the mission, a hazard or modifier, \
@@ -244,10 +257,12 @@ def _mission_block(session, mission: dict, directive) -> dict:
                           "from": [f"{lab} {d:+.2f}" for lab, d in p.contributors.get(t, [])][:3]}
                          for t, v in p.top(8)],
         "engine_notes": directive.notes,
+        "front": ({k: v for k, v in (fronts.front(session.faction) or {}).items() if k != "structure"}
+                  | {"squad_spawner_killers": (directive.front or {}).get("closers")}) if fronts.front(session.faction) else None,
     }
 
 
-def _diver_block(pl, a, sl) -> dict:
+def _diver_block(pl, a, sl, locked=False) -> dict:
     d = pl.derived or {}
     pct = lambda k: round(100 * d[k]) if k in d else None
     stats = None
@@ -267,6 +282,8 @@ def _diver_block(pl, a, sl) -> dict:
         "play_style": ps.label, "comfort_zone_tags": sorted(ps.signature),
         "career_stats": stats or "no stats uploaded",
         "drills": sl["drills"],
+        "role_locked": locked or None,   # the squad leader set this role: keep it
+        "saved_loadouts": pl.favorites or None,   # kits this diver saved in their locker: a hint at what they like
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},
@@ -298,12 +315,13 @@ SCHEMA = {
 
 
 def build_request(session, players, mission, directive, lang: str) -> tuple[str, str, dict]:
+    _FACTION[0] = session.faction
     sl = _shortlists(session, players, directive)
     by_pid = {a.player_id: a for a in directive.assignments}
     brief = {
         "language": vision.LANG_NAMES.get(lang, "English"),
         "drop": _mission_block(session, mission, directive),
-        "squad": [_diver_block(pl, by_pid[pl.id], sl[pl.id]) for pl in players if pl.id in sl],
+        "squad": [_diver_block(pl, by_pid[pl.id], sl[pl.id], pl.id in (session.roles or {})) for pl in players if pl.id in sl],
         "engine_review": [r for r in directive.review if r.get("status") != "ok"] or "all squad checks pass",
     }
     user = ("Plan this squad's loadouts. Answer with the JSON object only.\n\n"

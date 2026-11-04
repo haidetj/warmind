@@ -21,6 +21,11 @@ on:
 permissions:
   contents: write
 
+# one wiki crawl at a time (two at once get rate-limited with HTTP 429)
+concurrency:
+  group: wiki-crawl
+  cancel-in-progress: false
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -44,11 +49,14 @@ jobs:
       - name: Mission list
         if: always()
         run: python3 sync/verify_wiki.py --missions
+      - name: Enemy structures and throwables
+        if: always()
+        run: python3 sync/verify_wiki.py --structures
       - name: Commit refreshed catalog back to this branch
         if: always() && github.event_name == 'push' && startsWith(github.ref_name, 'claude/')
         run: |
           git config user.name "Claude"; git config user.email "noreply@anthropic.com"
-          git add sync/wiki_catalog.json sync/passives_wiki.json sync/effects_wiki.json sync/missions_wiki.json app/warmind/data/armory.json app/static/icons app/static/img
+          git add sync/wiki_catalog.json sync/passives_wiki.json sync/effects_wiki.json sync/missions_wiki.json sync/structures_wiki.json app/warmind/data/armory.json app/static/icons app/static/img
           git diff --cached --quiet && exit 0
           git commit -m "data-verify: refresh wiki catalog"
           git pull --rebase -q && git push

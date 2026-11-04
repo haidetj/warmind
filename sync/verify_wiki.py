@@ -35,16 +35,22 @@ SECTIONS = ("primaries", "secondaries", "grenades", "stratagems", "armor", "boos
 def api(**params) -> dict:
     params.setdefault("format", "json")
     url = API + "?" + urllib.parse.urlencode(params)
-    for attempt in range(4):
+    for attempt in range(7):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as r:
                 return json.loads(r.read().decode())
         except Exception as e:  # noqa: BLE001 — retry transient errors, then surface
-            if attempt == 3:
+            if attempt == 6:
                 raise
-            time.sleep(2 ** attempt)
-            last = e  # noqa: F841
+            # 429: the wiki is rate-limiting (e.g. two runs at once): honour Retry-After, back off longer
+            wait = 2 ** attempt
+            if getattr(e, "code", None) == 429:
+                try:
+                    wait = max(wait, int(e.headers.get("Retry-After") or 0), 10 * (attempt + 1))
+                except Exception:   # noqa: BLE001
+                    wait = max(wait, 10 * (attempt + 1))
+            time.sleep(min(wait, 90))
     return {}
 
 
@@ -489,7 +495,42 @@ def missions_wiki() -> dict:
     return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
 
 
+STRUCTURE_PAGES = ("Bug Hole", "Terminid Nest", "Bug Nest", "Spore Spewer", "Shrieker Nest", "Stalker Lair",
+                   "Fabricator", "Automaton Fabricator", "Automaton Outpost", "Detector Tower", "Gunship Facility",
+                   "Stratagem Jammer", "Warp Ship", "Illuminate Warp Ship", "Warp Gateway", "Gazer Spire",
+                   "Illuminate Encampment", "Harvester", "Monolith", "Void Blossom", "Explosive",
+                   "Terminids", "Automatons", "Illuminate")
+STRUCTURE_CATEGORIES = ("Terminid Structures", "Automaton Structures", "Illuminate Structures", "Structures",
+                        "Throwables", "Grenades")
+
+
+def structures_wiki() -> dict:
+    """Enemy structures (bug holes, fabricators, warp ships ...) and throwables: the pages'
+    wikitext, so what destroys what can be checked against the wiki, not memory."""
+    members, pages = {}, {}
+    for cat in STRUCTURE_CATEGORIES:
+        d = api(action="query", list="categorymembers", cmtitle="Category:" + cat, cmlimit=200, cmnamespace=0)
+        names = [m["title"] for m in d.get("query", {}).get("categorymembers", [])]
+        if names:
+            members[cat] = names
+        time.sleep(0.3)
+    for t in list(STRUCTURE_PAGES) + [n for v in members.values() for n in v]:
+        if t in pages:
+            continue
+        title, text = wikitext(t)
+        if text and title not in pages:
+            pages[title] = text[:24000]
+        time.sleep(0.15)
+    return {"fetched": time.strftime("%Y-%m-%d"), "categories": members, "pages": pages}
+
+
 if __name__ == "__main__":
+    if "--structures" in sys.argv:
+        out = ROOT / "sync" / "structures_wiki.json"
+        data = structures_wiki()
+        out.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+        print(f"wrote {len(data['pages'])} structure/throwable pages; categories: { {k: len(v) for k, v in data['categories'].items()} }")
+        sys.exit(0)
     if "--missions" in sys.argv:
         out = ROOT / "sync" / "missions_wiki.json"
         data = missions_wiki()

@@ -149,6 +149,8 @@ def _resolve(lobby) -> dict:
             accent_hex=ACCENTS[i % len(ACCENTS)],
             accuracy=_accuracy_of(p),
             derived=_derived_of(p),
+            favorites=[{"name": o["name"], "kit": o["kit"]} for o in db.list_loadouts(p["locker_id"])[:3]]
+            if p.get("locker_id") else [],
         ))
     directive = None
     by_pid = {}
@@ -196,7 +198,8 @@ def _resolve(lobby) -> dict:
             "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
             # squad redundancy/impact review, each line carrying its research sources
             "review": [dict(r, sources=_RULES.get(r["rule"], {}).get("sources", [])) for r in d.review],
-            "mind": mind_status,   # WARMIND's planner: off / thinking / ready / failed / budget
+            "mind": mind_status,
+            "front": d.front,      # this faction's spawners and who in the squad kills them   # WARMIND's planner: off / thinking / ready / failed / budget
         }
 
     players_out = []
@@ -216,6 +219,7 @@ def _resolve(lobby) -> dict:
             "confidence": _conf_of(p),       # which read fields were double-read-verified
             "owned": _owned_of(p),           # None = owns everything; else every item owned
             "gear_confirmed": bool(p.get("gear_confirmed")),
+            "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
                      "verdicts": _verdicts_of(res.get("verdict_json")),
@@ -245,6 +249,7 @@ def _session_of(mission, lobby) -> Session:
         tactical_objectives=mission.get("tactical_objectives", []),
         is_city_map=mission.get("is_city_map", False),
         stealth=bool(mission.get("stealth", False)),
+        roles=dict(mission.get("roles") or {}),
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -414,6 +419,35 @@ def brief_now(lid: str, x_token: str = Header(None)):
     return _resolve(db.get_lobby(lid))
 
 
+def _clean_roles(v) -> dict:
+    from warmind import roles as roles_mod
+    if not isinstance(v, dict):
+        return {}
+    return {str(k)[:40]: r for k, r in list(v.items())[:8] if r in roles_mod.ROLES}
+
+
+@app.post("/api/lobby/{lid}/roles")
+def set_roles(lid: str, payload: dict, x_token: str = Header(None)):
+    """Creator applies suggested swaps: {"roles": {pid: ROLE_KEY}} merges in; {"reset": true} clears."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    m = _mission_from(lobby) or {}
+    if not m.get("mission_id"):
+        raise HTTPException(400, "set the mission first")
+    pids = {p["id"] for p in db.list_players(lid)}
+    new = {} if payload.get("reset") else dict(m.get("roles") or {})
+    for pid, r in _clean_roles(payload.get("roles")).items():
+        if pid in pids:
+            new[pid] = r
+    m["roles"] = new
+    db.set_mission(lid, m)
+    if lobby.get("briefed"):
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
+    return _resolve(db.get_lobby(lid))
+
+
 @app.post("/api/lobby/{lid}/reroll")
 def reroll(lid: str, x_token: str = Header(None)):
     """Creator asks for a different-but-equally-sound set of loadouts."""
@@ -481,6 +515,7 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
     m["oath"] = m["oaths"][0] if m["oaths"] else None
     m["stealth"] = bool(m.get("stealth"))
+    m["roles"] = _clean_roles(m.get("roles"))
     m["think"] = m.get("think") is not False   # WARMIND's planner on unless the creator turned it off
     m["lang"] = m.get("lang") if m.get("lang") in vision.LANG_NAMES else "en"   # language of the planner's reasons
     known = loader.operation_modifiers()
@@ -513,10 +548,14 @@ async def mission_prefill(lid: str, request: Request, image: UploadFile = File(.
 
 # ---------------------------------------------------------------- players
 @app.post("/api/lobby/{lid}/join")
-async def join(lid: str, request: Request, callsign: str = Form(""), images: list[UploadFile] = File(default=[])):
+async def join(lid: str, request: Request, callsign: str = Form(""), images: list[UploadFile] = File(default=[]),
+               locker_id: str = Form(""), locker_key: str = Form("")):
     lobby = db.get_lobby(lid)
     if not lobby:
         raise HTTPException(404, "lobby not found")
+    lk = _locker_ok(locker_id, locker_key)   # the diver's locker, if their device has one
+    if lk and not callsign.strip():
+        callsign = lk.get("callsign") or ""
     pid, token = _id(4), secrets.token_urlsafe(16)
     n_existing = len(db.list_players(lid))
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
@@ -540,6 +579,13 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
             vision_error = str(e)
             note = "Couldn't read that screenshot — pick your style or try another shot."
     restored = False
+    if snapshot is None and not vision_error and lk and lk.get("snapshot_json"):
+        # their locker has a stat read: use it (no screenshot needed)
+        snapshot = json.loads(lk["snapshot_json"])
+        play_style = lk.get("play_style") or stats.classify(snapshot)[0]
+        when = time.strftime("%b %d", time.gmtime(lk.get("updated_at") or time.time()))
+        note, source, restored = (f"From your locker ({when}): upload new stats to refresh.", "remembered", True)
+        confidence = json.loads(lk["confidence_json"]) if lk.get("confidence_json") else None
     if snapshot is None and not vision_error and parsed_call:
         # returning diver, no new screenshot: restore their last read by callsign
         mem = db.recall_callsign(parsed_call)
@@ -556,9 +602,16 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
         db.set_confidence(pid, confidence)
     if source == "screenshot":
         db.remember_callsign(callsign_final, snapshot, confidence, play_style, note)
-    # remembered gear: a returning callsign starts from the gear they set last time
+    # remembered gear: the locker's, else what this callsign set last time
     gear_restored = None
     mem = db.recall_callsign(callsign_final)
+    if lk:
+        db.link_player_locker(pid, lk["id"])
+        if source == "screenshot":
+            _locker_stats_from(lk["id"], snapshot, confidence, play_style, note)
+        if not lk.get("callsign"):
+            db.update_locker(lk["id"], callsign=callsign_final)
+        mem = {"gear_set": lk.get("gear_set"), "owned_json": lk.get("owned_json")} if lk.get("gear_set") else mem
     if mem and mem.get("gear_set"):
         owned = _owned_from_json(mem.get("owned_json"))   # drops names no longer in the catalog
         db.set_owned(pid, _owned_store(owned))
@@ -632,6 +685,8 @@ def set_owned(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         stored = None
     db.set_owned(pid, stored)
     db.remember_gear(p["callsign"], stored)  # the next war table under this callsign starts from it
+    if p.get("locker_id"):   # and the diver's locker keeps it
+        db.update_locker(p["locker_id"], owned_json=json.dumps(stored) if stored is not None else None, gear_set=1)
     return {"ok": True}
 
 
@@ -656,6 +711,9 @@ async def update_career(lid: str, pid: str, request: Request, images: list[Uploa
     db.set_confidence(pid, parsed.get("confidence"))
     db.remember_callsign(callsign_final, parsed["snapshot"], parsed.get("confidence"),
                          parsed["play_style"], parsed["style_note"])
+    if p.get("locker_id"):
+        _locker_stats_from(p["locker_id"], parsed["snapshot"], parsed.get("confidence"), parsed["play_style"],
+                           parsed["style_note"])
     return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"],
             "validity": parsed["validity"], "confidence": parsed.get("confidence")}
 
@@ -860,3 +918,201 @@ def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
             "vision": vision.status(), "budget": budget.status(), "war": war.status(),
             "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST}}
+
+
+# ---------------------------------------------------------------- lockers
+def _locker_ok(lid, key):
+    if not lid or not key:
+        return None
+    lk = db.get_locker(str(lid)[:40])
+    return lk if lk and secrets.compare_digest(lk["key"], str(key)) else None
+
+
+def _require_locker(lid, key):
+    lk = _locker_ok(lid, key)
+    if not lk:
+        raise HTTPException(403, "not your locker")
+    return lk
+
+
+def _locker_stats_from(lid, snapshot, confidence, play_style, note):
+    if not snapshot:
+        return
+    db.add_locker_stats(lid, snapshot, "screenshot")
+    db.update_locker(lid, snapshot_json=json.dumps(snapshot), confidence_json=json.dumps(confidence) if confidence else None,
+                     play_style=play_style, style_note=note)
+
+
+def _mission_name(mission_json):
+    try:
+        m = json.loads(mission_json) if mission_json else None
+    except Exception:
+        return None
+    if not m or not m.get("mission_id"):
+        return None
+    rec = loader.missions().get(m["mission_id"])
+    return {"name": rec["display_name"] if rec else m["mission_id"], "mode": m.get("mode"),
+            "difficulty": m.get("difficulty"), "faction": m.get("faction")}
+
+
+@app.post("/api/locker")
+def create_locker(payload: dict):
+    """A new locker for this device. Optionally adopt a war-table diver (pid + token):
+    their callsign, gear and stat read move in, and the diver is linked."""
+    lid, key = _id(5), secrets.token_urlsafe(18)
+    name = " ".join(str(payload.get("callsign") or "").split())[:24]
+    db.create_locker(lid, key, name)
+    pid, tok = payload.get("player_id"), payload.get("player_token")
+    if pid and tok:
+        p = db.get_player(pid)
+        if p and secrets.compare_digest(p["token"], str(tok)):
+            _adopt(lid, p)
+    return {"locker_id": lid, "locker_key": key}
+
+
+def _adopt(lid, p):
+    """Link a war-table diver to a locker; fill whatever the locker doesn't have yet."""
+    lk = db.get_locker(lid)
+    db.link_player_locker(p["id"], lid)
+    upd = {}
+    if not lk.get("callsign") and p.get("callsign"):
+        upd["callsign"] = p["callsign"]
+    if not lk.get("gear_set") and p.get("gear_confirmed"):
+        upd.update(owned_json=p.get("owned_json"), gear_set=1)
+    if p.get("snapshot_json") and (p.get("style_source") == "screenshot" or not lk.get("snapshot_json")):
+        db.add_locker_stats(lid, json.loads(p["snapshot_json"]), "screenshot")
+        upd.update(snapshot_json=p["snapshot_json"], confidence_json=p.get("confidence_json"),
+                   play_style=p.get("play_style"), style_note=p.get("style_note"))
+    if upd:
+        db.update_locker(lid, **upd)
+
+
+@app.post("/api/locker/{lid}/link")
+def link_locker(lid: str, payload: dict, x_locker: str = Header(None)):
+    """Link a war-table diver (this device's) to the locker."""
+    _require_locker(lid, x_locker)
+    p = db.get_player(str(payload.get("player_id") or ""))
+    if not p or not secrets.compare_digest(p["token"], str(payload.get("player_token") or "")):
+        raise HTTPException(403, "not your diver")
+    _adopt(lid, p)
+    return {"ok": True}
+
+
+@app.get("/api/locker/{lid}")
+def get_locker(lid: str, x_locker: str = Header(None)):
+    lk = _require_locker(lid, x_locker)
+    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
+    hist = db.locker_stats(lid)
+    history = []
+    for h in hist:
+        d = stats.derive(h["snapshot"])
+        history.append({"at": h["at"], "rates": _round(d), "missions": h["snapshot"].get("missions_played"),
+                        "kills": h["snapshot"].get("enemy_kills")})
+    record, medals = [], []
+    for r in db.locker_record(lid):
+        verdicts = _verdicts_of(r.get("verdict_json"))
+        row = {"at": r["created_at"], "lobby": r.get("lobby_name"), "lobby_id": r.get("lobby_id"),
+               "callsign": r.get("callsign"), "mission": _mission_name(r.get("mission_json")),
+               "result": json.loads(r["result_json"]) if r.get("result_json") else {},
+               "verdicts": verdicts, "aar": r.get("aar_text") or ""}
+        record.append(row)
+        for v in verdicts:
+            if v and v.get("medal"):
+                medals.append({"at": r["created_at"], "medal": v["medal"], "oath": v.get("oath"),
+                               "mission": (row["mission"] or {}).get("name")})
+    tables = [{"lobby_id": p["lobby_id"], "callsign": p["callsign"], "joined_at": p.get("joined_at")}
+              for p in db.locker_players(lid)][:20]
+    return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")),
+            "owned": _owned_from_json(lk.get("owned_json")) if lk.get("gear_set") else None,
+            "play_style": lk.get("play_style"), "style_note": lk.get("style_note"),
+            "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
+            "rates": _round(stats.derive(snap)) if snap else None,
+            "history": history, "record": record, "medals": medals,
+            "loadouts": db.list_loadouts(lid), "tables": tables}
+
+
+@app.post("/api/locker/{lid}/callsign")
+def locker_callsign(lid: str, payload: dict, x_locker: str = Header(None)):
+    _require_locker(lid, x_locker)
+    name = " ".join(str(payload.get("callsign") or "").split())[:24]
+    if not name:
+        raise HTTPException(400, "callsign can't be empty")
+    db.update_locker(lid, callsign=name)
+    return {"ok": True, "callsign": name}
+
+
+@app.post("/api/locker/{lid}/gear")
+def locker_gear(lid: str, payload: dict, x_locker: str = Header(None)):
+    """The locker's gear (same body as a diver's /owned). War tables the diver is in
+    within the last day pick it up too."""
+    _require_locker(lid, x_locker)
+    owned = payload.get("owned", None)
+    if owned is not None:
+        if not isinstance(owned, list):
+            raise HTTPException(400, "owned must be a list or null")
+        valid = loader.warbond_catalog()["map"]
+        owned = [n for n in owned if isinstance(n, str) and n in valid]
+        stored = _owned_store(owned)
+    else:
+        stored = None
+    db.update_locker(lid, owned_json=json.dumps(stored) if stored is not None else None, gear_set=1)
+    recent = time.time() - 86400
+    for p in db.locker_players(lid):
+        if (p.get("joined_at") or 0) >= recent:
+            db.set_owned(p["id"], stored)
+    return {"ok": True}
+
+
+@app.post("/api/locker/{lid}/career")
+async def locker_career(lid: str, request: Request, images: list[UploadFile] = File(default=[]),
+                        x_locker: str = Header(None)):
+    """Upload career stats straight to the locker (no war table needed)."""
+    lk = _require_locker(lid, x_locker)
+    imgs = await _read_images(images)
+    if not imgs:
+        raise HTTPException(400, "no screenshot provided")
+    try:
+        _charge(request, "locker:" + lid, 2)
+        parsed = await run_in_threadpool(vision.parse_career, imgs, mock_index=0)
+    except budget.OverBudget as e:
+        return {"ok": False, "vision_error": str(e), "over_budget": True}
+    except Exception as e:
+        return {"ok": False, "vision_error": str(e)}
+    _locker_stats_from(lid, parsed["snapshot"], parsed.get("confidence"), parsed["play_style"], parsed["style_note"])
+    if not lk.get("callsign") and parsed.get("callsign"):
+        db.update_locker(lid, callsign=parsed["callsign"][:24])
+    return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"]}
+
+
+_KIT_KEYS = ("primary", "secondary", "grenade", "armor", "booster")
+
+
+@app.post("/api/locker/{lid}/loadouts")
+def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
+    """Save a loadout for reference: from a war-table card, or built in the locker."""
+    _require_locker(lid, x_locker)
+    if len(db.list_loadouts(lid)) >= 60:
+        raise HTTPException(400, "locker is full (60 loadouts): delete one first")
+    raw = payload.get("kit") or {}
+    valid = set(loader.warbond_catalog()["map"]) | {b["name"] for b in loader.items().get("boosters", [])}
+    kit = {k: raw.get(k) for k in _KIT_KEYS if isinstance(raw.get(k), str) and raw.get(k) in valid}
+    kit["stratagems"] = [n for n in (raw.get("stratagems") or []) if isinstance(n, str) and n in valid][:4]
+    if isinstance(raw.get("role"), str):
+        kit["role"] = raw["role"][:20]
+    if not any(kit.get(k) for k in _KIT_KEYS) and not kit["stratagems"]:
+        raise HTTPException(400, "empty loadout")
+    name = " ".join(str(payload.get("name") or "").split())[:40] or "Loadout"
+    note = str(payload.get("note") or "")[:400]
+    src = payload.get("source") if isinstance(payload.get("source"), dict) else None
+    if src:
+        src = {k: str(v)[:80] for k, v in src.items() if k in ("lobby_id", "mission", "mode", "faction", "difficulty")}
+    oid = _id(4)
+    db.add_loadout(oid, lid, name, kit, note, src)
+    return {"ok": True, "id": oid}
+
+
+@app.post("/api/locker/{lid}/loadouts/{oid}/delete")
+def delete_loadout(lid: str, oid: str, x_locker: str = Header(None)):
+    _require_locker(lid, x_locker)
+    db.delete_loadout(lid, oid)
+    return {"ok": True}
