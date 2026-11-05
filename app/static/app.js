@@ -636,18 +636,23 @@
   function joinPanel() {
     const name = el("input", { type: "text", id: "cs", placeholder: t("join.cs.ph"), maxlength: "32", autocomplete: "off" });
     const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-    const upload = fileBtn("primary", t("join.upload"), true);
-    const skip = el("button", { class: "btn", type: "button" }, [t("join.skip")]);
+    // a device with a locker joins with it: gear + latest stats come along, no screenshot needed
+    const L = store.locker();
+    const upload = fileBtn(L ? "" : "primary", t(L ? "join.upload.new" : "join.upload"), true);
+    const skip = el("button", { class: "btn" + (L ? " primary" : ""), type: "button" }, [t(L ? "join.locker" : "join.skip")]);
+    const lockerHint = L ? el("div", { class: "hint" }, [t("join.locker.hint")]) : null;
+    if (L) lget("/api/locker/" + L.id).then(lk => { if (lk && lk.callsign && !name.value) name.value = lk.callsign; }).catch(() => {});
     const controls = [upload, skip, name];
     upload.querySelector("input").onchange = ev => { if (ev.target.files && ev.target.files.length) doJoin(name.value, ev.target.files, status, controls); };
     skip.onclick = () => doJoin(name.value, null, status, controls);
     name.addEventListener("keydown", e => { if (e.key === "Enter") skip.click(); });
     return panel(t("join.pid"), t("join.title"), { tone: "amber", status: t("common.diver"), statusKind: "warn" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "cs" }, [t("join.cs.label")]), name]),
-      el("div", { class: "btnrow" }, [upload, skip]),
+      el("div", { class: "btnrow" }, L ? [skip, upload] : [upload, skip]),
       status,
+      lockerHint,
       el("div", { class: "hint" }, [t("join.hint")]),
-      el("div", { class: "hint" }, [t("join.hint.return")]),
+      L ? null : el("div", { class: "hint" }, [t("join.hint.return")]),
       STATE && STATE.players.length ? el("div", { class: "hint linked" }, [t("join.linked")]) : null,
     ]);
   }

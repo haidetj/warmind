@@ -15309,3 +15309,132 @@ for (const [l, d] of Object.entries({
   "note.dss": "Democracy Space Station overhead, ahoy: {name}. {desc}"
  }
 })) Object.assign(window.WM_I18N.dict[l], d);
+// join: locker vs no screenshot
+for (const [l, v] of Object.entries({
+ "en": {
+  "join.skip": "Join without a screenshot",
+  "join.hint.return": "Dropped with WARMIND before? Enter the same callsign and tap “Join without a screenshot”: your last stat read and gear come back. Callsigns aren't passwords: anyone using yours gets your stats.",
+  "join.locker": "Join with my locker",
+  "join.upload.new": "Upload new stats instead",
+  "join.locker.hint": "This device has your locker: your gear and latest stats come along, no screenshot needed. Upload new stats instead if they've changed."
+ },
+ "es": {
+  "join.skip": "Unirse sin captura",
+  "join.hint.return": "¿Ya desplegaste con WARMIND? Escribe el mismo indicativo y pulsa «Unirse sin captura»: vuelven tu última lectura y tu equipo. Los indicativos no son contraseñas: quien use el tuyo obtiene tus estadísticas.",
+  "join.locker": "Unirse con mi taquilla",
+  "join.upload.new": "Subir estadísticas nuevas",
+  "join.locker.hint": "Este dispositivo tiene tu taquilla: tu equipo y tus últimas estadísticas vienen contigo, sin captura. Sube estadísticas nuevas si han cambiado."
+ },
+ "pt": {
+  "join.skip": "Entrar sem captura",
+  "join.hint.return": "Já lançou com o WARMIND? Digite o mesmo indicativo e toque em “Entrar sem captura”: sua última leitura e seu equipamento voltam. Indicativos não são senhas: quem usar o seu recebe suas estatísticas.",
+  "join.locker": "Entrar com meu armário",
+  "join.upload.new": "Enviar novas estatísticas",
+  "join.locker.hint": "Este dispositivo tem seu armário: seu equipamento e suas últimas estatísticas vêm junto, sem captura. Envie novas estatísticas se mudaram."
+ },
+ "fr": {
+  "join.skip": "Rejoindre sans capture",
+  "join.hint.return": "Déjà largué avec WARMIND ? Saisissez le même indicatif et touchez « Rejoindre sans capture » : votre dernière lecture et votre équipement reviennent. Un indicatif n'est pas un mot de passe : qui utilise le vôtre obtient vos stats.",
+  "join.locker": "Rejoindre avec mon casier",
+  "join.upload.new": "Envoyer de nouvelles stats",
+  "join.locker.hint": "Cet appareil a votre casier : votre équipement et vos dernières stats suivent, sans capture. Envoyez de nouvelles stats si elles ont changé."
+ },
+ "de": {
+  "join.skip": "Ohne Screenshot beitreten",
+  "join.hint.return": "Schon mit WARMIND gelandet? Gib dasselbe Rufzeichen ein und tippe auf „Ohne Screenshot beitreten“: Deine letzte Auslesung und Ausrüstung kommen zurück. Rufzeichen sind keine Passwörter: Wer deins nutzt, bekommt deine Stats.",
+  "join.locker": "Mit meinem Spind beitreten",
+  "join.upload.new": "Stattdessen neue Stats hochladen",
+  "join.locker.hint": "Dieses Gerät hat deinen Spind: Ausrüstung und neueste Stats kommen mit, kein Screenshot nötig. Lade neue Stats hoch, wenn sie sich geändert haben."
+ },
+ "it": {
+  "join.skip": "Unisciti senza screenshot",
+  "join.hint.return": "Già sbarcato con WARMIND? Inserisci lo stesso nominativo e tocca «Unisciti senza screenshot»: tornano la tua ultima lettura e il tuo equipaggiamento. I nominativi non sono password: chi usa il tuo ottiene le tue statistiche.",
+  "join.locker": "Unisciti con il mio armadietto",
+  "join.upload.new": "Carica nuove statistiche",
+  "join.locker.hint": "Questo dispositivo ha il tuo armadietto: equipaggiamento e ultime statistiche vengono con te, senza screenshot. Carica nuove statistiche se sono cambiate."
+ },
+ "pl": {
+  "join.skip": "Dołącz bez zrzutu",
+  "join.hint.return": "Lądowałeś już z WARMIND? Wpisz ten sam kryptonim i dotknij „Dołącz bez zrzutu”: wróci twój ostatni odczyt i sprzęt. Kryptonim to nie hasło: kto użyje twojego, dostanie twoje statystyki.",
+  "join.locker": "Dołącz z moją szafką",
+  "join.upload.new": "Wrzuć nowe statystyki",
+  "join.locker.hint": "To urządzenie ma twoją szafkę: sprzęt i najnowsze statystyki idą z tobą, bez zrzutu. Wrzuć nowe statystyki, jeśli się zmieniły."
+ },
+ "ru": {
+  "join.skip": "Войти без скриншота",
+  "join.hint.return": "Уже высаживались с WARMIND? Введите тот же позывной и нажмите «Войти без скриншота»: вернутся последнее чтение и снаряжение. Позывной — не пароль: кто введёт ваш, получит вашу статистику.",
+  "join.locker": "Войти со своим шкафчиком",
+  "join.upload.new": "Загрузить новую статистику",
+  "join.locker.hint": "На этом устройстве есть ваш шкафчик: снаряжение и последняя статистика подтянутся сами, скриншот не нужен. Загрузите новую статистику, если она изменилась."
+ },
+ "ja": {
+  "join.skip": "スクリーンショットなしで参加",
+  "join.hint.return": "以前WARMINDで出撃した？同じコールサインを入力して「スクリーンショットなしで参加」をタップすると、前回の読み取りと装備が戻ります。コールサインはパスワードではないので、同じ名前を使えば誰でもあなたの統計を得られます。",
+  "join.locker": "ロッカーで参加",
+  "join.upload.new": "新しい統計をアップロード",
+  "join.locker.hint": "この端末にはあなたのロッカーがあります。装備と最新の統計が引き継がれるので、スクリーンショットは不要です。統計が変わったら新しくアップロードしてください。"
+ },
+ "ko": {
+  "join.skip": "스크린샷 없이 참가",
+  "join.hint.return": "전에 WARMIND로 강하했나요? 같은 콜사인을 입력하고 “스크린샷 없이 참가”를 누르면 마지막 판독과 장비가 돌아옵니다. 콜사인은 비밀번호가 아니므로 같은 이름을 쓰면 누구나 당신의 통계를 받습니다.",
+  "join.locker": "내 사물함으로 참가",
+  "join.upload.new": "새 통계 업로드",
+  "join.locker.hint": "이 기기에 당신의 사물함이 있습니다: 장비와 최신 통계가 함께 오므로 스크린샷이 필요 없습니다. 통계가 바뀌었다면 새로 업로드하세요."
+ },
+ "zh": {
+  "join.skip": "不用截图加入",
+  "join.hint.return": "以前用 WARMIND 空降过？输入相同呼号并点“不用截图加入”：上次的数据识别和装备都会回来。呼号不是密码：任何人用你的呼号都能拿到你的数据。",
+  "join.locker": "用我的储物柜加入",
+  "join.upload.new": "上传新数据",
+  "join.locker.hint": "这台设备有你的储物柜：装备和最新数据会一起带上，无需截图。如数据有变化，请上传新数据。"
+ },
+ "hu": {
+  "join.skip": "Belépés képernyőkép nélkül",
+  "join.hint.return": "Ugrottál már a WARMIND-dal? Írd be ugyanazt a hívójelet, és koppints a „Belépés képernyőkép nélkül” gombra: visszajön a legutóbbi beolvasásod és a felszerelésed. A hívójel nem jelszó: aki a tiédet használja, megkapja a statisztikáidat.",
+  "join.locker": "Belépés a szekrényemmel",
+  "join.upload.new": "Inkább új statisztika feltöltése",
+  "join.locker.hint": "Ezen az eszközön ott a szekrényed: a felszerelésed és a legfrissebb statisztikáid jönnek veled, képernyőkép nélkül. Tölts fel újat, ha változtak."
+ },
+ "sv": {
+  "join.skip": "Gå med utan skärmdump",
+  "join.hint.return": "Landsatt med WARMIND förut? Skriv samma anropssignal och tryck på ”Gå med utan skärmdump”: din senaste avläsning och utrustning kommer tillbaka. Anropssignaler är inga lösenord: den som använder din får din statistik.",
+  "join.locker": "Gå med med mitt skåp",
+  "join.upload.new": "Ladda upp ny statistik i stället",
+  "join.locker.hint": "Den här enheten har ditt skåp: utrustning och senaste statistik följer med, ingen skärmdump behövs. Ladda upp ny statistik om den har ändrats."
+ },
+ "nl": {
+  "join.skip": "Meedoen zonder screenshot",
+  "join.hint.return": "Al eens met WARMIND gedropt? Vul dezelfde roepnaam in en tik op ‘Meedoen zonder screenshot’: je laatste uitlezing en uitrusting komen terug. Roepnamen zijn geen wachtwoorden: wie de jouwe gebruikt, krijgt je stats.",
+  "join.locker": "Meedoen met mijn kluis",
+  "join.upload.new": "Nieuwe stats uploaden",
+  "join.locker.hint": "Dit apparaat heeft je kluis: je uitrusting en nieuwste stats gaan mee, geen screenshot nodig. Upload nieuwe stats als ze veranderd zijn."
+ },
+ "tl": {
+  "join.skip": "Sumali nang walang screenshot",
+  "join.hint.return": "Nakapag-drop ka na with WARMIND? Ilagay ang parehong callsign at i-tap ang “Sumali nang walang screenshot”: babalik ang huli mong stat read at gear. Hindi password ang callsign: kahit sino na gagamit ng sa'yo ay makakakuha ng stats mo.",
+  "join.locker": "Sumali gamit ang locker ko",
+  "join.upload.new": "Mag-upload ng bagong stats",
+  "join.locker.hint": "May locker ka sa device na 'to: kasama na ang gear at pinakabagong stats mo, hindi na kailangan ng screenshot. Mag-upload ng bago kung nagbago ito."
+ },
+ "sq": {
+  "join.skip": "Hyr pa pamje ekrani",
+  "join.hint.return": "Ke zbritur më parë me WARMIND? Shkruaj të njëjtën thirrje dhe prek “Hyr pa pamje ekrani”: kthehen leximi i fundit dhe pajisjet. Thirrjet nuk janë fjalëkalime: kushdo që përdor tënden merr statistikat e tua.",
+  "join.locker": "Hyr me dollapin tim",
+  "join.upload.new": "Ngarko statistika të reja",
+  "join.locker.hint": "Kjo pajisje ka dollapin tënd: pajisjet dhe statistikat e fundit vijnë me ty, pa pamje ekrani. Ngarko të reja nëse kanë ndryshuar."
+ },
+ "bs": {
+  "join.skip": "Pridruži se bez snimka",
+  "join.hint.return": "Već si iskakao s WARMIND-om? Unesi isti pozivni znak i dodirni „Pridruži se bez snimka”: vraćaju se zadnje čitanje i oprema. Pozivni znak nije lozinka: ko koristi tvoj, dobija tvoju statistiku.",
+  "join.locker": "Pridruži se s mojim ormarićem",
+  "join.upload.new": "Učitaj novu statistiku",
+  "join.locker.hint": "Ovaj uređaj ima tvoj ormarić: oprema i najnovija statistika idu s tobom, bez snimka. Učitaj novu ako se promijenila."
+ },
+ "pirate": {
+  "join.skip": "Board without a screenshot",
+  "join.hint.return": "Dropped with WARMIND afore? Enter the same callsign an' tap “Board without a screenshot”: yer last readin' an' gear come back. Callsigns ain't passwords: any scallywag usin' yours gets yer stats.",
+  "join.locker": "Board with me sea chest",
+  "join.upload.new": "Hand over new stats instead",
+  "join.locker.hint": "This device holds yer sea chest: yer gear an' latest stats come aboard, no screenshot needed. Hand over new stats if they've changed."
+ }
+})) Object.assign(window.WM_I18N.dict[l], v);
