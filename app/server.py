@@ -232,7 +232,7 @@ def _resolve(lobby) -> dict:
         "players": players_out, "directive": directive,
         "squad_readout": stats.squad_readout(all_snaps),
         "squad_readout_keys": stats.squad_readout_keys(all_snaps),
-        "readiness": readiness, "reroll": int(lobby.get("reroll") or 0),
+        "readiness": readiness, "reroll": int(lobby.get("reroll") or 0), "created_at": lobby.get("created_at"),
     }
 
 

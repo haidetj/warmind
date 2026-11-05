@@ -110,6 +110,31 @@
     // overall: the mean of each task's progress (a count task counts its share; a planet task is 0 or 100)
     return Math.round(ts.reduce((a, x) => a + (x.goal ? x.pct : x.done ? 100 : 0), 0) / Math.max(1, ts.length));
   }
+  // nixie tubes: each character in its own glowing glass cell
+  const nixie = str => el("span", { class: "nixie", "aria-label": String(str) }, String(str).split("").map(c => el("span", { class: "nx" + (/[0-9A-Za-z]/.test(c) ? "" : " sep"), "aria-hidden": "true" }, [c])));
+  const metText = t0 => { const s = Math.max(0, Math.floor(Date.now() / 1000 - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    return (h > 99 ? Math.floor(h / 24) + "d" : String(h).padStart(2, "0")) + ":" + String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  let metTimer = null;
+  // falling code behind the hero: slow, faint, stops when the hero leaves the page
+  function rain(cv) {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = cv.getContext("2d"), G = "01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ⊕△▽◇Ж§¥".split("");
+    let cols = [], w = 0, h = 0, fs = 14, last = 0;
+    const size = () => { w = cv.width = cv.offsetWidth; h = cv.height = cv.offsetHeight; cols = Array.from({ length: Math.ceil(w / fs) }, () => Math.random() * -h / fs); };
+    size();
+    const step = ts => {
+      if (!cv.isConnected) return;
+      if (ts - last > 80) { last = ts;
+        if (cv.offsetWidth !== w) size();
+        ctx.fillStyle = "rgba(4,6,4,.18)"; ctx.fillRect(0, 0, w, h);
+        ctx.font = fs + "px monospace";
+        cols.forEach((y, i) => { ctx.fillStyle = Math.random() < .04 ? "#e8ffef" : "#5dff95"; ctx.fillText(G[(Math.random() * G.length) | 0], i * fs, y * fs);
+          cols[i] = y * fs > h && Math.random() > .975 ? 0 : y + 1; });
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   const meter = pct => el("div", { class: "meter", role: "img", "aria-label": pct + "%" }, [el("i", { style: "width:" + Math.max(0, Math.min(100, pct || 0)) + "%" })]);
   // The current Major Order as a fold: one line closed, briefing + tasks open.
   function moStrip(o) {
@@ -280,7 +305,8 @@
     // --- Welcome
     const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
     how.onclick = howModal;
-    panes.home.appendChild(el("section", { class: "hero" }, [
+    const cv = el("canvas", { class: "rain", "aria-hidden": "true" });
+    panes.home.appendChild(el("section", { class: "hero" }, [cv,
       el("div", { class: "fx rings" }), el("div", { class: "fx radar" }),
       el("div", { class: "hero-body" }, [
         el("div", { class: "eyebrow" }, [t("app.eyebrow")]),
@@ -325,6 +351,7 @@
     renderMyLobbies(tablesSlot);
     panes.tables.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
     show(ht);
+    rain(cv);
     bootSequence(term);
   }
 
@@ -675,7 +702,9 @@
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
         el("span", {}, ["SEC-" + LID.slice(0, 4).toUpperCase()]),
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
-        el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
+        STATE.created_at ? (() => { const n = el("span", { class: "met", title: t("cmd.met") }, ["MET T+", nixie(metText(STATE.created_at))]);
+          clearInterval(metTimer); metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
+          return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
       ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
@@ -1908,7 +1937,7 @@
     const track = el("div", { class: "lkcar", tabindex: "0", "aria-label": t("lk.tab.loadouts") });
     L.forEach(o => {
       const src = o.source || {};
-      const card = el("article", { class: "dcard lkslide" }); card.style.setProperty("--acc", "#ffc23a");
+      const card = el("article", { class: "dcard lkslide" }); card.style.setProperty("--acc", "#ff9a3c");
       card.appendChild(el("div", { class: "hd" }, [el("div", { class: "role" }, [o.kit.role || o.name]),
         el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
@@ -2048,7 +2077,7 @@
       const del = el("button", { class: "btn sm red", type: "button" }, ["✕ " + t("lk.delete")]);
       del.onclick = async () => { if (!window.confirm(t("lk.delete.confirm", { name: o.name }))) return; await lpost("/api/locker/" + L.id + "/loadouts/" + o.id + "/delete"); await loadLocker(); };
       const src = o.source || {};
-      const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ffc23a");
+      const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ff9a3c");
       card.appendChild(el("div", { class: "hd" }, [
         el("div", { class: "role" }, [o.kit.role || o.name]),
         el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
@@ -2121,19 +2150,19 @@
     for (let y = 0; y < H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
     const rg = g.createRadialGradient(300, 315, 10, 300, 315, 330); rg.addColorStop(0, "rgba(255,194,58,.28)"); rg.addColorStop(1, "rgba(255,194,58,0)");
     g.fillStyle = rg; g.fillRect(0, 0, W, H);
-    g.strokeStyle = "#ffc23a"; g.lineWidth = 6; g.shadowColor = "#ffc23a"; g.shadowBlur = 24;   // medal hex
+    g.strokeStyle = "#ff9a3c"; g.lineWidth = 6; g.shadowColor = "#ff9a3c"; g.shadowBlur = 24;   // medal hex
     g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; g.lineTo(300 + 150 * Math.cos(a), 315 + 150 * Math.sin(a)); } g.closePath(); g.stroke();
-    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ffc23a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
+    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ff9a3c"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
     g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
     const fit = (txt, font, max) => { let sz = font; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; while (g.measureText(txt).width > max && sz > 22) { sz -= 2; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; } };
-    g.fillStyle = "#3ee6ff"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
+    g.fillStyle = "#78ffaa"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
     g.fillStyle = "#ffffff"; fit(mname.toUpperCase(), 58, 650); g.fillText(mname.toUpperCase(), 500, 222);
-    g.fillStyle = "#ffc23a"; fit(callsign, 44, 650); g.fillText(callsign, 500, 290);
+    g.fillStyle = "#ff9a3c"; fit(callsign, 44, 650); g.fillText(callsign, 500, 290);
     g.fillStyle = "#9fb3c2"; g.font = "400 26px 'JetBrains Mono', monospace";
     g.fillText(t("oath." + v.oath + ".name") + " · " + (mm ? mm.name : ""), 500, 345);
     g.fillText((STATE.name || "Squad") + (mission.difficulty ? " · D" + mission.difficulty : ""), 500, 385);
     g.fillStyle = "#4dffa1"; g.font = "500 24px 'JetBrains Mono', monospace"; g.fillText("ID " + v.medal.id, 500, 450);
-    g.fillStyle = "#3ee6ff"; g.font = "700 34px 'Chakra Petch', sans-serif"; g.fillText("WARMIND", 500, 560);
+    g.fillStyle = "#78ffaa"; g.font = "700 34px 'Chakra Petch', sans-serif"; g.fillText("WARMIND", 500, 560);
     g.fillStyle = "#5d7383"; g.font = "400 18px 'JetBrains Mono', monospace"; g.fillText(location.host, 680, 558);
     const blob = await new Promise(r => c.toBlob(r, "image/png"));
     const file = blob && new File([blob], "warmind-medal-" + v.medal.id + ".png", { type: "image/png" });
