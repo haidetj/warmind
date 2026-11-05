@@ -140,6 +140,9 @@ def init():
             c.execute("ALTER TABLE callsign_stats ADD COLUMN owned_json TEXT")
         if "gear_set" not in ccols:
             c.execute("ALTER TABLE callsign_stats ADD COLUMN gear_set INTEGER DEFAULT 0")
+        lkcols = {r["name"] for r in c.execute("PRAGMA table_info(locker)").fetchall()}
+        if "public" not in lkcols:    # listed on the open roster / leaderboard (the diver can opt out)
+            c.execute("ALTER TABLE locker ADD COLUMN public INTEGER DEFAULT 1")
         if "locker_id" not in cols:   # the diver's locker (gear, stat history, record), if linked
             c.execute("ALTER TABLE player ADD COLUMN locker_id TEXT")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
@@ -351,7 +354,7 @@ def get_locker(lid):
 
 
 def update_locker(lid, **fields):
-    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note"}
+    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note", "public"}
     sets = {k: v for k, v in fields.items() if k in allowed}
     if not sets:
         return
@@ -416,3 +419,18 @@ def locker_record(lid, limit=100):
                          "FROM result r JOIN player p ON p.id=r.player_id LEFT JOIN lobby l ON l.id=r.lobby_id "
                          "WHERE p.locker_id=? ORDER BY r.created_at DESC LIMIT ?", (lid, limit)).fetchall()
     return [dict(r) for r in rows]
+
+
+def list_public_lockers(limit=300):
+    """Lockers on the open roster: named, public, newest activity first."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM locker WHERE COALESCE(public,1)=1 AND COALESCE(callsign,'')<>'' "
+                         "ORDER BY updated_at DESC LIMIT ?", (limit,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def locker_counts(lid):
+    with _lock, _conn() as c:
+        res = c.execute("SELECT COUNT(*) n FROM result r JOIN player p ON p.id=r.player_id WHERE p.locker_id=?", (lid,)).fetchone()["n"]
+        lo = c.execute("SELECT COUNT(*) n FROM locker_loadout WHERE locker_id=?", (lid,)).fetchone()["n"]
+    return res, lo

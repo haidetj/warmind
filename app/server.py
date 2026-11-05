@@ -1005,16 +1005,8 @@ def link_locker(lid: str, payload: dict, x_locker: str = Header(None)):
     return {"ok": True}
 
 
-@app.get("/api/locker/{lid}")
-def get_locker(lid: str, x_locker: str = Header(None)):
-    lk = _require_locker(lid, x_locker)
-    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
-    hist = db.locker_stats(lid)
-    history = []
-    for h in hist:
-        d = stats.derive(h["snapshot"])
-        history.append({"at": h["at"], "rates": _round(d), "missions": h["snapshot"].get("missions_played"),
-                        "kills": h["snapshot"].get("enemy_kills")})
+def _record_of(lid):
+    """A locker's recorded results (newest first) and the medals in them."""
     record, medals = [], []
     for r in db.locker_record(lid):
         verdicts = _verdicts_of(r.get("verdict_json"))
@@ -1027,6 +1019,20 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             if v and v.get("medal"):
                 medals.append({"at": r["created_at"], "medal": v["medal"], "oath": v.get("oath"),
                                "mission": (row["mission"] or {}).get("name")})
+    return record, medals
+
+
+@app.get("/api/locker/{lid}")
+def get_locker(lid: str, x_locker: str = Header(None)):
+    lk = _require_locker(lid, x_locker)
+    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
+    hist = db.locker_stats(lid)
+    history = []
+    for h in hist:
+        d = stats.derive(h["snapshot"])
+        history.append({"at": h["at"], "rates": _round(d), "missions": h["snapshot"].get("missions_played"),
+                        "kills": h["snapshot"].get("enemy_kills")})
+    record, medals = _record_of(lid)
     tables = [{"lobby_id": p["lobby_id"], "callsign": p["callsign"], "joined_at": p.get("joined_at")}
               for p in db.locker_players(lid)][:20]
     return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")),
@@ -1035,7 +1041,8 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
             "history": history, "record": record, "medals": medals,
-            "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables}
+            "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables,
+            "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 
 
 def _with_armor(o):
@@ -1130,4 +1137,62 @@ def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
 def delete_loadout(lid: str, oid: str, x_locker: str = Header(None)):
     _require_locker(lid, x_locker)
     db.delete_loadout(lid, oid)
+    return {"ok": True}
+
+
+
+# ---------------------------------------------------------------- open roster + leaderboard
+# Every named locker is listed unless its diver opts out (locker > "Show me on the roster").
+# Public view only: callsign, play style, stat rates, medals, saved loadouts. Never the key,
+# the gear list or which war tables they're in.
+def _public_rates(lk):
+    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
+    if not snap:
+        return None, None
+    d = stats.derive(snap)
+    k, deaths = float(snap.get("enemy_kills") or 0), float(snap.get("deaths") or 0)
+    m = float(snap.get("missions_played") or 0)
+    return snap, {"accuracy": round(d["accuracy"], 4) if snap.get("shots_fired") else None,
+                  "kd": round(k / deaths, 2) if deaths else None,
+                  "kills_pm": round(k / m, 1) if m else None,
+                  "deaths_pm": round(d["deaths_per_mission"], 2) if m else None,
+                  "win_rate": round(d["win_rate"], 4) if m else None,
+                  "missions": int(m) if m else None}
+
+
+@app.get("/api/roster")
+def roster():
+    out = []
+    for lk in db.list_public_lockers():
+        snap, rates = _public_rates(lk)
+        _, medals = _record_of(lk["id"])
+        n_res, n_lo = db.locker_counts(lk["id"])
+        out.append({"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"),
+                    "rates": rates, "medals": len(medals), "results": n_res, "loadouts": n_lo,
+                    "active": lk.get("updated_at")})
+    return {"divers": out}
+
+
+@app.get("/api/roster/{lid}")
+def roster_profile(lid: str):
+    lk = db.get_locker(str(lid)[:40])
+    if not lk or lk.get("public") == 0 or not lk.get("callsign"):
+        raise HTTPException(404, "diver not found")
+    snap, rates = _public_rates(lk)
+    record, medals = _record_of(lk["id"])
+    hist = [{"at": h["at"], "rates": _round(stats.derive(h["snapshot"])), "missions": h["snapshot"].get("missions_played")}
+            for h in db.locker_stats(lk["id"])]
+    recent = [{"at": r["at"], "mission": r["mission"], "kills": (r["result"] or {}).get("kills"),
+               "deaths": (r["result"] or {}).get("deaths"),
+               "oaths": [{"name": v.get("name"), "passed": v.get("passed")} for v in r["verdicts"] if v]}
+              for r in record[:10]]
+    return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
+            "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
+            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])]}
+
+
+@app.post("/api/locker/{lid}/visibility")
+def locker_visibility(lid: str, payload: dict, x_locker: str = Header(None)):
+    _require_locker(lid, x_locker)
+    db.update_locker(lid, public=1 if payload.get("public") else 0)
     return {"ok": True}

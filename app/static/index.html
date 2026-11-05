@@ -593,6 +593,13 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
   .lkcarnav{display:flex;gap:8px;align-items:center;margin-top:10px} .lkcount{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:44px;text-align:center}
   .chips .chiphead{flex-basis:100%;font-family:var(--mono);font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);margin:8px 0 0}
   .chips .chiphead:first-child{margin-top:0}
+  .welcome{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap} .welcome .big{overflow-wrap:anywhere}
+  .seg.rossort{display:grid;grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:10px} .statgrid.rosstats{grid-template-columns:repeat(2,minmax(0,1fr))} .rossort button{min-width:0;font-size:11px}
+  .roslist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .roslist a{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);color:inherit;text-decoration:none;background:rgba(2,5,8,.5)}
+  .roslist li.me a{border-color:var(--amber-2)} .roslist .rk{font-family:var(--mono);color:var(--muted);text-align:center}
+  .roslist .who b{display:block;overflow-wrap:anywhere} .roslist .who small{color:var(--muted)} .roslist .val{font-family:var(--mono);font-weight:700;color:var(--cyan);white-space:nowrap}
+  .rosrecent{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px} .rosrecent li{padding:6px 0;border-bottom:1px solid var(--line)}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

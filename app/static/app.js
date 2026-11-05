@@ -14,6 +14,7 @@
   const app = $("#app");
   const LID = new URLSearchParams(location.search).get("l");
   const LOCKER_PAGE = !LID && new URLSearchParams(location.search).has("locker");
+  const ROSTER_PAGE = !LID && !LOCKER_PAGE && new URLSearchParams(location.search).has("roster");
   let META = null, STATE = null, pollT = null, busy = false, lastSig = "";
 
   // ======================================================================= i18n
@@ -53,7 +54,7 @@
       LANG = s.value;
       try { localStorage.setItem("wm_lang", LANG); } catch (e) {}
       document.documentElement.lang = LANG; s.setAttribute("aria-label", t("lang.label"));
-      if (LOCKER_PAGE) renderLocker(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
+      if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
     };
   }
 
@@ -231,6 +232,7 @@
   (async function boot() {
     META = await api("/api/meta");
     if (LOCKER_PAGE) return renderLocker();
+    if (ROSTER_PAGE) return renderRoster();
     if (!LID) return renderHome();
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
@@ -260,6 +262,8 @@
     name.addEventListener("keydown", e => { if (e.key === "Enter") deploy.click(); });
 
     const term = el("div", { class: "term", "aria-hidden": "true" });
+    app.appendChild(profilePanel());          // who you are first: your locker carries into every war table
+    const tablesSlot = el("div", { class: "slot" }); app.appendChild(tablesSlot);   // your war tables, near the top
     app.appendChild(el("section", { class: "hero" }, [
       el("div", { class: "fx rings" }), el("div", { class: "fx radar" }),
       el("div", { class: "hero-body" }, [
@@ -288,14 +292,13 @@
     };
     codeIn.addEventListener("keydown", e => { if (e.key === "Enter") codeGo.click(); });
     app.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
-    app.appendChild(lockerHomePanel());
     app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
       el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
     app.appendChild(warPanel());
     const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     app.appendChild(fmFold);
-    renderMyLobbies();
+    renderMyLobbies(tablesSlot);
     app.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn()]));
     if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
     bootSequence(term);
@@ -313,12 +316,12 @@
   }
   function forgetLobby(id) { try { localStorage.removeItem("wm_creator_" + id); localStorage.removeItem("wm_me_" + id); } catch (e) {} }
 
-  async function renderMyLobbies() {
+  async function renderMyLobbies(slot) {
     const mine = storedLobbies();
     if (!mine.length) return;
     const list = el("div", {}, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     const card = panel("SYS-02", t("home.tables"), {}, [list]);
-    app.appendChild(card);
+    (slot || app).appendChild(card);
     let data;
     try { data = await jpost("/api/lobbies/summary", { ids: mine.map(x => x.id) }); } catch (e) { card.remove(); return; }
     const found = new Set((data.lobbies || []).map(l => l.id));
@@ -1680,6 +1683,45 @@
     a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = href; }); };
     return el("div", { class: "lkline" }, [el("span", {}, [t("lk.line")]), a]);
   }
+  // Home, first thing: set your profile (callsign → locker), or a welcome back with it
+  function profilePanel() {
+    const L = store.locker();
+    if (L) {
+      const box = el("div", { class: "welcome" }, [el("span", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+      lget("/api/locker/" + L.id).then(lk => {
+        box.innerHTML = "";
+        box.append(el("div", {}, [el("div", { class: "label", style: "margin:0" }, [t("prof.welcome")]), el("div", { class: "big" }, [lk.callsign || "—"]),
+          lk.play_style ? el("div", { class: "hint", style: "margin:2px 0 0" }, [styleLabel(lk.play_style)]) : null]),
+          el("div", { class: "btnrow", style: "margin:0" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]),
+            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
+      }).catch(() => { box.innerHTML = ""; box.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")])); });
+      return panel("SYS-P", t("prof.title"), {}, [box]);
+    }
+    const cs = el("input", { type: "text", maxlength: "24", placeholder: t("lk.callsign.ph"), autocomplete: "off", id: "prof-cs" });
+    const up = fileBtn("", t("prof.upload"), true);
+    let files = [];
+    const picked = el("span", { class: "hint", style: "margin:0" });
+    up.querySelector("input").onchange = ev => { files = Array.from(ev.target.files || []); picked.textContent = files.length ? "✓ " + t("prof.picked", { n: files.length }) : ""; };
+    const go = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("prof.go")]);
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    go.onclick = async () => {
+      const v = cs.value.trim(); if (!v) { cs.focus(); toast(t("prof.need")); return; }
+      go.disabled = true;
+      try {
+        const r = await jpost("/api/locker", { callsign: v }); store.setLocker({ id: r.locker_id, key: r.locker_key });
+        if (files.length) { const stop = workTicker(status, lines("tick.read.", 10)); try { const fd = new FormData(); files.forEach(f => fd.append("images", f)); await lfd("/api/locker/" + r.locker_id + "/career", fd); } finally { stop(); } }
+        toast(t("prof.done", { name: v })); renderHome();
+      } catch (e) { toast(e.message); go.disabled = false; }
+    };
+    cs.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+    return panel("SYS-P", t("prof.title"), { tone: "amber" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("prof.hint")]),
+      el("div", { class: "field" }, [el("label", { class: "label", for: "prof-cs" }, [t("me.callsign")]), cs]),
+      el("div", { class: "btnrow" }, [go, up]), picked, status,
+      el("div", { class: "hint" }, [t("prof.later")]),
+    ]);
+  }
+
   function lockerHomePanel() {
     const L = store.locker();
     const b = el("a", { class: "btn primary", href: "/?locker" }, ["🗄 " + t(L ? "lk.open" : "lk.create")]);
@@ -1757,6 +1799,16 @@
       head,
       el("div", { class: "btnrow" }, [up, dev]), status,
       el("div", { class: "hint" }, [t("lk.private")]),
+      (() => {   // the open roster: listed unless you opt out
+        const seg = el("div", { class: "seg", role: "group", "aria-label": t("ros.show") });
+        [[true, t("mis.think.on")], [false, t("mis.think.off")]].forEach(([v, label]) => {
+          const b = el("button", { type: "button", "aria-pressed": String(LK.public === v) }, [label]);
+          b.onclick = async () => { try { await lpost("/api/locker/" + L.id + "/visibility", { public: v }); LK.public = v; seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); toast(t(v ? "ros.shown" : "ros.hidden")); } catch (e) { toast(e.message); } };
+          seg.appendChild(b);
+        });
+        return el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, ["☰ " + t("ros.show")]), seg,
+          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
+      })(),
     ]));
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
     // up top: a carousel of saved loadouts, then the stats
@@ -1777,8 +1829,10 @@
     show(tabs.some(x => x[0] === lkTab) ? lkTab : "record");
     window.scrollTo(0, y);
   }
-  function lkCarousel() {
-    const L = LK.loadouts || [];
+  function lkCarousel(list, opts) {
+    opts = opts || {};
+    const L = list || LK.loadouts || [];
+    if (!L.length && opts.readonly) return null;
     if (!L.length) {
       const b = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]); b.onclick = () => buildKitDialog();
       return panel("LKR-00", t("lk.tab.loadouts"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.none")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
@@ -1800,10 +1854,72 @@
     const next = el("button", { class: "btn sm", type: "button", "aria-label": "›" }, ["›"]); next.onclick = () => step(1);
     track.addEventListener("scroll", () => { const w = ((track.firstElementChild || {}).offsetWidth || 300) + 12; count.textContent = (Math.round(track.scrollLeft / w) + 1) + " / " + L.length; }, { passive: true });
     track.addEventListener("keydown", e => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
-    const neu = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); neu.onclick = () => buildKitDialog();
+    const neu = opts.readonly ? null : el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); if (neu) neu.onclick = () => buildKitDialog();
     return panel("LKR-00", t("lk.tab.loadouts"), { status: String(L.length), statusKind: "info" }, [track,
       el("div", { class: "lkcarnav" }, [prev, count, next, el("span", { style: "flex:1" }), neu])]);
   }
+  // ======================================================================= roster + leaderboard
+  const ROS_SORT = [["accuracy", "sc.accuracy"], ["kd", "sc.kd"], ["kills_pm", "sc.kills_pm"], ["win_rate", "sc.success"], ["medals", "lk.medals"], ["active", "ros.recent"]];
+  let rosSort = (() => { try { return localStorage.getItem("wm_rossort") || "accuracy"; } catch (e) { return "accuracy"; } })();
+  const rosVal = (d, k) => k === "medals" ? d.medals : k === "active" ? d.active : (d.rates || {})[k];
+  const rosFmt = (d, k) => { const v = rosVal(d, k); if (v == null) return "—";
+    return k === "accuracy" || k === "win_rate" ? (v * 100).toFixed(1) + "%" : k === "active" ? dt(v) : k === "medals" ? "🎖 " + v : String(v); };
+  function rosNav(back) {
+    const nav = el("div", { class: "lknav" });
+    if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
+    nav.appendChild(el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]));
+    if (store.locker()) nav.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]));
+    return nav;
+  }
+  async function renderRoster() {
+    app.innerHTML = ""; app.className = "stack";
+    const id = new URLSearchParams(location.search).get("roster");
+    if (id) return renderProfile(id);
+    app.appendChild(rosNav(false));
+    const body = el("div", {}, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
+    let data; try { data = await api("/api/roster"); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "hint" }, [e.message])); return; }
+    const me = store.locker();
+    const paint = () => {
+      body.innerHTML = "";
+      const seg = el("div", { class: "seg rossort", role: "group", "aria-label": t("ros.sort") });
+      ROS_SORT.forEach(([k, lab]) => { const b = el("button", { type: "button", "aria-pressed": String(rosSort === k) }, [t(lab)]);
+        b.onclick = () => { rosSort = k; try { localStorage.setItem("wm_rossort", k); } catch (e) {} paint(); }; seg.appendChild(b); });
+      body.appendChild(seg);
+      const rows = data.divers.slice().sort((a, b) => { const x = rosVal(a, rosSort), y = rosVal(b, rosSort);
+        if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return y - x; });
+      if (!rows.length) body.appendChild(el("div", { class: "hint" }, [t("ros.none")]));
+      body.appendChild(el("ol", { class: "roslist" }, rows.map((d, i) => el("li", { class: me && me.id === d.id ? "me" : null }, [
+        el("a", { href: "/?roster=" + d.id }, [
+          el("span", { class: "rk" }, [rosVal(d, rosSort) == null ? "·" : String(i + 1)]),
+          el("span", { class: "who" }, [el("b", {}, [d.callsign]), el("small", {}, [[d.play_style ? styleLabel(d.play_style) : null,
+            d.rates && d.rates.missions ? t("ros.missions", { n: nf(d.rates.missions) }) : null, d.medals ? "🎖 " + d.medals : null].filter(Boolean).join(" · ")])]),
+          el("span", { class: "val" }, [rosFmt(d, rosSort)]),
+        ])]))));
+    };
+    paint();
+  }
+  async function renderProfile(id) {
+    app.appendChild(rosNav(true));
+    let d; try { d = await api("/api/roster/" + encodeURIComponent(id)); }
+    catch (e) { app.appendChild(panel("ERR", t("ros.title"), { tone: "red" }, [el("div", { class: "hint" }, [t("ros.gone")])])); return; }
+    app.appendChild(panel("ROS-02", t("ros.profile"), { status: d.medals.length ? "🎖 " + d.medals.length : "", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [d.callsign]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [d.play_style ? t("lk.style", { style: styleLabel(d.play_style) }) : t("me.noread")])])])]));
+    const car = lkCarousel(d.loadouts, { readonly: true }); if (car) app.appendChild(car);
+    const kids = [];
+    if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
+      el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
+    else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
+      el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
+    if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
+      el("b", {}, [(r.mission && r.mission.name) || "—"]), " · " + dt(r.at),
+      r.kills != null ? " · " + t("lk.r.kills", { n: nf(r.kills) }) : "", r.deaths != null ? " · " + t("lk.r.deaths", { n: nf(r.deaths) }) : "",
+      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name))]))));
+    app.appendChild(panel("ROS-03", t("lk.tab.stats"), {}, kids));
+  }
+
   function lkStats() {
     const kids = [];
     if (LK.stats) kids.push(statBlock({ scorecard: LK.scorecard, stats: LK.stats, confidence: null }));
