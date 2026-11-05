@@ -1232,7 +1232,7 @@
       b.onclick = () => { draft.mode = k; modes.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
       modes.appendChild(b);
     });
-    body.appendChild(el("div", { class: "blk", style: "margin-top:4px" }, [el("span", { class: "label" }, [t("mis.mode")]), modes, el("div", { class: "hint" }, [t("mis.d100.hint")])]));
+    body.appendChild(el("div", { class: "blk", style: "margin-top:4px" }, [el("span", { class: "label" }, [t("mis.mode")]), modes, el("div", { class: "hint" }, [t("mis.d100.hint")]), el("div", { class: "hint", style: "margin-top:4px" }, ["☠ " + t("mis.d100.kit")])]));
 
     // planet from the live war: fills faction + hazards (optional)
     const planetSel = el("select", { id: "m-planet" }, [el("option", { value: "" }, [t("war.pick.none")])]);

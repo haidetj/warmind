@@ -109,6 +109,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
     scored = []
     best, best_s = None, float("-inf")
     fb, fb_s = None, float("-inf")  # fallback ignoring ownership, so a slot never strands
+    crutch, crutch_s = None, float("-inf")   # Helldive∞: an owned crutch only if nothing else fits
+    no_crutch = session.mode == "d100"
     for it in cands:
         if it.name in exclude:  # hard excludes (squad dupes, explicit) always hold
             continue
@@ -132,6 +134,10 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
             fb, fb_s = it, s
         if it.name in excl_owned:  # ownership exclusion is soft
             continue
+        if no_crutch and ask_mod.is_crutch(it):
+            if s > crutch_s:
+                crutch, crutch_s = it, s
+            continue
         scored.append((s, it))
         if s > best_s:
             best, best_s = it, s
@@ -141,6 +147,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
                       key=lambda it: zlib.crc32(f"{salt}|{it.name}".encode()))
         order = [best] + near   # reroll n takes the n-th: every reroll changes while alternatives last
         return order[session.seed % len(order)]
+    if best is None and crutch is not None:
+        return crutch
     return best if best is not None or owned_only else fb
 
 
@@ -161,6 +169,8 @@ def _chosen(cands, name, session):
     if not name:
         return None
     it = next((c for c in cands if c.name == name), None)
+    if it and session.mode == "d100" and (ask_mod.is_crutch(it) or (it.slot == "armor" and it.weight != "Light")):
+        return None   # Helldive∞: the planner doesn't get to hand out crutches either
     return it if it and it.name not in session_excluded(session) else None
 
 
@@ -332,7 +342,7 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(divers, pool, seed=0):
+def _assign_boosters(divers, pool, seed=0, mode=""):
     """divers: [(role_name, excluded_names)] in role order. In the game every diver
     brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
     diver gets a unique booster they own, preferring the strong picks and their role's
@@ -340,13 +350,17 @@ def _assign_boosters(divers, pool, seed=0):
     chosen, used = {}, set()
     for role_name, excluded in divers:
         avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
+        if mode == "d100":   # no safety-net boosters, and the quirky ones before the strong ones
+            avail = [b for b in avail if b["name"] not in ask_mod.D100_NO_BOOST] or avail
         bias = _ROLE_BIAS.get(role_name, "any")
         pick = None
         top = [b for b in avail if b["role_bias"] in (bias, "any") and b.get("strong")]
+        if mode == "d100":
+            top = []
         if seed and len(top) > 1:   # reroll: rotate among the strong boosters that suit the role
             top.sort(key=lambda b: zlib.crc32(f"{role_name}|{b['name']}".encode()))
             avail = [top[seed % len(top)]] + [b for b in avail if b is not top[seed % len(top)]]
-        for want_strong in (True, False):
+        for want_strong in ((False, True) if mode == "d100" else (True, False)):
             pick = next((b for b in avail if b["role_bias"] in (bias, "any")
                          and bool(b.get("strong")) == want_strong), None)
             if pick:
@@ -458,7 +472,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
-    boosters = _assign_boosters(order, pool, session.seed)
+    boosters = _assign_boosters(order, pool, session.seed, session.mode)
     if override:   # the planner's boosters: owned by that diver and not doubled up
         names = {b["name"] for b in pool.boosters}
         for pl in players:
@@ -539,7 +553,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
         # quiet: no Heavy; a glass-cannon drill goes a weight class lighter
-        weight = ask_mod.armor_weight_for(role.armor_weight, drills.get(pl.id, []), quiet)
+        weight = ask_mod.armor_weight_for(role.armor_weight, drills.get(pl.id, []), quiet, session.mode)
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map

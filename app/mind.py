@@ -58,8 +58,12 @@ MODE_MEANING = {
                  "comfort zone and onto high-ask gear (precision, timing, reload discipline, no crutches), and "
                  "aim it at the weak spots their stats show. A challenge kit is harder, never hopeless: the squad "
                  "must still be able to kill heavies, clear chaff and destroy objectives.",
-    "d100": "Helldive∞: the hardest version of this mission. Off-meta, high-ask kit, no crutches at all, the map's "
-            "demands turned up. Brutal, still mission-capable.",
+    "d100": "Helldive∞: the HARDEST kit that can still finish this mission, as brutal as the gear allows. Every slot "
+            "takes the most demanding option that answers the mission: precision and slow-firing weapons, Light armour "
+            "with no defensive passive, timing-heavy strikes (Precision Strike, 500kg, 380mm) over forgiving ones. No "
+            "crutches at all: no shield packs, dogs or supply packs, no sentries or shield relays, no Orbital Laser or "
+            "Railcannon, no seeker/impact grenades, no safety-net boosters. Off-meta beats meta. It must stay "
+            "mission-capable: heavies, chaff and objectives still get answered, just the hard way.",
 }
 
 AXES = {"at": "anti-tank (kills heavies)", "st": "structures (destroys fabricators, nests, objectives)",

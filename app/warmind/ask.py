@@ -23,7 +23,7 @@ from functools import lru_cache
 from . import handling, loader
 
 # mode -> weight on (ask - ASK_MID); challenge and d100 want hard kit, improvement a little
-ASK_W = {"challenge": 1.0, "d100": 1.3, "improvement": 0.25}
+ASK_W = {"challenge": 1.0, "d100": 2.4, "improvement": 0.25}
 ASK_MID = 0.4
 D100_CRUTCH = -1.2   # Helldive∞ restricts the kit: crutch gear only if nothing else fits
 DRILL_W = 0.7
@@ -48,13 +48,23 @@ def ask(item) -> tuple[float | None, str | None]:
         base, reason = t["armor_weight"].get(item.weight, [0.4, None])
         delta = t.get("armor_passive", {}).get(item.passive, 0.0)
         v = max(0.0, min(1.0, base + delta))
-        return v, (reason or ("crutch" if delta < 0 else None))
+        return v, ("crutch" if delta < 0 else reason)   # a defensive passive is a safety net
     rec = t["items"].get(item.name)
     if rec:
         return float(rec[0]), rec[1]
     key = "grenade" if item.slot == "grenade" else item.category
     v = t["defaults"].get(key)
     return (float(v), None) if v is not None else (None, None)
+
+
+# Helldive∞ boosters: none of the safety nets (extra lives, damage resistance, a free resupply on drop)
+D100_NO_BOOST = {"Vitality Enhancement", "Hellpod Space Optimization", "Increased Reinforcement Budget",
+                 "Flexible Reinforcement Budget", "Stun Pods", "Firebomb Hellpods", "Armed Resupply Pods",
+                 "Surplus EAT Allocation", "Expert Extraction Pilot"}
+
+
+def is_crutch(item) -> bool:
+    return ask(item)[1] == "crutch"
 
 
 def ask_term(item, mode: str) -> float:
@@ -115,10 +125,12 @@ def drill_term(item, active: list[str]) -> float:
     return s
 
 
-def armor_weight_for(role_weight: str, active: list[str], quiet: bool) -> str:
+def armor_weight_for(role_weight: str, active: list[str], quiet: bool, mode: str = "") -> str:
     """The armour weight class to fill: the role's, one step lighter for a glass-cannon
     drill, never Heavy on a quiet run."""
     w = role_weight
+    if mode == "d100":
+        return "Light"   # Helldive∞: everyone goes light, one mistake and you're down
     if "tidy" in active:
         w = {"Heavy": "Medium", "Medium": "Light"}.get(w, w)
     if quiet and w == "Heavy":

@@ -93,7 +93,7 @@ def fit(name: str, sk: float | None, mode: str) -> float:
     if mode == "challenge":
         return -0.8 * abs(d - (1.0 - 0.5 * sk))
     if mode == "d100":
-        return -0.6 * (1.0 - d)
+        return -1.5 * (1.0 - d)   # the most demanding weapon the mission allows
     return 0.0
 
 
