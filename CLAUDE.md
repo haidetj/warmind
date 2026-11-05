@@ -35,3 +35,16 @@ Env: `WARMIND_PLANNER=0` turns it off, `WARMIND_PLAN_MODEL` (defaults to
 `WARMIND_PLAN_PER_LOBBY_HOUR` (20) / `WARMIND_PLAN_PER_DAY` (150). `/health` →
 `planner.last` shows the latest plan's status, error and token usage.
 Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
+
+## War rooms, roster, profiles
+- Profile = locker (device-keyed, `x-locker` header). Home asks for a callsign first.
+- `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
+- `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
+  room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
+  (`_room_tally`); ribbons and the ship's log (`room_log`, i18n keys `log.*`) build up over time.
+  Anyone with the room code can set the mission and orders; only the founder (token in
+  `wm_roomc_<id>`) renames it. Joining a room table with a locker makes you a member, and your
+  rooms follow your locker into the new-table picker.
+- Go / No-Go: `player.go`, shown in the war table's command panel.
+- D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
+  no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

@@ -24,6 +24,41 @@ def _conn():
 
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS room (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  ship TEXT,
+  creator_token TEXT,
+  mission_json TEXT,
+  mission_by TEXT,
+  created_at REAL,
+  updated_at REAL
+);
+CREATE TABLE IF NOT EXISTS room_order (
+  id TEXT PRIMARY KEY,
+  room_id TEXT,
+  kind TEXT,
+  title TEXT,
+  target INTEGER,
+  params_json TEXT,
+  set_by TEXT,
+  done_at REAL,
+  retired INTEGER DEFAULT 0,
+  created_at REAL
+);
+CREATE TABLE IF NOT EXISTS room_member (
+  room_id TEXT,
+  locker_id TEXT,
+  joined_at REAL,
+  PRIMARY KEY (room_id, locker_id)
+);
+CREATE TABLE IF NOT EXISTS room_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id TEXT,
+  kind TEXT,
+  text TEXT,
+  at REAL
+);
 CREATE TABLE IF NOT EXISTS lobby (
   id TEXT PRIMARY KEY,
   name TEXT,
@@ -135,6 +170,10 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
         if "roster_json" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN roster_json TEXT")
+        if "room_id" not in lcols:   # the war room this table belongs to
+            c.execute("ALTER TABLE lobby ADD COLUMN room_id TEXT")
+        if "go" not in cols:          # Go / No-Go poll before the drop
+            c.execute("ALTER TABLE player ADD COLUMN go INTEGER DEFAULT 0")
         ccols = {r["name"] for r in c.execute("PRAGMA table_info(callsign_stats)").fetchall()}
         if "owned_json" not in ccols:  # remembered gear: list of owned unlocks, or NULL = owns everything
             c.execute("ALTER TABLE callsign_stats ADD COLUMN owned_json TEXT")
@@ -439,3 +478,103 @@ def locker_counts(lid):
         res = c.execute("SELECT COUNT(*) n FROM result r JOIN player p ON p.id=r.player_id WHERE p.locker_id=?", (lid,)).fetchone()["n"]
         lo = c.execute("SELECT COUNT(*) n FROM locker_loadout WHERE locker_id=?", (lid,)).fetchone()["n"]
     return res, lo
+
+
+# ---------------------------------------------------------------- war rooms
+def create_room(rid, name, ship, token):
+    now = time.time()
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO room(id,name,ship,creator_token,created_at,updated_at) VALUES(?,?,?,?,?,?)",
+                  (rid, name, ship, token, now, now))
+
+
+def get_room(rid):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM room WHERE id=?", (rid,)).fetchone()
+    return dict(r) if r else None
+
+
+def update_room(rid, **kw):
+    allowed = {k: v for k, v in kw.items() if k in ("name", "ship", "mission_json", "mission_by")}
+    if not allowed:
+        return
+    sets = ",".join(f"{k}=?" for k in allowed)
+    with _lock, _conn() as c:
+        c.execute(f"UPDATE room SET {sets}, updated_at=? WHERE id=?", (*allowed.values(), time.time(), rid))
+
+
+def room_lobbies(rid, limit=60):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM lobby WHERE room_id=? ORDER BY created_at DESC LIMIT ?", (rid, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_lobby_room(lid, rid):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET room_id=?, updated_at=? WHERE id=?", (rid, time.time(), lid))
+
+
+def room_results(rid):
+    """Every recorded result in the room's war tables, oldest first, with the table's mission."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT r.*, l.mission_json AS mission_json, p.callsign AS callsign FROM result r "
+                         "JOIN lobby l ON l.id=r.lobby_id LEFT JOIN player p ON p.id=r.player_id "
+                         "WHERE l.room_id=? ORDER BY r.created_at", (rid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def add_room_order(oid, rid, kind, title, target, params, set_by):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO room_order(id,room_id,kind,title,target,params_json,set_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                  (oid, rid, kind, title, target, json.dumps(params or {}), set_by, time.time()))
+
+
+def room_orders(rid):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM room_order WHERE room_id=? AND COALESCE(retired,0)=0 ORDER BY created_at", (rid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_room_order(oid, rid, **kw):
+    allowed = {k: v for k, v in kw.items() if k in ("done_at", "retired")}
+    if not allowed:
+        return
+    sets = ",".join(f"{k}=?" for k in allowed)
+    with _lock, _conn() as c:
+        c.execute(f"UPDATE room_order SET {sets} WHERE id=? AND room_id=?", (*allowed.values(), oid, rid))
+
+
+def add_room_member(rid, locker_id):
+    with _lock, _conn() as c:
+        c.execute("INSERT OR IGNORE INTO room_member(room_id,locker_id,joined_at) VALUES(?,?,?)", (rid, locker_id, time.time()))
+
+
+def room_members(rid):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT m.locker_id, m.joined_at, k.callsign, k.play_style, COALESCE(k.public,1) AS public FROM room_member m "
+                         "LEFT JOIN locker k ON k.id=m.locker_id WHERE m.room_id=? ORDER BY m.joined_at", (rid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def locker_rooms(locker_id):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT r.* FROM room r JOIN room_member m ON m.room_id=r.id WHERE m.locker_id=? "
+                         "ORDER BY r.updated_at DESC", (locker_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def room_log(rid, kind, text):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO room_log(room_id,kind,text,at) VALUES(?,?,?,?)", (rid, kind, text, time.time()))
+        c.execute("UPDATE room SET updated_at=? WHERE id=?", (time.time(), rid))
+
+
+def room_log_list(rid, limit=40):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM room_log WHERE room_id=? ORDER BY at DESC, id DESC LIMIT ?", (rid, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_player_go(pid, go):
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET go=?, updated_at=? WHERE id=?", (1 if go else 0, time.time(), pid))

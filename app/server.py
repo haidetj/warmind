@@ -7,6 +7,7 @@ the deterministic resolver you can run offline.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -219,6 +220,7 @@ def _resolve(lobby) -> dict:
             "confidence": _conf_of(p),       # which read fields were double-read-verified
             "owned": _owned_of(p),           # None = owns everything; else every item owned
             "gear_confirmed": bool(p.get("gear_confirmed")),
+            "go": bool(p.get("go")),
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
@@ -233,6 +235,7 @@ def _resolve(lobby) -> dict:
         "squad_readout": stats.squad_readout(all_snaps),
         "squad_readout_keys": stats.squad_readout_keys(all_snaps),
         "readiness": readiness, "reroll": int(lobby.get("reroll") or 0), "created_at": lobby.get("created_at"),
+        "room": _room_brief(lobby.get("room_id")),
     }
 
 
@@ -405,9 +408,17 @@ def feedback_export(after: float = 0.0):
 
 # ---------------------------------------------------------------- lobby lifecycle
 @app.post("/api/lobby")
-def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4)):
+def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4), room_id: str = Form(""),
+                 callsign: str = Form("")):
     lid, token = _id(4), secrets.token_urlsafe(16)
+    room = db.get_room(room_id[:40]) if room_id else None
     db.create_lobby(lid, name.strip() or "Squad", token, max(1, min(4, squad_size)))
+    if room:   # a war room's table opens on the room's current mission
+        db.set_lobby_room(lid, room["id"])
+        if room.get("mission_json"):
+            db.set_mission(lid, json.loads(room["mission_json"]))
+        db.room_log(room["id"], "table", json.dumps({"k": "log.table", "p": {"name": name.strip() or "Squad",
+                    "who": callsign.strip()[:24] or None, "lobby": lid}}))
     return {"lobby_id": lid, "creator_token": token}
 
 
@@ -509,7 +520,15 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
-    m = dict(payload.get("mission") or {})
+    m = _clean_mission(payload.get("mission"))
+    db.set_mission(lid, m)
+    if lobby.get("briefed"):  # a new mission regenerates the whole squad, late joiners included
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
+    return _resolve(db.get_lobby(lid))
+
+
+def _clean_mission(raw) -> dict:
+    m = dict(raw or {})
     from warmind.modes import MODES
     if m.get("mode") not in MODES:
         m["mode"] = "improvement"
@@ -529,10 +548,15 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
                         for x in (m.get("dss_actions") or []) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
-    db.set_mission(lid, m)
-    if lobby.get("briefed"):  # a new mission regenerates the whole squad, late joiners included
-        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
-    return _resolve(db.get_lobby(lid))
+    try:
+        m["difficulty"] = max(1, min(10, int(m.get("difficulty") or 7)))
+    except (TypeError, ValueError):
+        m["difficulty"] = 7
+    if m.get("faction") not in ("automatons", "terminids", "illuminate"):
+        m["faction"] = "automatons"
+    if m.get("mission_id") and m["mission_id"] not in loader.missions():
+        m["mission_id"] = ""
+    return m
 
 
 @app.post("/api/lobby/{lid}/mission/prefill")
@@ -551,6 +575,261 @@ async def mission_prefill(lid: str, request: Request, image: UploadFile = File(.
     except Exception as e:
         raise HTTPException(502, f"could not read the screenshot: {e}")
     return {"suggestion": suggestion}
+
+
+# ---------------------------------------------------------------- war rooms
+# A war room is the squad's lasting home: a current mission its tables open on, orders the
+# squad sets itself (tracked from every debrief in the room), a ship's log, ribbons.
+# Anyone with the room code can set the mission and orders: it's the squad's room.
+_SHIP_A = ["Wrath", "Hammer", "Herald", "Voice", "Fist", "Shield", "Arbiter", "Beacon", "Paragon", "Lantern",
+           "Anvil", "Spear", "Oath", "Harbinger", "Vigil", "Torch", "Gavel", "Bastion", "Keeper", "Thunder"]
+_SHIP_B = ["Liberty", "the Ballot", "Family Values", "Iron Resolve", "Prosperity", "Managed Democracy", "Truth",
+           "Civic Duty", "the Free Market", "Morning Coffee", "Super Earth", "Unanimous Consent", "Due Process",
+           "the Constitution", "Tax Season", "Eternal Vigilance", "Patriotic Fervor", "Voter Turnout"]
+ORDER_KINDS = {"drops", "medals", "oaths", "kills", "planet", "difficulty", "d100", "custom"}
+RIBBONS = [("first_drop", lambda st: st["drops"] >= 1), ("ten_drops", lambda st: st["drops"] >= 10),
+           ("fifty_drops", lambda st: st["drops"] >= 50), ("medals5", lambda st: st["medals"] >= 5),
+           ("d100", lambda st: st["d100"] >= 1), ("tourist", lambda st: len(st["planets"]) >= 5),
+           ("order", lambda st: st["orders_done"] >= 1), ("muster", lambda st: st["full"] >= 1)]
+
+
+def _ship_name(seed: str) -> str:
+    h = int(hashlib.sha1(seed.encode()).hexdigest(), 16)
+    return f"SES {_SHIP_A[h % len(_SHIP_A)]} of {_SHIP_B[(h // 97) % len(_SHIP_B)]}"
+
+
+def _room_brief(rid):
+    r = db.get_room(rid) if rid else None
+    return {"id": r["id"], "name": r["name"], "ship": r["ship"]} if r else None
+
+
+def _who(x_locker_id, x_locker):
+    lk = _locker_ok(x_locker_id, x_locker)
+    return (lk.get("callsign") or None) if lk else None
+
+
+def _room_tally(results, since=0.0):
+    """What the room's debriefs add up to (from `since`)."""
+    rs = [r for r in results if (r["created_at"] or 0) >= since]
+    drops, planets, d100, diff = set(), {}, set(), {}
+    medals = oaths_kept = kills = 0
+    for r in rs:
+        m = json.loads(r["mission_json"]) if r.get("mission_json") else {}
+        drops.add(r["lobby_id"])
+        if m.get("planet_name"):
+            planets.setdefault(m["planet_name"], set()).add(r["lobby_id"])
+        if m.get("mode") == "d100":
+            d100.add(r["lobby_id"])
+        diff[r["lobby_id"]] = int(m.get("difficulty") or 0)
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        kills += int(res.get("kills") or 0)
+        for v in _verdicts_of(r.get("verdict_json")):
+            if v and v.get("passed"):
+                oaths_kept += 1
+            if v and v.get("medal"):
+                medals += 1
+    return {"drops": len(drops), "planets": {k: len(v) for k, v in planets.items()}, "d100": len(d100),
+            "medals": medals, "oaths": oaths_kept, "kills": kills, "diff": diff}
+
+
+def _order_progress(o, results):
+    t = _room_tally(results, o["created_at"] or 0)
+    prm = json.loads(o["params_json"]) if o.get("params_json") else {}
+    k = o["kind"]
+    if k == "planet":
+        return t["planets"].get(prm.get("planet") or "", 0)
+    if k == "difficulty":
+        return sum(1 for d in t["diff"].values() if d >= int(prm.get("min") or 10))
+    if k == "custom":
+        return o["target"] if o.get("done_at") else 0
+    return {"drops": t["drops"], "medals": t["medals"], "oaths": t["oaths"], "kills": t["kills"], "d100": t["d100"]}.get(k, 0)
+
+
+def _room_out(rid):
+    r = db.get_room(rid)
+    if not r:
+        raise HTTPException(404, "war room not found")
+    results = db.room_results(rid)
+    orders = []
+    for o in db.room_orders(rid):
+        prog = _order_progress(o, results)
+        if prog >= (o["target"] or 1) and not o.get("done_at"):
+            db.update_room_order(o["id"], rid, done_at=time.time())
+            db.room_log(rid, "order", json.dumps({"k": "log.order", "p": {"title": o["title"], "kind": o["kind"], "n": o["target"],
+                                                                         "params": json.loads(o["params_json"]) if o.get("params_json") else {}}}))
+            o["done_at"] = time.time()
+        orders.append({"id": o["id"], "kind": o["kind"], "title": o["title"], "target": o["target"],
+                       "params": json.loads(o["params_json"]) if o.get("params_json") else {},
+                       "progress": min(prog, o["target"] or 1), "set_by": o.get("set_by"), "at": o["created_at"],
+                       "done_at": o.get("done_at")})
+    lobbies = db.room_lobbies(rid)
+    tables = []
+    full = 0
+    for l in lobbies:
+        n = len(db.list_players(l["id"]))
+        full += n >= 4
+        tables.append({"id": l["id"], "name": l["name"], "players": n, "squad_size": l.get("squad_size"),
+                       "at": l["created_at"], "mission": _mission_name(l.get("mission_json"))})
+    tally = _room_tally(results)
+    nights = len({time.strftime("%Y-%m-%d", time.gmtime(l["created_at"] or 0)) for l in lobbies})
+    st = dict(tally, full=full, orders_done=sum(1 for o in orders if o["done_at"]))
+    log = []
+    for e in db.room_log_list(rid):
+        try:
+            body = json.loads(e["text"])
+        except Exception:
+            body = {"t": e["text"]}
+        log.append(dict(body, at=e["at"], kind=e["kind"]))
+    members = [{"id": m["locker_id"], "callsign": m["callsign"], "play_style": m["play_style"],
+                "public": bool(m["public"])} for m in db.room_members(rid) if m.get("callsign")]
+    return {"id": r["id"], "name": r["name"], "ship": r["ship"], "created_at": r["created_at"],
+            "mission": json.loads(r["mission_json"]) if r.get("mission_json") else None,
+            "mission_name": _mission_name(r.get("mission_json")), "mission_by": r.get("mission_by"),
+            "orders": orders, "tables": tables, "members": members, "log": log,
+            "stats": {"tables": len(lobbies), "nights": nights, "drops": tally["drops"], "medals": tally["medals"],
+                      "oaths": tally["oaths"], "kills": tally["kills"], "planets": tally["planets"]},
+            "ribbons": [k for k, f in RIBBONS if f(st)]}
+
+
+@app.post("/api/room")
+def create_room(payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    rid, token = _id(4), secrets.token_urlsafe(16)
+    name = str(payload.get("name") or "").strip()[:40] or "War Room"
+    db.create_room(rid, name, _ship_name(rid), token)
+    lk = _locker_ok(x_locker_id, x_locker)
+    if lk:
+        db.add_room_member(rid, lk["id"])
+    db.room_log(rid, "open", json.dumps({"k": "log.open", "p": {"who": (lk or {}).get("callsign")}}))
+    return {"room_id": rid, "creator_token": token}
+
+
+@app.get("/api/room/{rid}")
+def get_room(rid: str):
+    return _room_out(rid[:40])
+
+
+@app.post("/api/room/{rid}/join")
+def join_room(rid: str, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    if not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    lk = _require_locker(x_locker_id, x_locker)
+    if not any(m["locker_id"] == lk["id"] for m in db.room_members(rid)):
+        db.add_room_member(rid, lk["id"])
+        db.room_log(rid, "member", json.dumps({"k": "log.member", "p": {"who": lk.get("callsign") or "?"}}))
+    return {"ok": True}
+
+
+@app.post("/api/room/{rid}/name")
+def rename_room(rid: str, payload: dict, x_token: str = Header(None)):
+    r = db.get_room(rid)
+    if not r:
+        raise HTTPException(404, "war room not found")
+    if not x_token or x_token != r["creator_token"]:
+        raise HTTPException(403, "only the room's founder can rename it")
+    db.update_room(rid, name=str(payload.get("name") or "").strip()[:40] or r["name"],
+                   ship=str(payload.get("ship") or "").strip()[:48] or r["ship"])
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/mission")
+def room_mission(rid: str, payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    if not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    who = _who(x_locker_id, x_locker)
+    if payload.get("clear"):
+        db.update_room(rid, mission_json=None, mission_by=who)
+        return _room_out(rid)
+    m = _clean_mission(payload.get("mission"))
+    m.pop("roles", None)   # creator-applied swaps belong to one table, not the room
+    db.update_room(rid, mission_json=json.dumps(m), mission_by=who)
+    label = (_mission_name(json.dumps(m)) or {}).get("name") or m.get("planet_name") or m.get("faction")
+    db.room_log(rid, "mission", json.dumps({"k": "log.mission", "p": {"who": who, "what": label, "planet": m.get("planet_name")}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/orders")
+def add_order(rid: str, payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    if not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    kind = payload.get("kind")
+    if kind not in ORDER_KINDS:
+        raise HTTPException(400, "unknown order")
+    if len(db.room_orders(rid)) >= 12:
+        raise HTTPException(400, "twelve standing orders is plenty: retire one first")
+    try:
+        target = max(1, min(100000, int(payload.get("target") or 1)))
+    except (TypeError, ValueError):
+        target = 1
+    params = {}
+    if kind == "planet":
+        params["planet"] = str((payload.get("params") or {}).get("planet") or "")[:40]
+        if not params["planet"]:
+            raise HTTPException(400, "pick a planet")
+    if kind == "difficulty":
+        params["min"] = max(1, min(10, int((payload.get("params") or {}).get("min") or 10)))
+    title = str(payload.get("title") or "").strip()[:80]
+    if kind == "custom" and not title:
+        raise HTTPException(400, "give the order a name")
+    who = _who(x_locker_id, x_locker)
+    db.add_room_order(_id(4), rid, kind, title, 1 if kind == "custom" else target, params, who)
+    db.room_log(rid, "neworder", json.dumps({"k": "log.neworder", "p": {"who": who, "title": title, "kind": kind,
+                                                                          "n": target, "params": params}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/orders/{oid}")
+def edit_order(rid: str, oid: str, payload: dict):
+    if not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    if payload.get("retire"):
+        db.update_room_order(oid, rid, retired=1)
+    if payload.get("done") is not None:
+        db.update_room_order(oid, rid, done_at=time.time() if payload["done"] else None)
+    return _room_out(rid)
+
+
+@app.post("/api/rooms/summary")
+def rooms_summary(payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    """The rooms this device or profile knows: for the home tab and the new-table picker."""
+    ids = [str(x)[:40] for x in (payload.get("ids") or [])][:40]
+    lk = _locker_ok(x_locker_id, x_locker)
+    rows = {r["id"]: r for r in (db.locker_rooms(lk["id"]) if lk else [])}
+    for i in ids:
+        if i not in rows:
+            r = db.get_room(i)
+            if r:
+                rows[i] = r
+    out = []
+    for r in sorted(rows.values(), key=lambda r: -(r["updated_at"] or 0)):
+        out.append({"id": r["id"], "name": r["name"], "ship": r["ship"], "updated_at": r["updated_at"],
+                    "mission_name": _mission_name(r.get("mission_json")),
+                    "planet": (json.loads(r["mission_json"]) if r.get("mission_json") else {}).get("planet_name"),
+                    "tables": len(db.room_lobbies(r["id"], 200))})
+    return {"rooms": out}
+
+
+@app.post("/api/lobby/{lid}/room")
+def attribute_lobby(lid: str, payload: dict, x_token: str = Header(None)):
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    rid = str(payload.get("room_id") or "")[:40] or None
+    if rid and not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    db.set_lobby_room(lid, rid)
+    if rid:
+        db.room_log(rid, "table", json.dumps({"k": "log.table", "p": {"name": lobby["name"], "lobby": lid}}))
+    return _resolve(db.get_lobby(lid))
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/go")
+def player_go(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    p = _require_player(pid, x_token)
+    if p["lobby_id"] != lid:
+        raise HTTPException(404, "player not in this lobby")
+    db.set_player_go(pid, bool(payload.get("go")))
+    return _resolve(db.get_lobby(lid))
 
 
 # ---------------------------------------------------------------- players
@@ -618,6 +897,9 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
     mem = db.recall_callsign(callsign_final)
     if lk:
         db.link_player_locker(pid, lk["id"])
+        if lobby.get("room_id") and not any(m["locker_id"] == lk["id"] for m in db.room_members(lobby["room_id"])):
+            db.add_room_member(lobby["room_id"], lk["id"])   # a table in a war room brings you aboard
+            db.room_log(lobby["room_id"], "member", json.dumps({"k": "log.member", "p": {"who": callsign_final}}))
         if source == "screenshot":
             _locker_stats_from(lk["id"], snapshot, confidence, play_style, note)
         if not lk.get("callsign"):
@@ -767,6 +1049,12 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
         # the numbers and verdicts already stand; don't lose them over the prose call
         aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
     db.save_result(_id(5), lid, pid, result, aar, verdicts or None)
+    lobby = db.get_lobby(lid) or {}
+    if lobby.get("room_id"):   # the ship's log
+        medals = [v["medal"]["name"] for v in (verdicts or []) if v and v.get("medal")]
+        db.room_log(lobby["room_id"], "drop", json.dumps({"k": "log.drop", "p": {
+            "who": p.get("callsign"), "mission": (_mission_name(lobby.get("mission_json")) or {}).get("name") or lobby.get("name"),
+            "kills": (result or {}).get("kills"), "deaths": (result or {}).get("deaths"), "medals": medals}}))
     return {"ok": True, "aar": aar, "result": result, "verdicts": verdicts,
             "verdict": verdicts[0] if verdicts else None}
 
