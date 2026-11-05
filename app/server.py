@@ -565,6 +565,10 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
         callsign = lk.get("callsign") or ""
     pid, token = _id(4), secrets.token_urlsafe(16)
     n_existing = len(db.list_players(lid))
+    if n_existing >= 4:   # a Helldivers squad is four
+        raise HTTPException(409, "This war table is full: four divers already joined.")
+    if lobby.get("squad_size") and n_existing >= lobby["squad_size"]:
+        db.set_squad_size(lid, n_existing + 1)   # one more than planned: the briefing waits for them too
     snapshot, play_style, source, note = None, "by_the_book", "pending", "Pick a style or upload your career stats."
     parsed_call = callsign.strip()
     imgs = await _read_images(images)

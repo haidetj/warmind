@@ -234,6 +234,11 @@ def set_confidence(pid, confidence):
                   (json.dumps(confidence) if confidence else None, pid))
 
 
+def set_squad_size(lobby_id, n):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET squad_size=?, updated_at=? WHERE id=?", (n, time.time(), lobby_id))
+
+
 def create_lobby(lobby_id, name, creator_token, squad_size=4):
     now = time.time()
     with _lock, _conn() as c:

@@ -600,6 +600,17 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
   .roslist li.me a{border-color:var(--amber-2)} .roslist .rk{font-family:var(--mono);color:var(--muted);text-align:center}
   .roslist .who b{display:block;overflow-wrap:anywhere} .roslist .who small{color:var(--muted)} .roslist .val{font-family:var(--mono);font-weight:700;color:var(--cyan);white-space:nowrap}
   .rosrecent{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px} .rosrecent li{padding:6px 0;border-bottom:1px solid var(--line)}
+  .slot{display:contents}
+  .thin{color:var(--amber)} .thin.open{color:var(--red);font-weight:600}
+  .kvrow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin-bottom:6px} .kvrow .seg{flex:1 1 180px;margin:0} .kvrow .btn{flex:0 0 auto}
+  .rerolln{color:var(--cyan)}
+  @media (max-width:600px){ .subtabs{position:static} .subtabs button{font-size:12px;padding:8px 4px;min-height:40px;line-height:1.15} }
+  .tile{grid-template-columns:18px 44px minmax(0,1fr) auto} .tile .wkx{margin-left:auto;align-self:center;padding:10px 8px;color:var(--muted);text-decoration:none;font-size:16px;line-height:1} .tile .wkx:hover{color:var(--cyan)}
+  .seg.hometabs{grid-auto-flow:row;grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 4px}
+  .seg.hometabs button{min-height:44px;font-size:12.5px;letter-spacing:1px;text-transform:uppercase}
+  .seg.hometabs button[aria-selected="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(62,230,255,.09);box-shadow:inset 0 -2px 0 var(--cyan)}
+  .homepane[hidden]{display:none}
+  .front .btn{margin-top:8px}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>
