@@ -1958,6 +1958,7 @@
   function whyLine(w) {
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
+    if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
     if (p.mode) p.mode = t("mode." + p.mode);
@@ -1987,6 +1988,12 @@
       el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", t("card.style", { style: styleLabel(p.play_style) }),
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
       a && a.compass ? el("div", { class: "cmini", title: t("cmp.title") }, [compassSvg([Object.assign({ color: p.accent }, a.compass)], 44, false), el("small", {}, [compassWord(a.compass)])]) : null,
+      a && mine && store.locker() ? (() => {   // "I want to wear my armour": keep this set from now on, or let WARMIND pick again
+        const worn = (a.why || []).some(w => w.k === "why.worn");
+        const b = el("button", { class: "btn sm", type: "button" }, [worn ? "📌 " + t("arm.wearing", { armor: a.armor }) + " · " + t("arm.release") : "📌 " + t("arm.keep", { armor: a.armor })]);
+        b.onclick = async () => { b.disabled = true; try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
+          toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); b.disabled = false; } };
+        return el("div", { class: "wornrow" }, [b]); })() : null,
     ]));
     if (!a) return card;
     if (kitView === "screen") {
@@ -2179,6 +2186,9 @@
       el("div", { class: "btnrow" }, [up, dev]), status,
       el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]),
         el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]),
+        (() => { const sel = armorSelect((LK.prefs || {}).armor_set, null, null);
+          sel.onchange = async () => { try { await setWorn(sel.value); LK.prefs = Object.assign({}, LK.prefs, { armor_set: sel.value || undefined }); toast(sel.value ? t("arm.saved", { armor: sel.value }) : t("arm.cleared")); } catch (e) { toast(e.message); } };
+          return el("div", { class: "field", style: "flex:1 1 100%;margin:6px 0 0" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), sel, el("div", { class: "hint", style: "margin:4px 0 0" }, [t("arm.hint")])]); })(),
         (() => { const b = el("button", { class: "btn sm", type: "button" }, ["◈ " + t("pq.tune")]); b.onclick = () => profileChat(LK.callsign, LK.prefs, p => { LK.prefs = p; paintLocker(); }); return b; })()]),
       el("div", { class: "hint" }, [t("lk.private")]),
       (() => {   // the open roster: listed unless you opt out
@@ -2249,7 +2259,24 @@
     ["front", ["terminids", "automatons", "illuminate", "any"]],
   ];
   const prefLabel = (k, v) => t("pq." + k + "." + v);
-  const prefSummary = p => PREF_Q.map(([k]) => p && p[k] && p[k] !== "any" ? prefLabel(k, p[k]) : null).filter(Boolean).join(" · ");
+  // every armour set, by weight, with its passive ("the armour I wear")
+  function armorSets(owned) {
+    const tb = (META.armory || []).find(x => x.slot === "Armor"); if (!tb) return [];
+    const own = owned ? new Set(owned) : null;
+    return tb.groups.map(g => ({ weight: g.group, items: g.items.filter(i => !own || own.has(i.name) || i.source === "Helldivers Mobilize") }));
+  }
+  function armorSelect(cur, owned, weight) {
+    const sel = el("select", { "aria-label": t("arm.pick") }, [el("option", { value: "" }, [t("arm.auto")])]);
+    armorSets(owned).forEach(g => { if (weight && weight !== "any" && g.weight !== weight) return;
+      const og = el("optgroup", { label: has("w." + g.weight) ? t("w." + g.weight) : g.weight });
+      g.items.forEach(i => og.appendChild(el("option", { value: i.name }, [i.name + (i.passive ? " · " + i.passive : "")]))); sel.appendChild(og); });
+    sel.value = cur || ""; return sel;
+  }
+  async function setWorn(name) {
+    const L = store.locker(); if (!L) return false;
+    await lpost("/api/locker/" + L.id + "/prefs", { armor_set: name || "" }); return true;
+  }
+  const prefSummary = p => PREF_Q.map(([k]) => p && p[k] && p[k] !== "any" ? prefLabel(k, p[k]) : null).concat(p && p.armor_set ? ["📌 " + p.armor_set] : []).filter(Boolean).join(" · ");
   function profileChat(callsign, prefs, done) {
     const L = store.locker(); if (!L) return;
     const ans = Object.assign({}, prefs || {});
@@ -2263,11 +2290,23 @@
       choices.innerHTML = "";
       if (i >= PREF_Q.length) {
         say("wm", t("pq.done", { name: callsign || "" }));
-        lpost("/api/locker/" + L.id + "/prefs", ans).then(() => { if (done) done(ans); }).catch(e => toast(e.message));
+        const out = Object.assign({}, ans); delete out.__setAsked;
+        lpost("/api/locker/" + L.id + "/prefs", out).then(r => { if (done) done(r.prefs || out); }).catch(e => toast(e.message));
         const ok = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("pq.close")]); ok.onclick = () => dlg.close(); choices.appendChild(ok);
         return;
       }
       const [k, opts] = PREF_Q[i];
+      if (k === "front" && !ans.__setAsked) {   // between armour and front: the exact set they wear
+        ans.__setAsked = true;
+        say("wm", t("arm.q"));
+        const sel = armorSelect(ans.armor_set, null, ans.armor); sel.style.flex = "1 1 100%";
+        const yes = el("button", { type: "button", class: "btn sm primary" }, ["📌 " + t("arm.wear")]);
+        const no = el("button", { type: "button", class: "btn sm" }, [t("arm.auto")]);
+        yes.onclick = () => { if (!sel.value) { sel.focus(); return; } ans.armor_set = sel.value; say("me", "📌 " + sel.value); setTimeout(ask, 280); };
+        no.onclick = () => { ans.armor_set = ""; say("me", t("arm.auto")); setTimeout(ask, 280); };
+        choices.append(sel, yes, no);
+        return;
+      }
       say("wm", t("pq." + k + ".q", { name: callsign || "" }));
       opts.forEach(v => { const b = el("button", { type: "button", class: "btn sm" + (ans[k] === v ? " primary" : "") }, [prefLabel(k, v)]);
         b.onclick = () => { ans[k] = v; say("me", prefLabel(k, v)); i++; setTimeout(ask, 280); }; choices.appendChild(b); });

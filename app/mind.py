@@ -295,6 +295,8 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         # what the diver told WARMIND they like (vibe, focus, armour). Honour it in Optimize / Fun /
         # Improvement as long as the mission is still answered; Challenge and D100 push past it.
         "told_us": pl.prefs or None,
+        # armour the diver chose to wear: it is fixed (the engine keeps it); build the kit around its passive
+        "wears": (pl.prefs or {}).get("armor_set"),
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},
@@ -527,6 +529,7 @@ def apply(session, players, plan: dict):
     for a in d.assignments:
         lines = _clean_why(plan.get("why", {}).get(a.player_id, []), a)
         if lines:
-            keep = [w for w in a.why if w["kind"] in ("role", "drill", "handling", "thin", "nostats", "reroll")]
+            keep = [w for w in a.why if w["kind"] in ("role", "drill", "handling", "thin", "nostats", "reroll")
+                    or str(w.get("k", "")).startswith("why.worn")]   # "your armour stays on" survives the planner
             a.why = [{"kind": "mind", "k": "why.mind", "p": {"t": ln}} for ln in lines] + keep
     return d, {"summary": plan.get("summary", ""), "kept": kept, "total": total, "model": plan.get("model")}

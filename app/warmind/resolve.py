@@ -127,6 +127,7 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
             s += ask_mod.ask_term(it, session.mode)
         s += ask_mod.drill_term(it, getattr(session, "_drills", ()))
         s += _pref_term(it, getattr(session, "_prefs", None))
+        s += _worn_term(it, getattr(session, "_worn", None), session.faction)
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
@@ -183,6 +184,48 @@ def _pref_term(it, prefs) -> float:
     elif v == "hold" and ("static_position" in it.tags or it.category in ("sentry", "emplacement")):
         s += VIBE_W
     return s
+
+
+WORN_W = 1.2   # the diver chose this armour: weapons and stratagems that use its passive go up a notch
+_NONE = None
+
+
+def _blank():
+    global _NONE
+    if _NONE is None:
+        from .items import Item
+        _NONE = Item(name="—", slot="none")
+    return _NONE
+
+
+def _worn_term(it, worn, faction) -> float:
+    """How much this item makes the diver's chosen armour pay off (its passive, in isolation)."""
+    if worn is None or it.slot in ("armor",):
+        return 0.0
+    b = _blank()
+    kit = {"primary": it if it.slot == "primary" else b, "secondary": it if it.slot == "secondary" else b,
+           "grenade": it if it.slot == "grenade" else b, "strat": [it] if it.slot == "stratagem" else []}
+    try:
+        return WORN_W * passives.bonus(worn.passive, kit, faction)[0]
+    except Exception:
+        return 0.0
+
+
+def worn_armor(pl, pool, session, quiet: bool):
+    """The armour this diver asked to wear, if they own it and the mode allows it.
+    D100 keeps it only if it's Light with no defensive passive; a quiet run never wears Heavy."""
+    name = (pl.prefs or {}).get("armor_set")
+    if not name:
+        return None, None
+    it = next((a for a in pool.armor if a.name == name), None)
+    if it is None:
+        return None, None
+    # naming the set you wear says you own it: no gear-list check here
+    if session.mode == "d100" and (it.weight != "Light" or ask_mod.is_crutch(it)):
+        return None, "d100"
+    if quiet and it.weight == "Heavy":
+        return None, "quiet"
+    return it, None
 
 
 def _jitter(name: str, seed: int, salt: str) -> float:
@@ -519,6 +562,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
 
     session._squad_n = len(players)
     ctx = {}   # pid -> (pl, role, pstyle, hist, excluded)
+    worn_note = {}   # pid -> (worn armour, why it was set aside, what they asked for)
 
     def as_diver(pl):
         session._excluded = ctx[pl.id][4]
@@ -527,6 +571,10 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         session._drills = drills.get(pl.id, [])
         # the diver's own preferences count in the comfortable modes; Challenge and D100 push past them
         session._prefs = (pl.prefs or {}) if session.mode in PREF_MODES else {}
+        # the armour the diver wears (their pick, every mode): the kit is built around its passive
+        worn, worn_skip = worn_armor(pl, pool, session, quiet)
+        session._worn = worn
+        worn_note[pl.id] = (worn.name if worn else None, worn_skip, (pl.prefs or {}).get("armor_set"))
 
     drills = {pl.id: ask_mod.drills(pl.derived, session.mode) for pl in players}
 
@@ -594,7 +642,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map
-        chosen_armor = _chosen(pool.armor, ov.get("armor"), session)
+        chosen_armor = getattr(session, "_worn", None) or _chosen(pool.armor, ov.get("armor"), session)
         if chosen_armor and quiet and chosen_armor.weight == "Heavy":
             chosen_armor = None   # quiet runs never wear Heavy
         armor = chosen_armor or _pick(pool.armor_of_weight(weight), session, pstyle, hist,
@@ -638,6 +686,12 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         why = _why_kit(pl, role, session, role_map.get(pl.id), primary, secondary, armor, strat,
                        chaff_for.get(pl.id), passive_why.get(pl.id), growth, thin, matrix,
                        grenade=grenade, drills=drills.get(pl.id, []))
+        wn = worn_note.get(pl.id)
+        if wn and wn[0]:   # their armour, kept: say so, and what in the kit uses its passive
+            why = [w for w in why if w["kind"] != "armor"] + [{"kind": "armor", "k": "why.worn",
+                   "p": {"armor": armor.name, "passive": armor.passive, "why": (passive_why.get(pl.id) or [None])[0]}}]
+        elif wn and wn[2] and wn[1]:
+            why.append({"kind": "armor", "k": "why.worn.skip." + wn[1], "p": {"armor": wn[2]}})
         final.append(Assignment(
             why=why,
             player_id=pl.id, callsign=pl.callsign, role=role.name,

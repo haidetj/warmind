@@ -144,13 +144,19 @@ PREF_KEYS = {"vibe": {"boom", "precision", "stealth", "hold", "any"},
              "front": {"terminids", "automatons", "illuminate", "any"}}
 
 
+_ARMOR_NAMES = {r["name"] for r in loader.items().get("armor", [])}
+
+
 def _prefs_of(locker_id) -> dict:
     lk = db.get_locker(locker_id) if locker_id else None
     try:
         p = json.loads(lk["prefs_json"]) if lk and lk.get("prefs_json") else {}
     except Exception:
         p = {}
-    return {k: v for k, v in p.items() if k in PREF_KEYS and v in PREF_KEYS[k] and v != "any"}
+    out = {k: v for k, v in p.items() if k in PREF_KEYS and v in PREF_KEYS[k] and v != "any"}
+    if p.get("armor_set") in _ARMOR_NAMES:   # the exact armour the diver wears
+        out["armor_set"] = p["armor_set"]
+    return out
 
 
 def _resolve(lobby) -> dict:
@@ -1515,7 +1521,20 @@ def roster_profile(lid: str):
 @app.post("/api/locker/{lid}/prefs")
 def locker_prefs(lid: str, payload: dict, x_locker: str = Header(None)):
     _require_locker(lid, x_locker)
-    p = {k: v for k, v in (payload or {}).items() if k in PREF_KEYS and v in PREF_KEYS[k]}
+    lk = db.get_locker(lid)
+    try:
+        cur = json.loads(lk["prefs_json"]) if lk and lk.get("prefs_json") else {}
+    except Exception:
+        cur = {}
+    for k, v in (payload or {}).items():   # partial updates: the chat sets four, the armour picker one
+        if k in PREF_KEYS and v in PREF_KEYS[k]:
+            cur[k] = v
+        elif k == "armor_set":
+            if v in _ARMOR_NAMES:
+                cur[k] = v
+            else:
+                cur.pop(k, None)
+    p = cur
     db.update_locker(lid, prefs_json=json.dumps(p))
     return {"ok": True, "prefs": p}
 
