@@ -43,6 +43,7 @@ MODEL = os.environ.get("WARMIND_PLAN_MODEL", vision.MODEL)
 EFFORT = os.environ.get("WARMIND_PLAN_EFFORT", "medium")
 TIMEOUT_S = 150
 STALE_S = 240          # an in-flight plan older than this is presumed lost (restart, crash)
+SLOW_S = int(os.environ.get("WARMIND_PLAN_SLOW_S", "100"))   # past this the squad gets the engine's set, for good
 
 N_PRIMARY, N_SECONDARY, N_GRENADE, N_ARMOR, N_STRAT = 10, 6, 6, 9, 24
 
@@ -94,6 +95,22 @@ def signature(session, players, mission: dict) -> str:
         "v": 1,
     }
     return hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
+
+
+def brief_key(session, players, mission: dict) -> str:
+    """What a loadout set is FOR: the mission, the reroll, who's in the squad and what each
+    diver told WARMIND. Once a set exists for this key it stays, so background changes
+    (a gear tick, a re-read of stats) never swap kits under the squad's feet."""
+    body = {"m": {k: v for k, v in sorted(mission.items()) if k not in ("think", "lang")}, "seed": session.seed,
+            "p": sorted([p.id, p.play_style, sorted((p.prefs or {}).items())] for p in players), "v": 1}
+    return "k:" + hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
+
+
+def _pin(lobby_id, key, status, plan):
+    """The squad's set for this key, written once."""
+    row = db.get_plan(lobby_id, key)
+    if not row:
+        db.put_plan(lobby_id, key, status, plan)
 
 
 # ---------------------------------------------------------------- the brief
@@ -471,12 +488,13 @@ def _clean_why(lines: list[str], a) -> list[str]:
 
 # ---------------------------------------------------------------- orchestration
 
-def _think(lobby_id, sig, session, players, mission, lang):
+def _think(lobby_id, sig, session, players, mission, lang, key=None):
     t0 = time.time()
     try:
         base = resolve_squad(copy.deepcopy(session), copy.deepcopy(players), {})
         system, user, sl = build_request(base.session, players, mission, base, lang)
         if vision.MOCK:
+            time.sleep(float(os.environ.get("WARMIND_PLAN_MOCK_DELAY", "0") or 0))   # tests: a planner that takes a while
             raw, usage = _mock(players, base)
         else:
             raw, usage = _call(system, user, lobby_id)
@@ -485,11 +503,15 @@ def _think(lobby_id, sig, session, players, mission, lang):
                 "bad_names": bad, "usage": usage, "model": "mock" if vision.MOCK else MODEL,
                 "prompt_chars": len(system) + len(user)}
         db.put_plan(lobby_id, sig, "ready", plan)
+        if key:
+            _pin(lobby_id, key, "ready", plan)
         LAST.clear(); LAST.update(status="ready", at=round(time.time()), usage=usage, bad_names=bad,
                                   seconds=round(time.time() - t0, 1))
     except Exception as e:   # the engine's plan stands; say why the thinking didn't land
         err = f"{type(e).__name__}: {e}"[:300]
         db.put_plan(lobby_id, sig, "failed", {"error": err})
+        if key:
+            _pin(lobby_id, key, "engine", {"why": "failed", "error": err})
         LAST.clear(); LAST.update(status="failed", at=round(time.time()), error=err)
     finally:
         with _lock:
@@ -501,26 +523,38 @@ def plan_for(lobby_id, session, players, mission: dict) -> tuple[dict | None, di
     there's no plan for these inputs yet."""
     if not ENABLED or mission.get("think") is False:
         return None, {"status": "off"}
+    key = brief_key(session, players, mission)
+    pinned = db.get_plan(lobby_id, key)
+    if pinned and pinned["status"] == "ready":
+        return pinned["plan"], {"status": "ready", "sig": key}
+    if pinned:   # failed or too slow: the engine's set is the squad's set now
+        return None, {"status": "engine", "sig": key, "why": (pinned["plan"] or {}).get("why")}
     sig = signature(session, players, mission)
     row = db.get_plan(lobby_id, sig)
     if row and row["status"] == "ready":
-        return row["plan"], {"status": "ready", "sig": sig}
+        _pin(lobby_id, key, "ready", row["plan"])
+        return row["plan"], {"status": "ready", "sig": key}
     if row and row["status"] == "failed":
-        return None, {"status": "failed", "sig": sig}
+        _pin(lobby_id, key, "engine", {"why": "failed"})
+        return None, {"status": "engine", "sig": key, "why": "failed"}
     now = time.time()
     with _lock:
         started = _inflight.get((lobby_id, sig))
+        if started and now - started >= SLOW_S:   # taking too long: hand over the engine's set and keep it
+            _pin(lobby_id, key, "engine", {"why": "slow"})
+            return None, {"status": "engine", "sig": key, "why": "slow"}
         if started and now - started < STALE_S:
-            return None, {"status": "thinking", "sig": sig, "since": started}
+            return None, {"status": "thinking", "sig": key, "since": started}
         try:
             budget.charge_plan(lobby_id)
         except budget.OverBudget:
-            return None, {"status": "budget", "sig": sig}
+            _pin(lobby_id, key, "engine", {"why": "budget"})
+            return None, {"status": "engine", "sig": key, "why": "budget"}
         _inflight[(lobby_id, sig)] = now
     lang = mission.get("lang") if mission.get("lang") in vision.LANG_NAMES else "en"
     threading.Thread(target=_think, args=(lobby_id, sig, copy.deepcopy(session), copy.deepcopy(players),
-                                          dict(mission), lang), daemon=True).start()
-    return None, {"status": "thinking", "sig": sig, "since": now}
+                                          dict(mission), lang, key), daemon=True).start()
+    return None, {"status": "thinking", "sig": key, "since": now}
 
 
 def apply(session, players, plan: dict):

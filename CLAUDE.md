@@ -30,6 +30,11 @@ reroll re-picks them with the full context (mission, hazards, modifiers, oaths, 
 each diver's career rates and drills, ranked shortlists of owned gear with stats and
 "ask"). Every pick goes back through `resolve_squad(override=...)`, so ownership, kit
 rules and the squad review still hold. Plans are cached in the `plan` table.
+One set per diver: while the planner works the briefing shows a single "building your loadouts"
+screen (no engine picks). The finished set is pinned under `mind.brief_key` (mission, reroll,
+squad, each diver's stated preferences), so background changes (gear ticks, stat re-reads) never
+swap kits; only gear a diver no longer owns is refilled. Past `WARMIND_PLAN_SLOW_S` (100s), or on
+failure / budget, the engine's set is pinned instead and stays.
 Env: `WARMIND_PLANNER=0` turns it off, `WARMIND_PLAN_MODEL` (defaults to
 `WARMIND_MODEL`), `WARMIND_PLAN_EFFORT` (default medium), caps
 `WARMIND_PLAN_PER_LOBBY_HOUR` (20) / `WARMIND_PLAN_PER_DAY` (150). `/health` →

@@ -664,7 +664,7 @@
     const sig = JSON.stringify(s);
     if (sig === lastSig && STATE) return;
     const mWas = STATE && STATE.directive && STATE.directive.mind, mNow = s.directive && s.directive.mind;
-    if (mWas && mNow && mWas.status === "thinking" && mNow.status === "ready" && mWas.sig === mNow.sig) toast(t("mind.toast"));   // nothing changed: leave the page (and any open folds) alone
+    if (mWas && mNow && mWas.status === "thinking" && mNow.status !== "thinking") toast(t("mind.toast"));   // nothing changed: leave the page (and any open folds) alone
     if (STATE && s.directive && (JSON.stringify(STATE.mission) !== JSON.stringify(s.mission) || (STATE.reroll || 0) !== (s.reroll || 0))) {
       busy = true;
       try { await regenScreen(null, 1500); } finally { busy = false; }
@@ -820,7 +820,7 @@
   // Briefing sub-tabs: Loadouts / Squad review / Plan — the long briefing in focused pieces
   function briefingView() {
     const nodes = briefing();
-    if (!STATE.directive) return nodes;
+    if (!STATE.directive || isBuilding()) return nodes;
     const subs = [["loadouts", t("sub.loadouts")], ["review", t("sub.review")], ["plan", t("sub.plan")]];
     const bar = el("div", { class: "seg subtabs", role: "tablist" });
     const show = () => {
@@ -1760,6 +1760,11 @@
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
+    if (m.status === "ready") return el("details", { class: "mind ready fold" }, [
+      el("summary", {}, ["◈ " + t("mind.ready.short")]),
+      el("div", { class: "body" }, [m.summary ? el("div", {}, [m.summary]) : null,
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.ready.checked", { a: m.kept || 0, b: m.total || 0 })])])]);
+    if (m.status === "engine") return el("div", { class: "mind off" }, [el("b", {}, ["◈ "]), t("mind.engine")]);
     if (m.status === "thinking") {
       const clock = el("span", { class: "met" }, ["T+", nixie(metText(m.since || Date.now() / 1000).slice(3))]);
       const tm = setInterval(() => { if (!clock.isConnected) return clearInterval(tm); clock.lastChild.replaceWith(nixie(metText(m.since || Date.now() / 1000).slice(3))); }, 1000);
@@ -1773,8 +1778,20 @@
     return el("div", { class: "mind off" }, [el("b", {}, ["◈ "]), t(m.status === "budget" ? "mind.budget" : "mind.failed")]);
   }
 
+  const isBuilding = () => !!(STATE && STATE.directive && STATE.directive.mind && STATE.directive.mind.status === "thinking");
+  function buildingPanel(m) {
+    const clock = el("span", { class: "met" }, ["T+", nixie(metText(m.since || Date.now() / 1000).slice(3))]);
+    const line = el("div", { class: "upstatus working", style: "display:flex" });
+    const stop = workTicker(line, lines("tick.gen.", 6));
+    const tm = setInterval(() => { if (!clock.isConnected) { clearInterval(tm); stop(); return; } clock.lastChild.replaceWith(nixie(metText(m.since || Date.now() / 1000).slice(3))); }, 1000);
+    return panel(t("roster.pid"), t("mind.build.t"), { status: "◈", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "building" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["⬡"]), clock]),
+      el("div", { class: "hint", style: "margin:10px 0" }, [t("mind.build")]), line,
+      el("div", { class: "hint" }, [t("mind.build.eta")])]);
+  }
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
+    if (d && isBuilding()) return [buildingPanel(d.mind)];   // one good set per diver, shown once it's ready
     if (!d) return [r.mission_set
       ? el("div", { class: "alert" }, [el("b", {}, [t("brief.hold.t")]), t("brief.hold")])
       : el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];

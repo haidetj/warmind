@@ -702,6 +702,12 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .costbars .ax{fill:var(--muted);font:9px var(--mono);letter-spacing:1px}
   .rstat small.sub{font-size:9px;letter-spacing:.5px;text-transform:none}
   .rstats.ctiles{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))} .ctiles .nixie{font-size:15px} .ctiles .nixie .nx{min-width:.7em}
+  .building{display:flex;align-items:center;justify-content:center;gap:14px;padding:18px 0 6px}
+  .building .hex{font-size:44px;color:var(--nixie);text-shadow:var(--nixie-glow);animation:spinhex 3.2s linear infinite}
+  .building .met .nixie{font-size:22px}
+  @keyframes spinhex{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.building .hex{animation:none}}
+  .mind.ready.fold{padding:0} .mind.ready.fold summary{padding:10px 12px;cursor:pointer}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>
