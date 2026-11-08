@@ -344,7 +344,7 @@ def build_request(session, players, mission, directive, lang: str) -> tuple[str,
 
 # ---------------------------------------------------------------- the call
 
-def _call(system: str, user: str) -> tuple[dict, dict]:
+def _call(system: str, user: str, lobby_id: str | None = None) -> tuple[dict, dict]:
     headers = {"x-api-key": vision.API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     body = {
         "model": MODEL, "max_tokens": 16000,
@@ -359,6 +359,8 @@ def _call(system: str, user: str) -> tuple[dict, dict]:
         if r.status_code >= 400:
             raise RuntimeError(f"planner API {r.status_code}: {r.text[:300]}")
         data = r.json()
+    import costs
+    costs.record("plan", data.get("model") or MODEL, data.get("usage"), lobby_id)   # billed even if we can't use it
     if data.get("stop_reason") in ("refusal", "max_tokens"):
         raise RuntimeError(f"planner stopped: {data.get('stop_reason')}")
     text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
@@ -477,7 +479,7 @@ def _think(lobby_id, sig, session, players, mission, lang):
         if vision.MOCK:
             raw, usage = _mock(players, base)
         else:
-            raw, usage = _call(system, user)
+            raw, usage = _call(system, user, lobby_id)
         override, why, bad = to_override(raw, sl)
         plan = {"override": override, "why": why, "summary": str(raw.get("summary") or "")[:600],
                 "bad_names": bad, "usage": usage, "model": "mock" if vision.MOCK else MODEL,

@@ -22,6 +22,7 @@ from starlette.middleware.gzip import GZipMiddleware
 import pathlib
 
 import budget
+import costs
 import db
 import vision
 import war
@@ -1251,7 +1252,42 @@ def picture(name: str):
 def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
             "vision": vision.status(), "budget": budget.status(), "war": war.status(),
-            "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST}}
+            "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST},
+            "costs": _cost_brief()}
+
+
+def _cost_brief():
+    try:
+        r = costs.report()
+        return {"app_today": r["app"]["today"], "app_mtd": r["app"]["mtd"],
+                "bill_mtd": (r["bill"] or {}).get("mtd"), "admin": r["admin"]["status"]}
+    except Exception as e:
+        return {"error": str(e)[:120]}
+
+
+# ---------------------------------------------------------------- costs
+costs.start()   # polls Anthropic's cost report when ANTHROPIC_ADMIN_KEY is set
+_last_poll = [0.0]
+
+
+@app.get("/api/costs")
+def get_costs():
+    r = costs.report()
+    r["caps"] = budget.status()
+    r["planner"] = {"model": mind.MODEL, "effort": mind.EFFORT, "enabled": mind.ENABLED}
+    r["vision_model"] = vision.MODEL
+    r["mock"] = vision.status().get("mock")
+    return r
+
+
+@app.post("/api/costs/poll")
+def poll_costs():
+    """Refresh Anthropic's cost report now (at most once a minute)."""
+    if time.time() - _last_poll[0] < 60:
+        raise HTTPException(429, "polled less than a minute ago")
+    _last_poll[0] = time.time()
+    costs.poll_now()
+    return get_costs()
 
 
 # ---------------------------------------------------------------- lockers

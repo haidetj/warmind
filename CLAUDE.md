@@ -48,3 +48,11 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
+
+## Costs (`app/costs.py`, `/?costs`)
+Every Claude call records its `usage` (input, cache write/read, output) into `api_usage`, priced
+at list rates (`costs.PRICES`, override with `WARMIND_PRICES`), tagged by kind (plan, career,
+result, review, mission, squad). With `ANTHROPIC_ADMIN_KEY` (an Admin API key, sk-ant-admin...)
+a background thread polls `GET /v1/organizations/cost_report` every 30 min (whole org, daily
+USD) into `kv.cost_report`. `/api/costs` serves both; `/?costs` shows them (polls every 60s);
+`/health` → `costs` has a one-line summary. Hosting has no billing API: `WARMIND_HOSTING_USD_MONTH`.

@@ -104,7 +104,7 @@ def _normalize(images):
     return out
 
 
-def _call(images, prompt: str, max_tokens: int = 1024) -> str:
+def _call(images, prompt: str, max_tokens: int = 1024, kind: str = "vision") -> str:
     """One vision message over one or more images. `images` is a list of
     (bytes, media_type). Returns the model's text. Raises on transport/HTTP error."""
     headers = {
@@ -124,6 +124,8 @@ def _call(images, prompt: str, max_tokens: int = 1024) -> str:
             # Surface the API's own message so failures are diagnosable, not opaque.
             raise RuntimeError(f"vision API {r.status_code}: {r.text[:300]}")
         data = r.json()
+    import costs   # what this call cost, at list price (late import: costs imports db)
+    costs.record(kind, data.get("model") or MODEL, data.get("usage"))
     return "".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
 
 
@@ -141,7 +143,7 @@ def _extract_json(text: str) -> dict:
 
 # ---------------------------------------------------------------- career intake
 def _read_once(images) -> dict:
-    return _extract_json(_call(images, CAREER_PROMPT))
+    return _extract_json(_call(images, CAREER_PROMPT, kind="career"))
 
 
 def _reconcile(a: dict, b: dict):
@@ -212,7 +214,7 @@ def parse_mission(image_bytes: bytes, media_type: str, mission_ids: list[str]) -
         "\"operation_modifiers\" (array of strings you can read, e.g. 'complex stratagem plotting', "
         "'poor intel'). Omit anything not clearly visible. Return only the JSON object."
     )
-    raw = _extract_json(_call([(image_bytes, media_type)], prompt))
+    raw = _extract_json(_call([(image_bytes, media_type)], prompt, kind="mission"))
     return raw
 
 
@@ -226,7 +228,7 @@ def read_result(image_bytes: bytes, media_type: str) -> dict:
     these in code (warmind.oaths) before the review is written."""
     if MOCK:
         return dict(MOCK_RESULT)
-    return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT))
+    return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT, kind="result"))
 
 
 SQUAD_PROMPT = (
@@ -250,7 +252,7 @@ def read_squad_results(image_bytes: bytes, media_type: str, expected: list | Non
             out.append({"name": n.upper() if i % 2 else n, **r})
         return out
     hint = ("The squad's callsigns in WARMIND are: " + ", ".join(expected) + " (in-game names may differ). ") if expected else ""
-    data = _extract_json(_call([(image_bytes, media_type)], SQUAD_PROMPT.replace("{hint}", hint)))
+    data = _extract_json(_call([(image_bytes, media_type)], SQUAD_PROMPT.replace("{hint}", hint), kind="squad"))
     rows = data.get("players") if isinstance(data, dict) else data
     return [r for r in (rows or []) if isinstance(r, dict) and r.get("name")][:8]
 
@@ -330,7 +332,7 @@ def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
         "If the result was poor, check whether a thin capability with no deep partner caused it — "
         "that is a design error to own, not a player error. Return only the review text."
     )
-    return _call([(image_bytes, media_type)], prompt, max_tokens=500).strip()
+    return _call([(image_bytes, media_type)], prompt, max_tokens=500, kind="review").strip()
 
 
 def status() -> dict:

@@ -24,6 +24,23 @@ def _conn():
 
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS api_usage (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at REAL,
+  kind TEXT,
+  model TEXT,
+  lobby_id TEXT,
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  cache_read INTEGER,
+  cache_write INTEGER,
+  cost_usd REAL
+);
+CREATE TABLE IF NOT EXISTS kv (
+  k TEXT PRIMARY KEY,
+  v TEXT,
+  at REAL
+);
 CREATE TABLE IF NOT EXISTS room (
   id TEXT PRIMARY KEY,
   name TEXT,
@@ -588,3 +605,27 @@ def public_locker_by_callsign(callsign):
         r = c.execute("SELECT * FROM locker WHERE COALESCE(public,1)=1 AND lower(callsign)=lower(?) AND snapshot_json IS NOT NULL "
                       "ORDER BY updated_at DESC LIMIT 1", (callsign,)).fetchone()
     return dict(r) if r else None
+
+
+# ---------------------------------------------------------------- what Claude costs
+def add_usage(kind, model, lobby_id, inp, out, cread, cwrite, cost):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO api_usage(at,kind,model,lobby_id,input_tokens,output_tokens,cache_read,cache_write,cost_usd)"
+                  " VALUES(?,?,?,?,?,?,?,?,?)", (time.time(), kind, model, lobby_id, inp, out, cread, cwrite, cost))
+
+
+def usage_since(ts):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM api_usage WHERE at>=? ORDER BY at", (ts,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def put_cost_report(text):
+    with _lock, _conn() as c:
+        c.execute("INSERT OR REPLACE INTO kv(k,v,at) VALUES('cost_report',?,?)", (text, time.time()))
+
+
+def get_cost_report():
+    with _lock, _conn() as c:
+        r = c.execute("SELECT v FROM kv WHERE k='cost_report'").fetchone()
+    return r["v"] if r else None

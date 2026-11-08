@@ -696,6 +696,12 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .cmini{display:flex;align-items:center;gap:8px;margin-top:6px} .cmini small{font-family:var(--mono);font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
   .cbig{max-width:340px;margin:0 auto}
   .wornrow{margin-top:8px} .wornrow .btn{white-space:normal;text-align:left;line-height:1.25}
+  /* costs */
+  .costbars .base{stroke:var(--line-2)} .costbars .hit{fill:transparent} .costbars .fill{fill:var(--nixie);filter:drop-shadow(0 0 3px rgba(255,120,30,.45))}
+  .costbars .bar:hover .fill,.costbars .bar:focus .fill{fill:var(--nixie-hot)} .costbars .bar:focus{outline:none}
+  .costbars .ax{fill:var(--muted);font:9px var(--mono);letter-spacing:1px}
+  .rstat small.sub{font-size:9px;letter-spacing:.5px;text-transform:none}
+  .rstats.ctiles{grid-template-columns:repeat(auto-fit,minmax(128px,1fr))} .ctiles .nixie{font-size:15px} .ctiles .nixie .nx{min-width:.7em}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

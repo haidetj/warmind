@@ -16,6 +16,7 @@
   const LOCKER_PAGE = !LID && new URLSearchParams(location.search).has("locker");
   const ROSTER_PAGE = !LID && !LOCKER_PAGE && new URLSearchParams(location.search).has("roster");
   const ROOM_ID = !LID && !LOCKER_PAGE && !ROSTER_PAGE ? new URLSearchParams(location.search).get("room") : null;
+  const COSTS_PAGE = !LID && new URLSearchParams(location.search).has("costs");
   let META = null, STATE = null, pollT = null, busy = false, lastSig = "";
 
   // ======================================================================= i18n
@@ -55,7 +56,7 @@
       LANG = s.value;
       try { localStorage.setItem("wm_lang", LANG); } catch (e) {}
       document.documentElement.lang = LANG; s.setAttribute("aria-label", t("lang.label"));
-      if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (ROOM_ID) renderRoom(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
+      if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (ROOM_ID) renderRoom(); else if (COSTS_PAGE) renderCosts(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
     };
   }
 
@@ -275,6 +276,7 @@
     if (LOCKER_PAGE) return renderLocker();
     if (ROSTER_PAGE) return renderRoster();
     if (ROOM_ID) return renderRoom();
+    if (COSTS_PAGE) return renderCosts();
     if (!LID) return renderHome();
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
@@ -348,7 +350,7 @@
     const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     panes.home.appendChild(fmFold);
-    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn()]));
+    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
     if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
 
     // --- Front: the live war, each planet one tap from a war table
@@ -2340,6 +2342,80 @@
     return svg;
   }
   const compassWord = p => t("cmp.w." + (p.loud > 0.2 ? "loud" : p.loud < -0.2 ? "quiet" : "mid") + "." + (p.push > 0.2 ? "push" : p.push < -0.2 ? "hold" : "mid"));
+
+  // ======================================================================= costs (what Claude costs to run WARMIND)
+  let costTimer = null;
+  const usd = v => v == null ? "—" : "$" + (v < 1 ? v.toFixed(v < 0.1 ? 3 : 2) : v.toFixed(2));
+  async function renderCosts() {
+    app.innerHTML = ""; app.className = "stack";
+    app.appendChild(el("div", { class: "lknav" }, [el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")])]));
+    const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(body);
+    const load = async () => { try { paintCosts(body, await api("/api/costs")); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "alert" }, [e.message])); } };
+    await load();
+    clearInterval(costTimer);   // poll while the page is open
+    costTimer = setInterval(() => { if (!document.body.contains(body)) return clearInterval(costTimer); if (!document.hidden) load(); }, 60000);
+  }
+  function paintCosts(body, c) {
+    body.innerHTML = "";
+    const tile = (k, v, sub) => el("div", { class: "rstat" }, [nixie(usd(v)), el("small", {}, [t(k)]), sub ? el("small", { class: "sub" }, [sub]) : null]);
+    const bill = c.bill;
+    body.appendChild(panel("OPS-01", t("cost.title"), { status: c.mock ? t("cost.mock") : t("war.live"), statusKind: c.mock ? "warn" : "ok", tone: "amber" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("cost.what")]),
+      el("div", { class: "rstats ctiles" }, [tile("cost.today", c.app.today), tile("cost.7d", c.app["7d"]), tile("cost.30d", c.app["30d"]),
+        tile("cost.mtd", c.app.mtd), tile("cost.proj", c.projected_month, c.hosting_month != null ? t("cost.inclhost", { h: usd(c.hosting_month) }) : null)]),
+      el("div", { class: "hint" }, [t("cost.tracked")]),
+    ]));
+    // Anthropic's own bill
+    const bk = [];
+    if (bill) {
+      bk.push(el("div", { class: "rstats ctiles" }, [tile("cost.bill.today", bill.today), tile("cost.bill.mtd", bill.mtd), tile("cost.bill.30d", bill["30d"])]));
+      const by = Object.entries(bill.by || {}).sort((a, b) => b[1] - a[1]);
+      if (by.length) bk.push(el("div", { class: "chips" }, by.map(([k, v]) => el("span", { class: "chip" }, [k + " · " + usd(v)]))));
+      bk.push(el("div", { class: "hint" }, [t("cost.bill.note", { at: c.admin.at ? new Date(c.admin.at * 1000).toLocaleString(LANG) : "—" })]));
+    } else bk.push(el("div", { class: "hint", style: "margin:0" }, [c.admin.enabled ? (c.admin.status === "failed" ? t("cost.bill.err", { e: c.admin.error || "" }) : t("cost.bill.wait")) : t("cost.bill.off")]));
+    if (c.admin.enabled) { const b = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("cost.refresh")]);
+      b.onclick = async () => { b.disabled = true; try { paintCosts(body, await api("/api/costs/poll", { method: "POST" })); toast(t("cost.refreshed")); } catch (e) { toast(e.message); b.disabled = false; } }; bk.push(el("div", { class: "btnrow" }, [b])); }
+    body.appendChild(panel("OPS-02", t("cost.bill"), {}, bk));
+    // last 30 days: one bar per day (the bill when we have it, else what the app tracked)
+    const series = bill ? bill.daily : c.daily, max = Math.max(0.0001, ...series);
+    const W = 300, H = 120, n = series.length, gap = 2, bw = (W - gap * (n - 1)) / n;
+    const ns = "http://www.w3.org/2000/svg", mk = (tg, a) => { const e = document.createElementNS(ns, tg); for (const k in a) e.setAttribute(k, a[k]); return e; };
+    const readout = el("div", { class: "hint costread", "aria-live": "polite", style: "margin:0 0 6px" }, [t("cost.tap") + " · " + t("cost.peak", { v: usd(series.length ? Math.max(...series) : 0) })]);
+    const svg = mk("svg", { viewBox: "0 0 " + W + " " + (H + 16), width: "100%", class: "costbars", role: "img", "aria-label": t(bill ? "cost.chart.bill" : "cost.chart.app") });
+    svg.appendChild(mk("line", { x1: 0, y1: H, x2: W, y2: H, class: "base" }));
+    series.forEach((v, i) => {
+      const h = v > 0 ? Math.max(2, v / max * (H - 6)) : 0, x = i * (bw + gap), y = H - h;
+      const g = mk("g", { class: "bar", tabindex: "0" });
+      g.appendChild(mk("rect", { x: x, y: 0, width: bw, height: H, class: "hit" }));   // hover target bigger than the bar
+      if (h) g.appendChild(mk("path", { d: `M${x},${H} V${y + Math.min(4, h)} Q${x},${y} ${x + Math.min(4, bw / 2)},${y} H${x + bw - Math.min(4, bw / 2)} Q${x + bw},${y} ${x + bw},${y + Math.min(4, h)} V${H} Z`, class: "fill" }));
+      const tt = mk("title", {}); tt.textContent = c.days[i] + ": " + usd(v); g.appendChild(tt);
+      const show = () => { readout.textContent = c.days[i] + " · " + usd(v); };   // phones: tap a bar to read it
+      g.addEventListener("pointerenter", show); g.addEventListener("focus", show); g.addEventListener("click", show);
+      svg.appendChild(g);
+    });
+    [[0, c.days[0]], [n - 1, c.days[n - 1]]].forEach(([i, d], j) => { const tx = mk("text", { x: j ? W : 0, y: H + 13, "text-anchor": j ? "end" : "start", class: "ax" }); tx.textContent = d.slice(5); svg.appendChild(tx); });
+    const tbl = el("details", { class: "fold" }, [el("summary", {}, [t("cost.table")]), el("div", { class: "body" }, [el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [
+      el("thead", {}, [el("tr", {}, [el("th", {}, [t("lk.h.date")]), el("th", {}, [t("cost.col.usd")])])]),
+      el("tbody", {}, c.days.map((d, i) => el("tr", {}, [el("td", {}, [d]), el("td", {}, [usd(series[i])])])).reverse())])])])]);
+    body.appendChild(panel("OPS-03", t(bill ? "cost.chart.bill" : "cost.chart.app"), {}, [readout, svg, tbl]));
+    // by kind of call
+    const kinds = Object.entries(c.by_kind || {}).sort((a, b) => b[1].usd - a[1].usd);
+    const ktable = kinds.length ? el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [
+      el("thead", {}, [el("tr", {}, ["cost.col.kind", "cost.col.calls", "cost.col.avg", "cost.col.usd", "cost.col.tok"].map(k => el("th", {}, [t(k)])))]),
+      el("tbody", {}, kinds.map(([k, v]) => el("tr", {}, [el("td", {}, [has("cost.k." + k) ? t("cost.k." + k) : k]), el("td", {}, [nf(v.calls)]), el("td", {}, [usd(v.avg)]),
+        el("td", {}, [usd(v.usd)]), el("td", {}, [nf(v.in) + " / " + nf(v.out) + (v.cache_read ? " · ↺" + nf(v.cache_read) : "")])])))])])
+      : el("div", { class: "hint", style: "margin:0" }, [t("cost.none")]);
+    body.appendChild(panel("OPS-04", t("cost.bykind"), {}, [ktable, c.unpriced_calls ? el("div", { class: "hint" }, [t("cost.unpriced", { n: c.unpriced_calls })]) : null]));
+    // guard rails
+    const cp = c.caps || {};
+    body.appendChild(panel("OPS-05", t("cost.caps"), {}, [
+      el("div", { class: "rstats ctiles" }, [
+        el("div", { class: "rstat" }, [nixie((cp.calls_today || 0) + "/" + (cp.per_day_cap || 0)), el("small", {}, [t("cost.cap.reads")])]),
+        el("div", { class: "rstat" }, [nixie((cp.plans_today || 0) + "/" + (cp.plans_per_day_cap || 0)), el("small", {}, [t("cost.cap.plans")])])]),
+      el("div", { class: "hint" }, [t("cost.models", { v: c.vision_model, p: c.planner.model, e: c.planner.effort })]),
+      el("div", { class: "hint" }, [Object.entries(c.prices || {}).map(([m, r]) => m + ": $" + r.in + " in / $" + r.out + " out / $" + (r.cache_read != null ? r.cache_read : "—") + " cached per M").join(" · ")])]));
+  }
 
   // ======================================================================= roster + leaderboard
   const ROS_SORT = [["accuracy", "sc.accuracy"], ["kd", "sc.kd"], ["kills_pm", "sc.kills_pm"], ["win_rate", "sc.success"], ["medals", "lk.medals"], ["active", "ros.recent"]];
