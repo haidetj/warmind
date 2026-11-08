@@ -43,6 +43,7 @@ MODEL = os.environ.get("WARMIND_PLAN_MODEL", vision.MODEL)
 EFFORT = os.environ.get("WARMIND_PLAN_EFFORT", "medium")
 TIMEOUT_S = 150
 STALE_S = 240          # an in-flight plan older than this is presumed lost (restart, crash)
+SLOW_S = int(os.environ.get("WARMIND_PLAN_SLOW_S", "100"))   # past this the squad gets the engine's set, for good
 
 N_PRIMARY, N_SECONDARY, N_GRENADE, N_ARMOR, N_STRAT = 10, 6, 6, 9, 24
 
@@ -58,8 +59,12 @@ MODE_MEANING = {
                  "comfort zone and onto high-ask gear (precision, timing, reload discipline, no crutches), and "
                  "aim it at the weak spots their stats show. A challenge kit is harder, never hopeless: the squad "
                  "must still be able to kill heavies, clear chaff and destroy objectives.",
-    "d100": "Helldive∞: the hardest version of this mission. Off-meta, high-ask kit, no crutches at all, the map's "
-            "demands turned up. Brutal, still mission-capable.",
+    "d100": "Helldive∞: the HARDEST kit that can still finish this mission, as brutal as the gear allows. Every slot "
+            "takes the most demanding option that answers the mission: precision and slow-firing weapons, Light armour "
+            "with no defensive passive, timing-heavy strikes (Precision Strike, 500kg, 380mm) over forgiving ones. No "
+            "crutches at all: no shield packs, dogs or supply packs, no sentries or shield relays, no Orbital Laser or "
+            "Railcannon, no seeker/impact grenades, no safety-net boosters. Off-meta beats meta. It must stay "
+            "mission-capable: heavies, chaff and objectives still get answered, just the hard way.",
 }
 
 AXES = {"at": "anti-tank (kills heavies)", "st": "structures (destroys fabricators, nests, objectives)",
@@ -85,11 +90,27 @@ def signature(session, players, mission: dict) -> str:
         "p": [[p.id, p.play_style, sorted(p.owned_items) if p.owned_items is not None else None,
                round(p.accuracy, 3) if p.accuracy is not None else None,
                {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or []),
-               [f.get("name") for f in (p.favorites or [])]]
+               [f.get("name") for f in (p.favorites or [])], p.prefs or {}]
               for p in players],
         "v": 1,
     }
     return hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
+
+
+def brief_key(session, players, mission: dict) -> str:
+    """What a loadout set is FOR: the mission, the reroll, who's in the squad and what each
+    diver told WARMIND. Once a set exists for this key it stays, so background changes
+    (a gear tick, a re-read of stats) never swap kits under the squad's feet."""
+    body = {"m": {k: v for k, v in sorted(mission.items()) if k not in ("think", "lang")}, "seed": session.seed,
+            "p": sorted([p.id, p.play_style, sorted((p.prefs or {}).items())] for p in players), "v": 1}
+    return "k:" + hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
+
+
+def _pin(lobby_id, key, status, plan):
+    """The squad's set for this key, written once."""
+    row = db.get_plan(lobby_id, key)
+    if not row:
+        db.put_plan(lobby_id, key, status, plan)
 
 
 # ---------------------------------------------------------------- the brief
@@ -288,6 +309,11 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         "drills": sl["drills"],
         "role_locked": locked or None,   # the squad leader set this role: keep it
         "saved_loadouts": pl.favorites or None,   # kits this diver saved in their locker: a hint at what they like
+        # what the diver told WARMIND they like (vibe, focus, armour). Honour it in Optimize / Fun /
+        # Improvement as long as the mission is still answered; Challenge and D100 push past it.
+        "told_us": pl.prefs or None,
+        # armour the diver chose to wear: it is fixed (the engine keeps it); build the kit around its passive
+        "wears": (pl.prefs or {}).get("armor_set"),
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},
@@ -335,7 +361,7 @@ def build_request(session, players, mission, directive, lang: str) -> tuple[str,
 
 # ---------------------------------------------------------------- the call
 
-def _call(system: str, user: str) -> tuple[dict, dict]:
+def _call(system: str, user: str, lobby_id: str | None = None) -> tuple[dict, dict]:
     headers = {"x-api-key": vision.API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     body = {
         "model": MODEL, "max_tokens": 16000,
@@ -350,6 +376,8 @@ def _call(system: str, user: str) -> tuple[dict, dict]:
         if r.status_code >= 400:
             raise RuntimeError(f"planner API {r.status_code}: {r.text[:300]}")
         data = r.json()
+    import costs
+    costs.record("plan", data.get("model") or MODEL, data.get("usage"), lobby_id)   # billed even if we can't use it
     if data.get("stop_reason") in ("refusal", "max_tokens"):
         raise RuntimeError(f"planner stopped: {data.get('stop_reason')}")
     text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
@@ -460,25 +488,30 @@ def _clean_why(lines: list[str], a) -> list[str]:
 
 # ---------------------------------------------------------------- orchestration
 
-def _think(lobby_id, sig, session, players, mission, lang):
+def _think(lobby_id, sig, session, players, mission, lang, key=None):
     t0 = time.time()
     try:
         base = resolve_squad(copy.deepcopy(session), copy.deepcopy(players), {})
         system, user, sl = build_request(base.session, players, mission, base, lang)
         if vision.MOCK:
+            time.sleep(float(os.environ.get("WARMIND_PLAN_MOCK_DELAY", "0") or 0))   # tests: a planner that takes a while
             raw, usage = _mock(players, base)
         else:
-            raw, usage = _call(system, user)
+            raw, usage = _call(system, user, lobby_id)
         override, why, bad = to_override(raw, sl)
         plan = {"override": override, "why": why, "summary": str(raw.get("summary") or "")[:600],
                 "bad_names": bad, "usage": usage, "model": "mock" if vision.MOCK else MODEL,
                 "prompt_chars": len(system) + len(user)}
         db.put_plan(lobby_id, sig, "ready", plan)
+        if key:
+            _pin(lobby_id, key, "ready", plan)
         LAST.clear(); LAST.update(status="ready", at=round(time.time()), usage=usage, bad_names=bad,
                                   seconds=round(time.time() - t0, 1))
     except Exception as e:   # the engine's plan stands; say why the thinking didn't land
         err = f"{type(e).__name__}: {e}"[:300]
         db.put_plan(lobby_id, sig, "failed", {"error": err})
+        if key:
+            _pin(lobby_id, key, "engine", {"why": "failed", "error": err})
         LAST.clear(); LAST.update(status="failed", at=round(time.time()), error=err)
     finally:
         with _lock:
@@ -490,26 +523,38 @@ def plan_for(lobby_id, session, players, mission: dict) -> tuple[dict | None, di
     there's no plan for these inputs yet."""
     if not ENABLED or mission.get("think") is False:
         return None, {"status": "off"}
+    key = brief_key(session, players, mission)
+    pinned = db.get_plan(lobby_id, key)
+    if pinned and pinned["status"] == "ready":
+        return pinned["plan"], {"status": "ready", "sig": key}
+    if pinned:   # failed or too slow: the engine's set is the squad's set now
+        return None, {"status": "engine", "sig": key, "why": (pinned["plan"] or {}).get("why")}
     sig = signature(session, players, mission)
     row = db.get_plan(lobby_id, sig)
     if row and row["status"] == "ready":
-        return row["plan"], {"status": "ready", "sig": sig}
+        _pin(lobby_id, key, "ready", row["plan"])
+        return row["plan"], {"status": "ready", "sig": key}
     if row and row["status"] == "failed":
-        return None, {"status": "failed", "sig": sig}
+        _pin(lobby_id, key, "engine", {"why": "failed"})
+        return None, {"status": "engine", "sig": key, "why": "failed"}
     now = time.time()
     with _lock:
         started = _inflight.get((lobby_id, sig))
+        if started and now - started >= SLOW_S:   # taking too long: hand over the engine's set and keep it
+            _pin(lobby_id, key, "engine", {"why": "slow"})
+            return None, {"status": "engine", "sig": key, "why": "slow"}
         if started and now - started < STALE_S:
-            return None, {"status": "thinking", "sig": sig, "since": started}
+            return None, {"status": "thinking", "sig": key, "since": started}
         try:
             budget.charge_plan(lobby_id)
         except budget.OverBudget:
-            return None, {"status": "budget", "sig": sig}
+            _pin(lobby_id, key, "engine", {"why": "budget"})
+            return None, {"status": "engine", "sig": key, "why": "budget"}
         _inflight[(lobby_id, sig)] = now
     lang = mission.get("lang") if mission.get("lang") in vision.LANG_NAMES else "en"
     threading.Thread(target=_think, args=(lobby_id, sig, copy.deepcopy(session), copy.deepcopy(players),
-                                          dict(mission), lang), daemon=True).start()
-    return None, {"status": "thinking", "sig": sig, "since": now}
+                                          dict(mission), lang, key), daemon=True).start()
+    return None, {"status": "thinking", "sig": key, "since": now}
 
 
 def apply(session, players, plan: dict):
@@ -520,6 +565,7 @@ def apply(session, players, plan: dict):
     for a in d.assignments:
         lines = _clean_why(plan.get("why", {}).get(a.player_id, []), a)
         if lines:
-            keep = [w for w in a.why if w["kind"] in ("role", "drill", "handling", "thin", "nostats", "reroll")]
+            keep = [w for w in a.why if w["kind"] in ("role", "drill", "handling", "thin", "nostats", "reroll")
+                    or str(w.get("k", "")).startswith("why.worn")]   # "your armour stays on" survives the planner
             a.why = [{"kind": "mind", "k": "why.mind", "p": {"t": ln}} for ln in lines] + keep
     return d, {"summary": plan.get("summary", ""), "kept": kept, "total": total, "model": plan.get("model")}

@@ -1,0 +1,45 @@
+name: games-report
+# Manual: prints recent games (war tables with debriefs) from the live app's public roster,
+# so a session that can't reach the site can still read what the squad played.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back"
+        default: "14"
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recent games
+        env:
+          DAYS: ${{ github.event.inputs.days }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          B = "https://warmind.onrender.com"
+          get = lambda p: json.loads(urllib.request.urlopen(urllib.request.Request(B + p, headers={"user-agent": "warmind-report"}), timeout=60).read())
+          since = time.time() - int(os.environ.get("DAYS") or 14) * 86400
+          roster = get("/api/roster")["divers"]
+          print("divers on roster:", len(roster))
+          games = {}
+          for d in roster:
+              try:
+                  prof = get("/api/roster/" + d["id"])
+              except Exception as e:
+                  print("skip", d.get("callsign"), e); continue
+              for r in prof.get("recent", []):
+                  if (r.get("at") or 0) < since:
+                      continue
+                  m = r.get("mission") or {}
+                  key = (r.get("table") or "?", m.get("name") or "?", time.strftime("%Y-%m-%d", time.gmtime(r["at"])))
+                  g = games.setdefault(key, {"table": key[0], "mission": key[1], "day": key[2], "mode": m.get("mode"),
+                                             "difficulty": m.get("difficulty"), "faction": m.get("faction"), "divers": []})
+                  g["divers"].append({"callsign": prof["callsign"], "kills": r.get("kills"), "deaths": r.get("deaths"),
+                                      "accuracy": r.get("accuracy"), "medal": r.get("medal"),
+                                      "oaths": r.get("oaths"), "at": r.get("at")})
+          out = sorted(games.values(), key=lambda g: max(x["at"] for x in g["divers"]), reverse=True)
+          print("GAMES_JSON_START"); print(json.dumps(out, indent=1)); print("GAMES_JSON_END")
+          PY

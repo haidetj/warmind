@@ -14,6 +14,9 @@
   const app = $("#app");
   const LID = new URLSearchParams(location.search).get("l");
   const LOCKER_PAGE = !LID && new URLSearchParams(location.search).has("locker");
+  const ROSTER_PAGE = !LID && !LOCKER_PAGE && new URLSearchParams(location.search).has("roster");
+  const ROOM_ID = !LID && !LOCKER_PAGE && !ROSTER_PAGE ? new URLSearchParams(location.search).get("room") : null;
+  const COSTS_PAGE = !LID && new URLSearchParams(location.search).has("costs");
   let META = null, STATE = null, pollT = null, busy = false, lastSig = "";
 
   // ======================================================================= i18n
@@ -53,7 +56,7 @@
       LANG = s.value;
       try { localStorage.setItem("wm_lang", LANG); } catch (e) {}
       document.documentElement.lang = LANG; s.setAttribute("aria-label", t("lang.label"));
-      if (LOCKER_PAGE) renderLocker(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
+      if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (ROOM_ID) renderRoom(); else if (COSTS_PAGE) renderCosts(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
     };
   }
 
@@ -65,7 +68,20 @@
     setMe: (lid, o) => { try { localStorage.setItem("wm_me_" + lid, JSON.stringify(o)); } catch (e) {} },
     locker: () => { try { const v = JSON.parse(localStorage.getItem("wm_locker")); return v && v.id && v.key ? v : null; } catch (e) { return null; } },
     setLocker: o => { try { localStorage.setItem("wm_locker", JSON.stringify(o)); } catch (e) {} },
+    rooms: () => { try { return JSON.parse(localStorage.getItem("wm_rooms")) || []; } catch (e) { return []; } },
+    addRoom: id => { try { const r = store.rooms().filter(x => x !== id); r.unshift(id); localStorage.setItem("wm_rooms", JSON.stringify(r.slice(0, 30))); } catch (e) {} },
+    lastRoom: () => { try { return localStorage.getItem("wm_lastroom") || ""; } catch (e) { return ""; } },
+    setLastRoom: id => { try { localStorage.setItem("wm_lastroom", id || ""); } catch (e) {} },
+    roomFounder: id => { try { return localStorage.getItem("wm_roomc_" + id); } catch (e) { return null; } },
   };
+  // war-room calls say who's asking (the locker's callsign goes in the log), when the device has a locker
+  const rhead = () => { const L = store.locker(); return L ? { "x-locker-id": L.id, "x-locker": L.key } : {}; };
+  const rpost = (path, body, token) => api(path, { method: "POST", headers: Object.assign({ "content-type": "application/json" }, rhead(), token ? { "x-token": token } : {}), body: JSON.stringify(body || {}) });
+  let ROOMS = null;   // the rooms this device / profile knows, for the pickers
+  async function loadRooms() {
+    try { ROOMS = (await rpost("/api/rooms/summary", { ids: store.rooms() })).rooms || []; } catch (e) { ROOMS = ROOMS || []; }
+    return ROOMS;
+  }
   // the locker's own calls carry its key
   const lget = path => { const L = store.locker(); return api(path, { headers: { "x-locker": L ? L.key : "" } }); };
   const lpost = (path, body) => { const L = store.locker(); return api(path, { method: "POST", headers: { "content-type": "application/json", "x-locker": L ? L.key : "" }, body: JSON.stringify(body || {}) }); };
@@ -109,6 +125,31 @@
     // overall: the mean of each task's progress (a count task counts its share; a planet task is 0 or 100)
     return Math.round(ts.reduce((a, x) => a + (x.goal ? x.pct : x.done ? 100 : 0), 0) / Math.max(1, ts.length));
   }
+  // nixie tubes: each character in its own glowing glass cell
+  const nixie = str => el("span", { class: "nixie", "aria-label": String(str) }, String(str).split("").map(c => el("span", { class: "nx" + (/[0-9A-Za-z]/.test(c) ? "" : " sep"), "aria-hidden": "true" }, [c])));
+  const metText = t0 => { const s = Math.max(0, Math.floor(Date.now() / 1000 - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    return (h > 99 ? Math.floor(h / 24) + "d" : String(h).padStart(2, "0")) + ":" + String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  let metTimer = null;
+  // falling code behind the hero: slow, faint, stops when the hero leaves the page
+  function rain(cv) {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = cv.getContext("2d"), G = "01ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ⊕△▽◇Ж§¥".split("");
+    let cols = [], w = 0, h = 0, fs = 14, last = 0;
+    const size = () => { w = cv.width = cv.offsetWidth; h = cv.height = cv.offsetHeight; cols = Array.from({ length: Math.ceil(w / fs) }, () => Math.random() * -h / fs); };
+    size();
+    const step = ts => {
+      if (!cv.isConnected) return;
+      if (ts - last > 80) { last = ts;
+        if (cv.offsetWidth !== w) size();
+        ctx.fillStyle = "rgba(4,6,4,.18)"; ctx.fillRect(0, 0, w, h);
+        ctx.font = fs + "px monospace";
+        cols.forEach((y, i) => { ctx.fillStyle = Math.random() < .04 ? "#e8ffef" : "#5dff95"; ctx.fillText(G[(Math.random() * G.length) | 0], i * fs, y * fs);
+          cols[i] = y * fs > h && Math.random() > .975 ? 0 : y + 1; });
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   const meter = pct => el("div", { class: "meter", role: "img", "aria-label": pct + "%" }, [el("i", { style: "width:" + Math.max(0, Math.min(100, pct || 0)) + "%" })]);
   // The current Major Order as a fold: one line closed, briefing + tasks open.
   function moStrip(o) {
@@ -137,20 +178,22 @@
     return (p.mo ? "★ " : "") + p.name + " · " + t("faction." + p.enemy) + (p.defense ? " · " + t("war.defense") : "") +
       " · " + t("war.divers", { n: nf(p.players) });
   }
-  function warPanel() {
+  function warPanel(full) {
     const body = el("div", { class: "stack", style: "gap:10px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     const card = panel("SYS-00", t("war.title"), { status: t("war.live"), statusKind: "ok" }, [body]);
     loadWar().then(w => {
       if (!w || (!w.orders.length && !w.planets.length)) { card.remove(); return; }
       body.innerHTML = "";
       w.orders.forEach(o => body.appendChild(moStrip(o)));
-      const top = w.planets.slice(0, 8);
+      const top = full ? w.planets : w.planets.slice(0, 8);
       if (top.length) body.appendChild(el("div", { class: "fronts" }, [el("span", { class: "label" }, [t("war.fronts")])].concat(top.map(p =>
         el("div", { class: "front f-" + p.enemy }, [
           el("div", { class: "fn" }, [(p.mo ? "★ " : "") + p.name, el("span", { class: "fs" }, [[t("faction." + p.enemy), p.defense ? t("war.defense") : null, p.biome].filter(Boolean).join(" · ")])]),
           el("div", { class: "fp" }, [t("war.divers", { n: nf(p.players) })]),
           p.progress != null ? meter(p.progress) : null,
           p.hazard_names.length ? el("div", { class: "fh" }, [p.hazard_names.join(" · ")]) : null,
+          full ? (() => { const b = el("button", { class: "btn sm", type: "button" }, ["⚑ " + t("war.here")]);
+            b.onclick = async () => { b.disabled = true; try { await startTable(p.name, 4, p.name); } catch (e) { toast(e.message); b.disabled = false; } }; return b; })() : null,
         ])))));
     });
     return card;
@@ -231,6 +274,9 @@
   (async function boot() {
     META = await api("/api/meta");
     if (LOCKER_PAGE) return renderLocker();
+    if (ROSTER_PAGE) return renderRoster();
+    if (ROOM_ID) return renderRoom();
+    if (COSTS_PAGE) return renderCosts();
     if (!LID) return renderHome();
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
@@ -251,54 +297,291 @@
     deploy.onclick = async () => {
       deploy.disabled = true; deploy.textContent = "▶ " + t("home.deploying");
       try {
-        const fd = new FormData(); fd.append("name", name.value.trim() || "Squad"); fd.append("squad_size", String(size));
-        const r = await fdpost("/api/lobby", fd);
-        store.setCreator(r.lobby_id, r.creator_token);
-        location.search = "?l=" + r.lobby_id;
+        await startTable(name.value.trim() || "Squad", size, null, roomSel.value || null);
       } catch (e) { toast(e.message); deploy.disabled = false; deploy.textContent = "▶ " + t("home.deploy"); }
     };
     name.addEventListener("keydown", e => { if (e.key === "Enter") deploy.click(); });
+    // attribute the new table to one of your war rooms (it opens on the room's mission)
+    const roomSel = el("select", { id: "sq-room" }, [el("option", { value: "" }, [t("room.none")])]);
+    const roomHint = el("div", { class: "hint", style: "margin:6px 0 0" });
+    const roomFld = el("div", { class: "field", hidden: true }, [el("label", { class: "label", for: "sq-room" }, ["> " + t("room.pick")]), roomSel, roomHint]);
+    const paintRoomHint = () => { const r = (ROOMS || []).find(x => x.id === roomSel.value);
+      roomHint.textContent = r ? (r.mission_name ? t("room.opens", { m: r.mission_name.name + (r.planet ? " · " + r.planet : "") }) : r.planet ? t("room.opens", { m: r.planet }) : t("room.nomission")) : ""; };
+    roomSel.onchange = paintRoomHint;
+    loadRooms().then(rs => { if (!rs.length) return; rs.forEach(r => roomSel.appendChild(el("option", { value: r.id }, [r.name + " · " + r.ship])));
+      if (rs.some(r => r.id === store.lastRoom())) roomSel.value = store.lastRoom(); roomFld.hidden = false; paintRoomHint(); });
 
     const term = el("div", { class: "term", "aria-hidden": "true" });
-    app.appendChild(el("section", { class: "hero" }, [
+    // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
+    const HT = [["home", "⌂ " + t("ht.home")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")]];
+    let ht = (() => { try { return localStorage.getItem("wm_hometab"); } catch (e) { return null; } })();
+    const qtab = new URLSearchParams(location.search).get("tab"); if (qtab) ht = qtab;
+    if (!HT.some(x => x[0] === ht)) ht = storedLobbies().length ? "tables" : "home";
+    const tabs = el("div", { class: "seg hometabs", role: "tablist" });
+    const panes = {};
+    HT.forEach(([k, label]) => {
+      const b = el("button", { type: "button", role: "tab", "data-k": k }, [label]);
+      b.onclick = () => show(k); tabs.appendChild(b);
+      panes[k] = el("div", { class: "stack homepane", "data-k": k });
+    });
+    const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
+      tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
+      Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; }); };
+    app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
+
+    // --- Welcome
+    const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
+    how.onclick = howModal;
+    const cv = el("canvas", { class: "rain", "aria-hidden": "true" });
+    panes.home.appendChild(el("section", { class: "hero" }, [cv,
       el("div", { class: "fx rings" }), el("div", { class: "fx radar" }),
       el("div", { class: "hero-body" }, [
         el("div", { class: "eyebrow" }, [t("app.eyebrow")]),
         el("h1", { class: "wordmark", style: "font-size:inherit;margin:0" }, [el("div", { class: "wordmark" }, ["WARMIND"])]),
         el("div", { class: "tag-line" }, [t("app.tagline")]),
         term,
-        el("div", { class: "console" }, [
-          el("div", { class: "field" }, [el("label", { class: "label", for: "sq-name" }, ["> " + t("home.name.label")]), name]),
-          el("div", { class: "field" }, [el("span", { class: "label" }, ["> " + t("home.size.label")]), sizeSeg]),
-          deploy,
-        ]),
+        el("div", { class: "btnrow", style: "justify-content:center" }, [
+          el("button", { class: "btn primary", type: "button", onclick: null, "data-go": "tables" }, ["▶ " + t("ht.go.tables")]),
+          el("button", { class: "btn", type: "button", "data-go": "front" }, ["✦ " + t("ht.go.front")]), how]),
       ]),
     ]));
-    // join with a code (or a pasted invite link)
+    panes.home.querySelectorAll("[data-go]").forEach(b => { b.onclick = () => { show(b.dataset.go); window.scrollTo(0, 0); }; });
+    panes.home.appendChild(profilePanel());          // who you are: your locker carries into every war table
+    const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
+    fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
+    panes.home.appendChild(fmFold);
+    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
+    if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
+
+    // --- Front: the live war, each planet one tap from a war table
+    panes.front.appendChild(warPanel(true));
+
+    // --- War rooms: the squad's lasting homes
+    roomsPane(panes.rooms);
+
+    // --- War tables: start one, join one, yours
+    panes.tables.appendChild(panel("SYS-T", t("home.new"), { tone: "amber" }, [el("div", { class: "console" }, [
+      el("div", { class: "field" }, [el("label", { class: "label", for: "sq-name" }, ["> " + t("home.name.label")]), name]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, ["> " + t("home.size.label")]), sizeSeg]),
+      roomFld, deploy])]));
     const codeIn = el("input", { type: "text", id: "join-code", placeholder: t("home.code.ph"), maxlength: "200", autocomplete: "off",
       autocapitalize: "off", spellcheck: "false" });
     const codeGo = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("home.code.go")]);
     codeGo.onclick = async () => {
       const raw = codeIn.value.trim(), m = raw.match(/[?&]l=([A-Za-z0-9_-]+)/);
       const code = (m ? m[1] : raw).replace(/[^A-Za-z0-9_-]/g, "").toLowerCase();
-      if (!code) { codeIn.focus(); return; }
+      if (!code) { codeIn.focus(); toast(t("home.code.need")); return; }
       codeGo.disabled = true;
       try { await api("/api/lobby/" + code); location.search = "?l=" + code; }
-      catch (e) { toast(t("home.code.bad")); codeGo.disabled = false; }
+      catch (e) {
+        try { await api("/api/room/" + code); location.search = "?room=" + code; }   // a war room's code works here too
+        catch (e2) { toast(t("home.code.bad")); codeGo.disabled = false; }
+      }
     };
     codeIn.addEventListener("keydown", e => { if (e.key === "Enter") codeGo.click(); });
-    app.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
-    app.appendChild(lockerHomePanel());
-    app.appendChild(panel("SYS-01", t("home.j.title"), {}, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
-      el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
-    app.appendChild(warPanel());
-    const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
-    fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
-    app.appendChild(fmFold);
-    renderMyLobbies();
-    app.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn()]));
-    if (META.vision && META.vision.mock) app.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
+    panes.tables.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
+    const tablesSlot = el("div", { class: "slot" }); panes.tables.appendChild(tablesSlot);
+    renderMyLobbies(tablesSlot);
+    panes.tables.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
+    show(ht);
+    rain(cv);
     bootSequence(term);
+  }
+
+  // a new war table; `planet` (a war-feed planet name) pre-picks the mission's planet in the editor
+  async function startTable(nm, size, planet, roomId) {
+    const fd = new FormData(); fd.append("name", nm); fd.append("squad_size", String(size || 4));
+    if (roomId) { fd.append("room_id", roomId); store.addRoom(roomId); store.setLastRoom(roomId); }
+    const L = store.locker(); if (L) try { const lk = await lget("/api/locker/" + L.id); if (lk && lk.callsign) fd.append("callsign", lk.callsign); } catch (e) {}
+    const r = await fdpost("/api/lobby", fd);
+    store.setCreator(r.lobby_id, r.creator_token);
+    if (planet) try { localStorage.setItem("wm_preplanet_" + r.lobby_id, planet); localStorage.setItem("wm_tab_" + r.lobby_id, "2"); } catch (e) {}
+    location.search = "?l=" + r.lobby_id;
+  }
+  function howModal() {
+    const dlg = el("dialog", { class: "modal", "aria-label": t("home.j.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("home.j.title")]), x]),
+      el("div", { class: "mbody" }, [el("div", { class: "journey" }, [1, 2, 3].map(i =>
+        el("div", { class: "st" }, [el("div", { class: "n" }, ["0" + i]), el("div", { class: "t" }, [t("home.j" + i + ".t")]), el("div", { class: "d" }, [t("home.j" + i + ".d")])])))]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg);
+    dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
+  // ======================================================================= war rooms
+  function roomsPane(pane) {
+    const nm = el("input", { type: "text", id: "room-name", maxlength: "40", placeholder: t("room.name.ph"), autocomplete: "off" });
+    const mk = el("button", { class: "btn primary", type: "button" }, ["⚓ " + t("room.create")]);
+    mk.onclick = async () => {
+      mk.disabled = true;
+      try { const r = await rpost("/api/room", { name: nm.value.trim() });
+        try { localStorage.setItem("wm_roomc_" + r.room_id, r.creator_token); } catch (e) {}
+        store.addRoom(r.room_id); store.setLastRoom(r.room_id); location.href = "/?room=" + r.room_id; }
+      catch (e) { toast(e.message); mk.disabled = false; }
+    };
+    nm.addEventListener("keydown", e => { if (e.key === "Enter") mk.click(); });
+    const list = el("div", { class: "stack", style: "gap:8px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+    pane.appendChild(panel("RM-01", t("room.yours"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("room.what")]), list]));
+    pane.appendChild(panel("RM-02", t("room.new"), { tone: "amber" }, [
+      el("div", { class: "field" }, [el("label", { class: "label", for: "room-name" }, ["> " + t("room.name")]), nm]),
+      el("div", { class: "btnrow" }, [mk]), el("div", { class: "hint" }, [t("room.new.hint")])]));
+    loadRooms().then(rs => {
+      list.innerHTML = "";
+      if (!rs.length) { list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("room.noneyet")])); return; }
+      rs.forEach(r => list.appendChild(el("a", { class: "roomrow", href: "/?room=" + r.id }, [
+        el("div", {}, [el("b", {}, [r.name]), el("small", {}, [r.ship])]),
+        el("div", { class: "rm" }, [r.mission_name ? r.mission_name.name + (r.planet ? " · " + r.planet : "") : r.planet || t("room.nomission"),
+          el("span", { class: "nixie-s" }, [" · " + t("room.ntables", { n: r.tables })])])])));
+    });
+  }
+
+  let ROOM = null;
+  const logLine = e => {
+    const p = Object.assign({}, e.p || {});
+    if (e.k === "log.drop") {
+      const bits = [p.kills != null ? t("lk.r.kills", { n: nf(p.kills) }) : null, p.deaths != null ? t("lk.r.deaths", { n: nf(p.deaths) }) : null].filter(Boolean).join(", ");
+      return t("log.drop", { who: p.who || "?", mission: p.mission || "—", bits: bits || "—" }) + ((p.medals || []).length ? " 🎖 " + p.medals.join(", ") : "");
+    }
+    if (e.k === "log.neworder" || e.k === "log.order") p.title = p.title || orderTitle({ kind: p.kind, target: p.n, params: p.params || {} });
+    p.who = p.who || t("room.someone"); p.ship = (ROOM && ROOM.ship) || "";
+    return has(e.k) ? t(e.k, p) : (e.t || "");
+  };
+  const orderTitle = o => o.title || t("ord.k." + o.kind, { n: nf(o.target), planet: (o.params || {}).planet || "", min: (o.params || {}).min || "" });
+  async function renderRoom() {
+    app.innerHTML = ""; app.className = "stack";
+    const nav = el("div", { class: "lknav" }, [el("a", { class: "btn sm", href: "/?tab=rooms" }, ["⌂ " + t("lk.homepage")]),
+      store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]);
+    app.appendChild(nav);
+    const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(body);
+    try { ROOM = await api("/api/room/" + encodeURIComponent(ROOM_ID)); }
+    catch (e) { body.innerHTML = ""; body.appendChild(panel("ERR", t("room.title"), { tone: "red" }, [el("div", { class: "hint" }, [t("room.gone")])])); return; }
+    store.addRoom(ROOM.id);
+    const L = store.locker();   // visiting the room's link brings your profile aboard
+    if (L && !ROOM.members.some(m => m.id === L.id)) { try { await rpost("/api/room/" + ROOM.id + "/join", {}); ROOM = await api("/api/room/" + ROOM.id); } catch (e) {} }
+    loadWar();
+    paintRoom(body);
+  }
+  function paintRoom(body) {
+    const R0 = ROOM; body.innerHTML = "";
+    const founder = store.roomFounder(R0.id);
+    // the plaque
+    const st = R0.stats;
+    const statCell = (k, v) => el("div", { class: "rstat" }, [nixie(String(v)), el("small", {}, [t(k)])]);
+    const share = el("button", { class: "btn sm", type: "button" }, ["⧉ " + t("room.copy")]); share.onclick = () => copy(location.origin + "/?room=" + R0.id, t("common.copied"));
+    let rename = null;
+    if (founder) { rename = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("room.rename")]);
+      rename.onclick = async () => { const n = prompt(t("room.name"), R0.name); if (n == null) return; const sh = prompt(t("room.ship"), R0.ship); if (sh == null) return;
+        try { ROOM = await rpost("/api/room/" + R0.id + "/name", { name: n, ship: sh }, founder); paintRoom(body); } catch (e) { toast(e.message); } }; }
+    body.appendChild(panel("RM-00", t("room.title"), { tone: "amber", status: "⚓ " + t("room.code") + " " + R0.id, statusKind: "warn" }, [
+      el("div", { class: "plaque" }, [el("div", { class: "big" }, [R0.name]), el("div", { class: "ship" }, [R0.ship]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [t("room.since", { d: dt(R0.created_at) })])]),
+      el("div", { class: "rstats" }, [statCell("room.s.nights", st.nights), statCell("room.s.tables", st.tables), statCell("room.s.drops", st.drops),
+        statCell("room.s.medals", st.medals), statCell("room.s.kills", nf(st.kills))]),
+      R0.ribbons.length ? el("div", { class: "ribbons" }, R0.ribbons.map(k => el("span", { class: "ribbon r-" + k, title: t("rib." + k + ".d") }, [t("rib." + k)]))) : null,
+      el("div", { class: "btnrow" }, [share, rename])]));
+    // tonight: the room's mission and a table on it
+    body.appendChild(roomMissionPanel(body));
+    body.appendChild(roomOrdersPanel(body));
+    // tables
+    const tl = R0.tables.length ? el("div", { class: "stack", style: "gap:6px" }, R0.tables.slice(0, 12).map(x => el("a", { class: "roomrow", href: "/?l=" + x.id }, [
+      el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
+      el("div", { class: "rm" }, [(x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])])))
+      : el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]);
+    body.appendChild(panel("RM-04", t("room.tables"), { status: String(R0.tables.length), statusKind: "info" }, [tl]));
+    // crew
+    if (R0.members.length) body.appendChild(panel("RM-05", t("room.crew"), { status: String(R0.members.length), statusKind: "info" }, [el("div", { class: "chips" },
+      R0.members.map(m => m.public ? el("a", { class: "chip", href: "/?roster=" + m.id }, [m.callsign]) : el("span", { class: "chip" }, [m.callsign])))]));
+    // planets fought
+    const pl = Object.entries(st.planets || {}).sort((a, b) => b[1] - a[1]);
+    if (pl.length) body.appendChild(panel("RM-06", t("room.planets"), {}, [el("div", { class: "chips" }, pl.map(([n, c]) => el("span", { class: "chip" }, ["📍 " + n + " ×" + c])))]));
+    // ship's log
+    body.appendChild(panel("RM-07", t("room.log"), {}, [el("ol", { class: "shiplog" }, R0.log.map(e => el("li", {}, [
+      el("span", { class: "ts" }, [dt(e.at) + " " + new Date(e.at * 1000).toISOString().slice(11, 16)]), el("span", {}, [logLine(e)])])))]));
+  }
+  function roomMissionPanel(body) {
+    const R0 = ROOM, m = R0.mission;
+    const kids = [];
+    if (m) kids.push(el("div", { class: "rmis" }, [
+      el("b", {}, [(R0.mission_name && R0.mission_name.name) || t("room.anymission")]),
+      el("div", { class: "hint", style: "margin:2px 0 0" }, [[t("faction." + m.faction), "D" + m.difficulty, t("mode." + m.mode), m.planet_name ? "📍 " + m.planet_name : null].filter(Boolean).join(" · ")]),
+      R0.mission_by ? el("div", { class: "hint", style: "margin:2px 0 0" }, [t("room.setby", { who: R0.mission_by })]) : null]));
+    else kids.push(el("div", { class: "hint", style: "margin:0" }, [t("room.nomission.long")]));
+    // open tonight's table
+    const nm = el("input", { type: "text", maxlength: "40", value: t("room.night", { n: (R0.stats.nights || 0) + 1 }), "aria-label": t("home.name.label") });
+    let size = 4; const sz = el("div", { class: "seg", role: "group", "aria-label": t("home.size.label") });
+    [1, 2, 3, 4].forEach(n => { const b = el("button", { type: "button", "aria-pressed": String(n === size) }, [String(n)]); b.onclick = () => { size = n; sz.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }; sz.appendChild(b); });
+    const go = el("button", { class: "btn primary", type: "button" }, ["▶ " + t("room.open.table")]);
+    go.onclick = async () => { go.disabled = true; try { await startTable(nm.value.trim() || R0.name, size, null, R0.id); } catch (e) { toast(e.message); go.disabled = false; } };
+    kids.push(el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, ["> " + t("home.name.label")]), nm]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, ["> " + t("home.size.label")]), sz]), el("div", { class: "btnrow" }, [go]));
+    // set the room's mission (anyone in the room can)
+    const f = el("details", { class: "fold" }, [el("summary", {}, ["✎ " + t(m ? "room.mission.change" : "room.mission.set")])]);
+    const draft = Object.assign({ mode: "optimize", faction: "automatons", difficulty: 7, mission_id: "", planet_name: "", planet_hazards: [], operation_modifiers: [] }, m || {});
+    const planet = el("select", {}, [el("option", { value: "" }, [t("war.pick.none")])]);
+    const fac = el("select", {}, ["automatons", "terminids", "illuminate"].map(x => el("option", { value: x }, [t("faction." + x)]))); fac.value = draft.faction;
+    const mis = el("select", {});
+    const fillMis = () => { mis.innerHTML = ""; mis.appendChild(el("option", { value: "" }, [t("room.anymission")]));
+      (META.missions || []).filter(x => !x.factions || x.factions.indexOf(fac.value) >= 0).forEach(x => mis.appendChild(el("option", { value: x.id }, [x.display_name || x.name || x.id])));
+      mis.value = (META.missions || []).some(x => x.id === draft.mission_id) ? draft.mission_id : ""; };
+    fillMis(); fac.onchange = () => { draft.faction = fac.value; fillMis(); };
+    const diff = el("select", {}, Array.from({ length: 10 }, (_, i) => el("option", { value: i + 1 }, ["D" + (i + 1)]))); diff.value = draft.difficulty;
+    const mode = el("select", {}, ["optimize", "fun", "challenge", "improvement", "d100"].map(x => el("option", { value: x }, [t("mode." + x) + (has("mode." + x + ".s") ? " — " + t("mode." + x + ".s") : "")]))); mode.value = draft.mode;
+    loadWar().then(w => { (w && w.planets || []).forEach(p => planet.appendChild(el("option", { value: p.name }, [planetLabel(p)]))); planet.value = draft.planet_name || ""; });
+    planet.onchange = () => { const p = ((WAR && WAR.planets) || []).find(x => x.name === planet.value);
+      draft.planet_name = planet.value; if (p) { draft.faction = p.enemy; fac.value = p.enemy; draft.planet_hazards = p.hazards.slice(); draft.operation_modifiers = (p.effects || []).slice(); fillMis(); } else draft.planet_hazards = []; };
+    const save = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("room.mission.save")]);
+    save.onclick = async () => { save.disabled = true;
+      Object.assign(draft, { faction: fac.value, mission_id: mis.value, difficulty: +diff.value, mode: mode.value, lang: LANG });
+      try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { mission: draft }); toast(t("room.mission.saved")); paintRoom(body); } catch (e) { toast(e.message); save.disabled = false; } };
+    const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
+    f.appendChild(el("div", { class: "body" }, [lab("war.pick", planet), lab("mis.faction", fac), lab("mis.mission", mis), lab("mis.difficulty", diff), lab("mis.mode", mode),
+      el("div", { class: "btnrow" }, [save, m ? (() => { const c = el("button", { class: "btn sm", type: "button" }, [t("room.mission.clear")]);
+        c.onclick = async () => { try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { clear: true }); paintRoom(body); } catch (e) { toast(e.message); } }; return c; })() : null]),
+      el("div", { class: "hint" }, [t("room.mission.hint")])]));
+    kids.push(f);
+    return panel("RM-02", t("room.tonight"), { tone: "amber" }, kids);
+  }
+  function roomOrdersPanel(body) {
+    const R0 = ROOM;
+    const kids = [];
+    if (!R0.orders.length) kids.push(el("div", { class: "hint", style: "margin:0" }, [t("room.noorders")]));
+    R0.orders.forEach(o => {
+      const done = !!o.done_at;
+      const acts = [];
+      if (o.kind === "custom") { const b = el("button", { class: "btn sm", type: "button" }, [done ? t("ord.undo") : "✓ " + t("ord.done")]);
+        b.onclick = async () => { try { ROOM = await rpost("/api/room/" + R0.id + "/orders/" + o.id, { done: !done }); paintRoom(body); } catch (e) { toast(e.message); } }; acts.push(b); }
+      const x = el("button", { class: "btn sm", type: "button", title: t("ord.retire"), "aria-label": t("ord.retire") }, ["×"]);
+      x.onclick = async () => { if (!confirm(t("ord.retire.q"))) return; try { ROOM = await rpost("/api/room/" + R0.id + "/orders/" + o.id, { retire: true }); paintRoom(body); } catch (e) { toast(e.message); } };
+      acts.push(x);
+      kids.push(el("div", { class: "order" + (done ? " done" : "") }, [
+        el("div", { class: "ot" }, [el("b", {}, [(done ? "✓ " : "") + orderTitle(o)]), el("small", {}, [[o.set_by ? t("room.setby", { who: o.set_by }) : null, dt(o.at)].filter(Boolean).join(" · ")])]),
+        el("div", { class: "op" }, [o.kind === "custom" ? null : nixie(nf(o.progress) + "/" + nf(o.target)), ...acts]),
+        o.kind === "custom" ? null : meter(Math.round(100 * o.progress / Math.max(1, o.target)))]));
+    });
+    // new order
+    const f = el("details", { class: "fold" }, [el("summary", {}, ["＋ " + t("ord.new")])]);
+    const kind = el("select", {}, ["drops", "medals", "oaths", "kills", "planet", "difficulty", "d100", "custom"].map(k => el("option", { value: k }, [t("ord.kind." + k)])));
+    const target = el("input", { type: "number", min: "1", max: "100000", value: "5", inputmode: "numeric" });
+    const planet = el("select", {}); const minD = el("select", {}, Array.from({ length: 10 }, (_, i) => el("option", { value: i + 1 }, ["D" + (i + 1)]))); minD.value = "10";
+    const title = el("input", { type: "text", maxlength: "80", placeholder: t("ord.title.ph") });
+    loadWar().then(w => (w && w.planets || []).forEach(p => planet.appendChild(el("option", { value: p.name }, [p.name]))));
+    const fT = el("div", { class: "field" }, [el("span", { class: "label" }, [t("ord.target")]), target]);
+    const fP = el("div", { class: "field" }, [el("span", { class: "label" }, [t("war.pick")]), planet]);
+    const fD = el("div", { class: "field" }, [el("span", { class: "label" }, [t("ord.min")]), minD]);
+    const fTi = el("div", { class: "field" }, [el("span", { class: "label" }, [t("ord.title")]), title]);
+    const paint = () => { const k = kind.value; fT.hidden = k === "custom"; fP.hidden = k !== "planet"; fD.hidden = k !== "difficulty"; title.placeholder = k === "custom" ? t("ord.title.ph.custom") : t("ord.title.ph"); };
+    kind.onchange = paint; paint();
+    const add = el("button", { class: "btn primary", type: "button" }, ["＋ " + t("ord.add")]);
+    add.onclick = async () => { add.disabled = true;
+      try { ROOM = await rpost("/api/room/" + R0.id + "/orders", { kind: kind.value, target: +target.value || 1, title: title.value.trim(), params: { planet: planet.value, min: +minD.value } });
+        toast(t("ord.added")); paintRoom(body); } catch (e) { toast(e.message); add.disabled = false; } };
+    f.appendChild(el("div", { class: "body" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("ord.kind")]), kind]), fT, fP, fD, fTi, el("div", { class: "btnrow" }, [add]),
+      el("div", { class: "hint" }, [t("ord.hint")])]));
+    kids.push(f);
+    return panel("RM-03", t("room.orders"), { status: R0.orders.filter(o => o.done_at).length + "/" + R0.orders.length, statusKind: "info" }, kids);
   }
 
   function storedLobbies() {
@@ -313,12 +596,12 @@
   }
   function forgetLobby(id) { try { localStorage.removeItem("wm_creator_" + id); localStorage.removeItem("wm_me_" + id); } catch (e) {} }
 
-  async function renderMyLobbies() {
+  async function renderMyLobbies(slot) {
     const mine = storedLobbies();
     if (!mine.length) return;
     const list = el("div", {}, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     const card = panel("SYS-02", t("home.tables"), {}, [list]);
-    app.appendChild(card);
+    (slot || app).appendChild(card);
     let data;
     try { data = await jpost("/api/lobbies/summary", { ids: mine.map(x => x.id) }); } catch (e) { card.remove(); return; }
     const found = new Set((data.lobbies || []).map(l => l.id));
@@ -381,7 +664,7 @@
     const sig = JSON.stringify(s);
     if (sig === lastSig && STATE) return;
     const mWas = STATE && STATE.directive && STATE.directive.mind, mNow = s.directive && s.directive.mind;
-    if (mWas && mNow && mWas.status === "thinking" && mNow.status === "ready" && mWas.sig === mNow.sig) toast(t("mind.toast"));   // nothing changed: leave the page (and any open folds) alone
+    if (mWas && mNow && mWas.status === "thinking" && mNow.status !== "thinking") toast(t("mind.toast"));   // nothing changed: leave the page (and any open folds) alone
     if (STATE && s.directive && (JSON.stringify(STATE.mission) !== JSON.stringify(s.mission) || (STATE.reroll || 0) !== (s.reroll || 0))) {
       busy = true;
       try { await regenScreen(null, 1500); } finally { busy = false; }
@@ -400,6 +683,7 @@
       msgs.push(next.directive ? t("toast.mission_changed") : t("toast.mission_changed.plain"));
     else if (!prev.directive && next.directive) msgs.push(t("toast.loadouts_ready"));
     else if ((prev.reroll || 0) !== (next.reroll || 0)) msgs.push(t("toast.rerolled"));
+    if (next.players.length && next.players.every(p => p.go) && !(prev.players.length && prev.players.every(p => p.go))) msgs.push(t("go.all.toast"));
     if (msgs.length) toast(msgs.join(" · "));
   }
   async function refresh() { STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive(); }
@@ -499,6 +783,8 @@
       !!(d && STATE.players.length && STATE.players.every(p => p.aar)),
     ];
     let active = done.indexOf(false);
+    // fresh loadouts land on the Briefing; the Debrief takes over once someone has played
+    if (active === 3 && !STATE.players.some(p => p.aar || p.result)) active = 2;
     return { done: done, active: active };
   }
 
@@ -534,7 +820,7 @@
   // Briefing sub-tabs: Loadouts / Squad review / Plan — the long briefing in focused pieces
   function briefingView() {
     const nodes = briefing();
-    if (!STATE.directive) return nodes;
+    if (!STATE.directive || isBuilding()) return nodes;
     const subs = [["loadouts", t("sub.loadouts")], ["review", t("sub.review")], ["plan", t("sub.plan")]];
     const bar = el("div", { class: "seg subtabs", role: "tablist" });
     const show = () => {
@@ -626,28 +912,101 @@
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
         el("span", {}, ["SEC-" + LID.slice(0, 4).toUpperCase()]),
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
-        el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
+        STATE.created_at ? (() => { const n = el("span", { class: "met", title: t("cmd.met") }, ["MET T+", nixie(metText(STATE.created_at))]);
+          clearInterval(metTimer); metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
+          return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
+      roomChip(), goStrip(),
       ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
   }
 
+  // which war room this table belongs to; the creator can attribute it (or move it)
+  function roomChip() {
+    const r = STATE.room;
+    const kids = [];
+    if (r) kids.push(el("a", { class: "roomchip", href: "/?room=" + r.id }, ["⚓ ", el("b", {}, [r.name]), el("span", {}, [" · " + r.ship])]));
+    if (isCreator()) {
+      const b = el("button", { class: "btn sm", type: "button" }, [r ? "⇄ " + t("room.move") : "⚓ " + t("room.attach")]);
+      b.onclick = () => roomPickDialog(r ? r.id : "");
+      kids.push(b);
+      if (r && STATE.mission && STATE.mission.mission_id) {
+        const mk = el("button", { class: "btn sm", type: "button", title: t("room.adopt.hint") }, ["★ " + t("room.adopt")]);
+        mk.onclick = async () => { mk.disabled = true; try { await rpost("/api/room/" + r.id + "/mission", { mission: STATE.mission }); toast(t("room.adopted", { room: r.name })); } catch (e) { toast(e.message); } mk.disabled = false; };
+        kids.push(mk);
+      }
+    }
+    return kids.length ? el("div", { class: "roomline" }, kids) : null;
+  }
+  async function roomPickDialog(cur) {
+    const rs = await loadRooms();
+    const dlg = el("dialog", { class: "modal", "aria-label": t("room.pick") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const list = el("div", { class: "stack", style: "gap:8px" });
+    const pick = async rid => { try { STATE = await jpost("/api/lobby/" + LID + "/room", { room_id: rid }, store.creator(LID)); if (rid) { store.addRoom(rid); store.setLastRoom(rid); }
+      lastSig = JSON.stringify(STATE); dlg.close(); renderLive(); toast(rid ? t("room.attached") : t("room.detached")); } catch (e) { toast(e.message); } };
+    rs.forEach(r => { const b = el("button", { type: "button", class: "btn" + (r.id === cur ? " primary" : ""), style: "justify-content:flex-start;text-align:left" }, ["⚓ " + r.name + " · " + r.ship]); b.onclick = () => pick(r.id); list.appendChild(b); });
+    if (!rs.length) list.appendChild(el("div", { class: "hint" }, [t("room.noneyet")]));
+    if (cur) { const d = el("button", { type: "button", class: "btn sm red" }, [t("room.detach")]); d.onclick = () => pick(""); list.appendChild(d); }
+    list.appendChild(el("a", { class: "btn sm", href: "/?tab=rooms" }, ["＋ " + t("room.new")]));
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("room.pick")]), x]), el("div", { class: "mbody" }, [list]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  // Go / No-Go before the drop: every diver calls it, the board lights up
+  function goStrip() {
+    if (!STATE.players.length) return null;
+    const me = myPlayer(), meR = meRec();
+    const n = STATE.players.filter(p => p.go).length, all = n === STATE.players.length;
+    const lights = el("span", { class: "golights", "aria-label": n + "/" + STATE.players.length }, STATE.players.map(p =>
+      el("span", { class: "gol" + (p.go ? " on" : ""), title: p.callsign + ": " + (p.go ? "GO" : "NO-GO") }, [p.callsign.slice(0, 2).toUpperCase()])));
+    const kids = [el("span", { class: "label", style: "margin:0" }, [t("go.title")]), lights, el("b", { class: all ? "allgo" : "" }, [all ? t("go.all") : n + "/" + STATE.players.length + " GO"])];
+    if (me && meR) {
+      const b = el("button", { class: "btn sm" + (me.go ? "" : " primary"), type: "button" }, [me.go ? t("go.hold") : "▲ " + t("go.go")]);
+      b.onclick = async () => { b.disabled = true; try { STATE = await jpost("/api/lobby/" + LID + "/player/" + me.id + "/go", { go: !me.go }, meR.token); lastSig = JSON.stringify(STATE); renderLive();
+        if (STATE.players.every(p => p.go)) toast(t("go.all.toast")); } catch (e) { toast(e.message); b.disabled = false; } };
+      kids.push(b);
+    }
+    return el("div", { class: "gostrip" + (all ? " all" : "") }, kids);
+  }
+
   // ----------------------------------------------------------------- 01: join
   function joinPanel() {
+    const nP = STATE ? STATE.players.length : 0, exp = STATE ? ((STATE.readiness || {}).expected || 4) : 4;
+    if (nP >= 4) return panel(t("join.pid"), t("join.title"), { tone: "red", status: "4/4", statusKind: "warn" }, [
+      el("div", { class: "hint", style: "margin:0" }, [t("join.full")]), el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")])]);
     const name = el("input", { type: "text", id: "cs", placeholder: t("join.cs.ph"), maxlength: "32", autocomplete: "off" });
     const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-    const upload = fileBtn("primary", t("join.upload"), true);
-    const skip = el("button", { class: "btn", type: "button" }, [t("join.skip")]);
+    // a device with a locker joins with it: gear + latest stats come along, no screenshot needed
+    const L = store.locker();
+    const upload = fileBtn(L ? "" : "primary", t(L ? "join.upload.new" : "join.upload"), true);
+    const skip = el("button", { class: "btn" + (L ? " primary" : ""), type: "button" }, [t(L ? "join.locker" : "join.skip")]);
+    const lockerHint = L ? el("div", { class: "hint" }, [t("join.locker.hint")]) : null;
+    if (L) lget("/api/locker/" + L.id).then(lk => { if (lk && lk.callsign && !name.value) name.value = lk.callsign; }).catch(() => {});
     const controls = [upload, skip, name];
+    // returning diver on a new device: pick your callsign from the roster (your last read and gear come back)
+    let picker = null;
+    if (!L) {
+      const sel = el("select", { id: "cs-pick", "aria-label": t("join.pick") }, [el("option", { value: "" }, [t("join.pick.ph")])]);
+      picker = el("div", { class: "field", hidden: true }, [el("label", { class: "label", for: "cs-pick" }, [t("join.pick")]), sel, el("div", { class: "hint", style: "margin:4px 0 0" }, [t("join.pick.hint")])]);
+      api("/api/roster").then(r => { const names = [...new Set((r.divers || []).map(d => d.callsign).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        if (!names.length) return; names.forEach(n => sel.appendChild(el("option", { value: n }, [n]))); picker.hidden = false; }).catch(() => {});
+      sel.onchange = () => { if (!sel.value) return; name.value = sel.value; skip.textContent = t("join.as", { name: sel.value }); skip.classList.add("primary"); };
+      name.addEventListener("input", () => { if (name.value !== sel.value) { sel.value = ""; skip.textContent = t("join.skip"); } });
+    }
     upload.querySelector("input").onchange = ev => { if (ev.target.files && ev.target.files.length) doJoin(name.value, ev.target.files, status, controls); };
-    skip.onclick = () => doJoin(name.value, null, status, controls);
+    skip.onclick = () => { if (!name.value.trim()) { name.focus(); toast(t("prof.need")); return; } doJoin(name.value, null, status, controls); };
     name.addEventListener("keydown", e => { if (e.key === "Enter") skip.click(); });
     return panel(t("join.pid"), t("join.title"), { tone: "amber", status: t("common.diver"), statusKind: "warn" }, [
+      nP >= exp ? el("div", { class: "upstatus err", style: "margin:0 0 10px" }, [t("join.extra", { n: exp, m: nP + 1 })]) : null,
+      picker,
       el("div", { class: "field" }, [el("label", { class: "label", for: "cs" }, [t("join.cs.label")]), name]),
-      el("div", { class: "btnrow" }, [upload, skip]),
+      el("div", { class: "btnrow" }, L ? [skip, upload] : [upload, skip]),
       status,
+      lockerHint,
       el("div", { class: "hint" }, [t("join.hint")]),
-      el("div", { class: "hint" }, [t("join.hint.return")]),
+      L ? null : el("div", { class: "hint" }, [t("join.hint.return")]),
       STATE && STATE.players.length ? el("div", { class: "hint linked" }, [t("join.linked")]) : null,
     ]);
   }
@@ -692,7 +1051,7 @@
       const stats = !p.has_stats ? tag("amber dash", t("man.stats.none")) : p.style_source === "remembered" ? tag("cyan", t("man.stats.rem")) : tag("green", t("man.stats.read"));
       const gear = p.gear_confirmed ? tag("green", t("man.gear.set")) : tag("amber dash", t("man.gear.unset"));
       const medal = p.aar && p.aar.verdict && p.aar.verdict.medal ? tag("amber", "🎖 " + p.aar.verdict.medal.id) : null;
-      const sub = [styleLabel(p.play_style), p.assignment ? p.assignment.role : null].filter(Boolean).join(" · ");
+      const sub = [t("card.style", { style: styleLabel(p.play_style) }), p.assignment ? t("card.role", { role: p.assignment.role }) : null].filter(Boolean).join(" · ");
       const row = el("div", { class: "mrow" + (mine ? " me" : "") }, [
         el("div", { class: "stripe" }),
         el("div", { style: "min-width:0" }, [el("div", { class: "nm" }, [p.callsign]), el("div", { class: "sub" }, [sub])]),
@@ -1028,8 +1387,11 @@
           const icon = src ? el("img", { src: src, class: i.icon ? null : "pic", alt: "", loading: "lazy" }) : el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]);
           if (src) icon.onerror = () => icon.replaceWith(el("span", { class: "noicon", "aria-hidden": "true" }, ["◇"]));
           const sl = statLine(i.stats);
+          // tapping the name ticks the box; the wiki is a separate small ↗ so nobody leaves the app by accident
+          const wu = META && META.wiki && META.wiki[i.name];
           grid.appendChild(el("label", { class: "tile" }, [cb, el("span", { class: "ti" }, [icon]), el("span", { class: "tn" }, [
-            wk(i.name), el("small", {}, [srcLabel(i.source)]), sl ? el("small", { class: "ts" }, [sl]) : null])]));
+            el("span", { class: "nm" }, [i.name]), el("small", {}, [srcLabel(i.source)]), sl ? el("small", { class: "ts" }, [sl]) : null]),
+            wu ? el("a", { class: "wkx", href: wu, target: "_blank", rel: "noopener", title: t("gear.wiki"), "aria-label": t("gear.wiki") + ": " + i.name }, ["↗"]) : null]));
           paint(); refreshers.push(paint);
         });
         paintCnt(); refreshers.push(paintCnt);
@@ -1127,7 +1489,7 @@
   }
 
   function missionEditor() {
-    const base = { mode: "challenge", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null, oaths: [] };
+    const base = { mode: "optimize", faction: "automatons", difficulty: 7, mission_id: "", operation_modifiers: [], planet_hazards: [], tactical_objectives: [], is_city_map: false, oath: null, oaths: [] };
     const draft = JSON.parse(JSON.stringify(Object.assign(base, (STATE && STATE.mission) || {})));
     ["operation_modifiers", "planet_hazards", "tactical_objectives"].forEach(k => { if (!Array.isArray(draft[k])) draft[k] = []; });
     const set = !!(STATE.mission && STATE.mission.mission_id);
@@ -1142,7 +1504,7 @@
       b.onclick = () => { draft.mode = k; modes.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); };
       modes.appendChild(b);
     });
-    body.appendChild(el("div", { class: "blk", style: "margin-top:4px" }, [el("span", { class: "label" }, [t("mis.mode")]), modes, el("div", { class: "hint" }, [t("mis.d100.hint")])]));
+    body.appendChild(el("div", { class: "blk", style: "margin-top:4px" }, [el("span", { class: "label" }, [t("mis.mode")]), modes, el("div", { class: "hint" }, [t("mis.d100.hint")]), el("div", { class: "hint", style: "margin-top:4px" }, ["☠ " + t("mis.d100.kit")])]));
 
     // planet from the live war: fills faction + hazards (optional)
     const planetSel = el("select", { id: "m-planet" }, [el("option", { value: "" }, [t("war.pick.none")])]);
@@ -1156,6 +1518,9 @@
       const cur = w.planets.find(p => p.name === draft.planet_name);
       if (cur) planetSel.value = String(cur.index);
       planetBlk.style.display = "";
+      let pre = null; try { pre = localStorage.getItem("wm_preplanet_" + LID); } catch (e) {}
+      const pp = pre && !draft.planet_name && w.planets.find(p => p.name === pre);
+      if (pp) { planetSel.value = String(pp.index); planetSel.onchange(); try { localStorage.removeItem("wm_preplanet_" + LID); } catch (e) {} }
     });
     planetSel.onchange = () => {
       const p = ((WAR && WAR.planets) || []).find(x => String(x.index) === planetSel.value);
@@ -1165,6 +1530,7 @@
       (p.effects || []).forEach(id => { if (draft.operation_modifiers.indexOf(id) < 0) draft.operation_modifiers.push(id); });   // Hive World -> Gloom Source
       draft.dss_actions = (p.dss && p.dss.details) || [];   // the Democracy Space Station's active actions, for the briefing
       paintHaz(); fillMissions(); fillTacticals(); fillOps();
+      toast(t("war.filled", { faction: t("faction." + p.enemy), n: p.hazards.length + (p.effects || []).length }));
       planetInfo.textContent = [p.biome, p.sector, p.hazard_names.length ? p.hazard_names.join(", ") : t("war.nohaz"), p.progress != null ? t("war.liberation", { n: p.progress }) : null,
         p.dss ? "🛰 " + t("war.dss") + (p.dss.actions && p.dss.actions.length ? ": " + p.dss.actions.join(", ") : "") : null].filter(Boolean).join(" · ");
     };
@@ -1319,7 +1685,7 @@
         STATE = STATE && STATE.directive ? await regenScreen(req, 1500) : await req;
         lastSig = JSON.stringify(STATE); renderLive(); d.open = false;
         d.querySelector("summary").textContent = t("mis.edit"); d.classList.remove("attn");
-        toast(STATE.directive ? t("toast.mission_changed") : t("mis.saved"));
+        toast(STATE.directive ? t("toast.mission_changed") : t("mis.saved.wait"));
       } catch (e) { toast(e.message); } finally { busy = false; save.disabled = false; }
     };
     const prefill = fileBtn("", t("mis.prefill"), false);
@@ -1394,16 +1760,38 @@
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
-    if (m.status === "thinking") return el("div", { class: "mind thinking", role: "status" }, [
-      el("span", { class: "spin", "aria-hidden": "true" }), el("b", {}, ["◈ " + t("mind.thinking.t")]), " ", t("mind.thinking")]);
+    if (m.status === "ready") return el("details", { class: "mind ready fold" }, [
+      el("summary", {}, ["◈ " + t("mind.ready.short")]),
+      el("div", { class: "body" }, [m.summary ? el("div", {}, [m.summary]) : null,
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.ready.checked", { a: m.kept || 0, b: m.total || 0 })])])]);
+    if (m.status === "engine") return el("div", { class: "mind off" }, [el("b", {}, ["◈ "]), t("mind.engine")]);
+    if (m.status === "thinking") {
+      const clock = el("span", { class: "met" }, ["T+", nixie(metText(m.since || Date.now() / 1000).slice(3))]);
+      const tm = setInterval(() => { if (!clock.isConnected) return clearInterval(tm); clock.lastChild.replaceWith(nixie(metText(m.since || Date.now() / 1000).slice(3))); }, 1000);
+      return el("div", { class: "mind thinking", role: "status" }, [
+        el("span", { class: "spin", "aria-hidden": "true" }), el("b", {}, ["◈ " + t("mind.thinking.t")]), " ", clock, el("div", {}, [t("mind.thinking")]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.thinking.eta")])]);
+    }
     if (m.status === "ready") return el("div", { class: "mind ready" }, [
       el("div", {}, [el("b", {}, ["◈ " + t("mind.ready.t")]), " ", m.summary || ""]),
       el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.ready.checked", { a: m.kept || 0, b: m.total || 0 })])]);
     return el("div", { class: "mind off" }, [el("b", {}, ["◈ "]), t(m.status === "budget" ? "mind.budget" : "mind.failed")]);
   }
 
+  const isBuilding = () => !!(STATE && STATE.directive && STATE.directive.mind && STATE.directive.mind.status === "thinking");
+  function buildingPanel(m) {
+    const clock = el("span", { class: "met" }, ["T+", nixie(metText(m.since || Date.now() / 1000).slice(3))]);
+    const line = el("div", { class: "upstatus working", style: "display:flex" });
+    const stop = workTicker(line, lines("tick.gen.", 6));
+    const tm = setInterval(() => { if (!clock.isConnected) { clearInterval(tm); stop(); return; } clock.lastChild.replaceWith(nixie(metText(m.since || Date.now() / 1000).slice(3))); }, 1000);
+    return panel(t("roster.pid"), t("mind.build.t"), { status: "◈", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "building" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["⬡"]), clock]),
+      el("div", { class: "hint", style: "margin:10px 0" }, [t("mind.build")]), line,
+      el("div", { class: "hint" }, [t("mind.build.eta")])]);
+  }
   function briefing() {
     const d = STATE.directive, r = STATE.readiness || {};
+    if (d && isBuilding()) return [buildingPanel(d.mind)];   // one good set per diver, shown once it's ready
     if (!d) return [r.mission_set
       ? el("div", { class: "alert" }, [el("b", {}, [t("brief.hold.t")]), t("brief.hold")])
       : el("div", { class: "alert" }, [el("b", {}, ["//"]), t("brief.waiting")])];
@@ -1460,7 +1848,7 @@
 
     // loadouts
     const roster = el("div", { class: "roster" }); const me = meRec();
-    const fillRoster = () => { roster.innerHTML = ""; STATE.players.forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false))); };
+    const fillRoster = () => { roster.innerHTML = ""; STATE.players.slice().sort((a, b) => (me && b.id === me.id) - (me && a.id === me.id)).forEach(p => roster.appendChild(diverCard(p, me && me.id === p.id, false))); };   // your own kit first
     fillRoster();
     const viewSeg = el("div", { class: "seg kitview", role: "group", "aria-label": t("kv.label") });
     [["screen", "▦ " + t("kv.screen")], ["list", "☰ " + t("kv.list")]].forEach(([k, label]) => {
@@ -1471,16 +1859,21 @@
       };
       viewSeg.appendChild(b);
     });
-    const rkids = [swapCallout(d), mindBanner(d.mind), viewSeg, roster].filter(Boolean);
+    // reroll sits up top beside the view switch (no scrolling past four cards to find it)
+    let rb = null;
     if (isCreator()) {
-      const rb = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("roster.reroll")]);
+      rb = el("button", { class: "btn sm", type: "button", title: t("roster.reroll.hint") }, ["⟳ " + t("roster.reroll")]);
       rb.onclick = async () => {
         if (busy) return; busy = true; rb.disabled = true;
-        try { STATE = await regenScreen(jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)), 1200); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled")); }
+        try { STATE = await regenScreen(jpost("/api/lobby/" + LID + "/reroll", {}, store.creator(LID)), 1200); lastSig = JSON.stringify(STATE); renderLive(); toast(t("toast.rerolled"));
+          const r0 = document.querySelector(".roster"); if (r0) r0.scrollIntoView({ block: "start" }); }
         catch (e) { toast(e.message); } finally { busy = false; rb.disabled = false; }
       };
-      rkids.push(el("div", { class: "btnrow" }, [rb]), el("div", { class: "hint" }, [t("roster.reroll.hint")]));
     }
+    const n = STATE.reroll || 0;
+    const rkids = [swapCallout(d), mindBanner(d.mind), el("div", { class: "kvrow" }, [viewSeg, rb]),
+      n ? el("div", { class: "hint rerolln" }, ["⟳ " + t("why.reroll", { n: n })]) : (rb ? el("div", { class: "hint" }, [t("roster.reroll.hint")]) : null),
+      roster].filter(Boolean);
     out.push(sub("loadouts", panel(t("roster.pid"), t("roster.title"), { status: t("rdy.briefed"), statusKind: "ok" }, rkids)));
 
     // squad review: redundancy + impact, each line with its research sources
@@ -1509,6 +1902,12 @@
       mtx.appendChild(el("div", { class: h.length ? "" : "none" }, [h.length ? h.join(", ") : t("coord.nobody")]));
     });
     const blocks = [el("div", {}, [el("div", { class: "sub-h", style: "margin-top:0" }, [t("coord.matrix")]), mtx])];
+    if (d.compass) {
+      const pts = STATE.players.filter(p => p.assignment && p.assignment.compass).map(p => Object.assign({ label: p.callsign, color: p.accent }, p.assignment.compass));
+      pts.push(Object.assign({ squad: true }, d.compass));
+      blocks.push(el("div", {}, [el("div", { class: "sub-h" }, [t("cmp.title")]), el("div", { class: "cbig" }, [compassSvg(pts, 220, true)]),
+        el("div", { class: "hint" }, [t("cmp.squad", { w: compassWord(d.compass) }) + " " + t("cmp.hint")])]));
+    }
     if (d.loop && d.loop.length) {
       const order = d.loop.map(x => x[0]); const loop = el("div", { class: "loop" });
       order.forEach(x => { loop.appendChild(el("span", {}, [x])); loop.appendChild(el("span", { class: "arw" }, ["→"])); });
@@ -1578,6 +1977,7 @@
   function whyLine(w) {
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
+    if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
     if (p.mode) p.mode = t("mode." + p.mode);
@@ -1590,7 +1990,8 @@
     const read = p.style_read;
     if (read && read.style === p.play_style && has(read.k)) rows.push(["stats", t("why.stats", { style: styleLabel(p.play_style), read: tp(read, "") })]);
     else if (p.style_source === "manual") rows.push(["stats", t("why.stats.chosen", { style: styleLabel(p.play_style) })]);
-    a.why.forEach(w => { const line = whyLine(w); if (line) rows.push([w.kind, line]); });
+    a.why.forEach(w => { if (w.kind === "reroll") return;   // said once above the cards
+      const line = whyLine(w); if (line) rows.push([w.kind, line]); });
     return el("div", { class: "whykit" }, [
       el("div", { class: "wk-h" }, [t("why.title")]),
       el("ul", {}, rows.map(([k, line]) => el("li", { class: "w-" + k }, [el("span", { class: "ic", "aria-hidden": "true" }, [WHY_ICON[k] || "•"]), el("span", {}, [line])]))),
@@ -1603,8 +2004,15 @@
     const medal = p.aar && p.aar.verdict && p.aar.verdict.medal;
     card.appendChild(el("div", { class: "hd" }, [
       el("div", { class: "role" }, [a ? a.role : t("card.awaiting"), a && provisional ? tag("amber dash", t("brief.prov")) : null]),
-      el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", styleLabel(p.play_style),
+      el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", t("card.style", { style: styleLabel(p.play_style) }),
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
+      a && a.compass ? el("div", { class: "cmini", title: t("cmp.title") }, [compassSvg([Object.assign({ color: p.accent }, a.compass)], 44, false), el("small", {}, [compassWord(a.compass)])]) : null,
+      a && mine && store.locker() ? (() => {   // "I want to wear my armour": keep this set from now on, or let WARMIND pick again
+        const worn = (a.why || []).some(w => w.k === "why.worn");
+        const b = el("button", { class: "btn sm", type: "button" }, [worn ? "📌 " + t("arm.wearing", { armor: a.armor }) + " · " + t("arm.release") : "📌 " + t("arm.keep", { armor: a.armor })]);
+        b.onclick = async () => { b.disabled = true; try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
+          toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); b.disabled = false; } };
+        return el("div", { class: "wornrow" }, [b]); })() : null,
     ]));
     if (!a) return card;
     if (kitView === "screen") {
@@ -1627,8 +2035,13 @@
     ])));
     card.appendChild(kit);
     }
-    const thin = (a.thin_axes && a.thin_axes.length ? a.thin_axes.map(x => t("axis." + x)) : a.thin) || [];
-    if (thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: thin.join(", ") })]));
+    // a thin axis is fine only if a teammate holds it: say which, and flag the ones nobody does
+    const mtx = (STATE.directive && STATE.directive.matrix) || {};
+    if (a.thin_axes && a.thin_axes.length) {
+      const held = a.thin_axes.filter(x => (mtx[x] || []).some(r => r !== a.role)), open = a.thin_axes.filter(x => !held.includes(x));
+      if (held.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: held.map(x => t("axis." + x)).join(", ") })]));
+      if (open.length) card.appendChild(el("div", { class: "thin open" }, [t("card.thin.open", { list: open.map(x => t("axis." + x)).join(", ") })]));
+    } else if (a.thin && a.thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: a.thin.join(", ") })]));
     card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
       (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
     if (mine && store.locker()) {   // keep this kit for reference
@@ -1675,6 +2088,45 @@
     a.onclick = e => { if (!gearDirty()) return; e.preventDefault(); guardGear(() => { location.href = href; }); };
     return el("div", { class: "lkline" }, [el("span", {}, [t("lk.line")]), a]);
   }
+  // Home, first thing: set your profile (callsign → locker), or a welcome back with it
+  function profilePanel() {
+    const L = store.locker();
+    if (L) {
+      const box = el("div", { class: "welcome" }, [el("span", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+      lget("/api/locker/" + L.id).then(lk => {
+        box.innerHTML = "";
+        box.append(el("div", {}, [el("div", { class: "label", style: "margin:0" }, [t("prof.welcome")]), el("div", { class: "big" }, [lk.callsign || "—"]),
+          lk.play_style ? el("div", { class: "hint", style: "margin:2px 0 0" }, [styleLabel(lk.play_style)]) : null]),
+          el("div", { class: "btnrow", style: "margin:0" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]),
+            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
+      }).catch(() => { box.innerHTML = ""; box.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")])); });
+      return panel("SYS-P", t("prof.title"), {}, [box]);
+    }
+    const cs = el("input", { type: "text", maxlength: "24", placeholder: t("lk.callsign.ph"), autocomplete: "off", id: "prof-cs" });
+    const up = fileBtn("", t("prof.upload"), true);
+    let files = [];
+    const picked = el("span", { class: "hint", style: "margin:0" });
+    up.querySelector("input").onchange = ev => { files = Array.from(ev.target.files || []); picked.textContent = files.length ? "✓ " + t("prof.picked", { n: files.length }) : ""; };
+    const go = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("prof.go")]);
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    go.onclick = async () => {
+      const v = cs.value.trim(); if (!v) { cs.focus(); toast(t("prof.need")); return; }
+      go.disabled = true;
+      try {
+        const r = await jpost("/api/locker", { callsign: v }); store.setLocker({ id: r.locker_id, key: r.locker_key });
+        if (files.length) { const stop = workTicker(status, lines("tick.read.", 10)); try { const fd = new FormData(); files.forEach(f => fd.append("images", f)); await lfd("/api/locker/" + r.locker_id + "/career", fd); } finally { stop(); } }
+        toast(t("prof.done", { name: v })); renderHome(); profileChat(v, {}, null);
+      } catch (e) { toast(e.message); go.disabled = false; }
+    };
+    cs.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
+    return panel("SYS-P", t("prof.title"), { tone: "amber" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("prof.hint")]),
+      el("div", { class: "field" }, [el("label", { class: "label", for: "prof-cs" }, [t("me.callsign")]), cs]),
+      el("div", { class: "btnrow" }, [go, up]), picked, status,
+      el("div", { class: "hint" }, [t("prof.later")]),
+    ]);
+  }
+
   function lockerHomePanel() {
     const L = store.locker();
     const b = el("a", { class: "btn primary", href: "/?locker" }, ["🗄 " + t(L ? "lk.open" : "lk.create")]);
@@ -1751,7 +2203,23 @@
     app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.medals.length ? "🎖 " + LK.medals.length : "", statusKind: "warn", tone: "amber" }, [
       head,
       el("div", { class: "btnrow" }, [up, dev]), status,
+      el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]),
+        el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]),
+        (() => { const sel = armorSelect((LK.prefs || {}).armor_set, null, null);
+          sel.onchange = async () => { try { await setWorn(sel.value); LK.prefs = Object.assign({}, LK.prefs, { armor_set: sel.value || undefined }); toast(sel.value ? t("arm.saved", { armor: sel.value }) : t("arm.cleared")); } catch (e) { toast(e.message); } };
+          return el("div", { class: "field", style: "flex:1 1 100%;margin:6px 0 0" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), sel, el("div", { class: "hint", style: "margin:4px 0 0" }, [t("arm.hint")])]); })(),
+        (() => { const b = el("button", { class: "btn sm", type: "button" }, ["◈ " + t("pq.tune")]); b.onclick = () => profileChat(LK.callsign, LK.prefs, p => { LK.prefs = p; paintLocker(); }); return b; })()]),
       el("div", { class: "hint" }, [t("lk.private")]),
+      (() => {   // the open roster: listed unless you opt out
+        const seg = el("div", { class: "seg", role: "group", "aria-label": t("ros.show") });
+        [[true, t("mis.think.on")], [false, t("mis.think.off")]].forEach(([v, label]) => {
+          const b = el("button", { type: "button", "aria-pressed": String(LK.public === v) }, [label]);
+          b.onclick = async () => { try { await lpost("/api/locker/" + L.id + "/visibility", { public: v }); LK.public = v; seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); toast(t(v ? "ros.shown" : "ros.hidden")); } catch (e) { toast(e.message); } };
+          seg.appendChild(b);
+        });
+        return el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, ["☰ " + t("ros.show")]), seg,
+          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
+      })(),
     ]));
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
     // up top: a carousel of saved loadouts, then the stats
@@ -1772,8 +2240,10 @@
     show(tabs.some(x => x[0] === lkTab) ? lkTab : "record");
     window.scrollTo(0, y);
   }
-  function lkCarousel() {
-    const L = LK.loadouts || [];
+  function lkCarousel(list, opts) {
+    opts = opts || {};
+    const L = list || LK.loadouts || [];
+    if (!L.length && opts.readonly) return null;
     if (!L.length) {
       const b = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]); b.onclick = () => buildKitDialog();
       return panel("LKR-00", t("lk.tab.loadouts"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.none")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
@@ -1781,7 +2251,7 @@
     const track = el("div", { class: "lkcar", tabindex: "0", "aria-label": t("lk.tab.loadouts") });
     L.forEach(o => {
       const src = o.source || {};
-      const card = el("article", { class: "dcard lkslide" }); card.style.setProperty("--acc", "#ffc23a");
+      const card = el("article", { class: "dcard lkslide" }); card.style.setProperty("--acc", "#ff9a3c");
       card.appendChild(el("div", { class: "hd" }, [el("div", { class: "role" }, [o.kit.role || o.name]),
         el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
@@ -1795,10 +2265,237 @@
     const next = el("button", { class: "btn sm", type: "button", "aria-label": "›" }, ["›"]); next.onclick = () => step(1);
     track.addEventListener("scroll", () => { const w = ((track.firstElementChild || {}).offsetWidth || 300) + 12; count.textContent = (Math.round(track.scrollLeft / w) + 1) + " / " + L.length; }, { passive: true });
     track.addEventListener("keydown", e => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
-    const neu = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); neu.onclick = () => buildKitDialog();
+    const neu = opts.readonly ? null : el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); if (neu) neu.onclick = () => buildKitDialog();
     return panel("LKR-00", t("lk.tab.loadouts"), { status: String(L.length), statusKind: "info" }, [track,
       el("div", { class: "lkcarnav" }, [prev, count, next, el("span", { style: "flex:1" }), neu])]);
   }
+  // ======================================================================= profile chat
+  // WARMIND asks a few questions; the answers lean the kits in Optimize / Fun / Improvement
+  const PREF_Q = [
+    ["vibe", ["boom", "precision", "stealth", "hold", "any"]],
+    ["focus", ["at", "ch", "st", "support", "scout", "any"]],
+    ["armor", ["Light", "Medium", "Heavy", "any"]],
+    ["front", ["terminids", "automatons", "illuminate", "any"]],
+  ];
+  const prefLabel = (k, v) => t("pq." + k + "." + v);
+  // every armour set, by weight, with its passive ("the armour I wear")
+  function armorSets(owned) {
+    const tb = (META.armory || []).find(x => x.slot === "Armor"); if (!tb) return [];
+    const own = owned ? new Set(owned) : null;
+    return tb.groups.map(g => ({ weight: g.group, items: g.items.filter(i => !own || own.has(i.name) || i.source === "Helldivers Mobilize") }));
+  }
+  function armorSelect(cur, owned, weight) {
+    const sel = el("select", { "aria-label": t("arm.pick") }, [el("option", { value: "" }, [t("arm.auto")])]);
+    armorSets(owned).forEach(g => { if (weight && weight !== "any" && g.weight !== weight) return;
+      const og = el("optgroup", { label: has("w." + g.weight) ? t("w." + g.weight) : g.weight });
+      g.items.forEach(i => og.appendChild(el("option", { value: i.name }, [i.name + (i.passive ? " · " + i.passive : "")]))); sel.appendChild(og); });
+    sel.value = cur || ""; return sel;
+  }
+  async function setWorn(name) {
+    const L = store.locker(); if (!L) return false;
+    await lpost("/api/locker/" + L.id + "/prefs", { armor_set: name || "" }); return true;
+  }
+  const prefSummary = p => PREF_Q.map(([k]) => p && p[k] && p[k] !== "any" ? prefLabel(k, p[k]) : null).concat(p && p.armor_set ? ["📌 " + p.armor_set] : []).filter(Boolean).join(" · ");
+  function profileChat(callsign, prefs, done) {
+    const L = store.locker(); if (!L) return;
+    const ans = Object.assign({}, prefs || {});
+    const dlg = el("dialog", { class: "modal chat", "aria-label": t("pq.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const log = el("div", { class: "chatlog", role: "log", "aria-live": "polite" });
+    const choices = el("div", { class: "chatpick" });
+    const say = (who, text) => { log.appendChild(el("div", { class: "bub " + who }, [text])); log.scrollTop = log.scrollHeight; };
+    let i = 0;
+    const ask = () => {
+      choices.innerHTML = "";
+      if (i >= PREF_Q.length) {
+        say("wm", t("pq.done", { name: callsign || "" }));
+        const out = Object.assign({}, ans); delete out.__setAsked;
+        lpost("/api/locker/" + L.id + "/prefs", out).then(r => { if (done) done(r.prefs || out); }).catch(e => toast(e.message));
+        const ok = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("pq.close")]); ok.onclick = () => dlg.close(); choices.appendChild(ok);
+        return;
+      }
+      const [k, opts] = PREF_Q[i];
+      if (k === "front" && !ans.__setAsked) {   // between armour and front: the exact set they wear
+        ans.__setAsked = true;
+        say("wm", t("arm.q"));
+        const sel = armorSelect(ans.armor_set, null, ans.armor); sel.style.flex = "1 1 100%";
+        const yes = el("button", { type: "button", class: "btn sm primary" }, ["📌 " + t("arm.wear")]);
+        const no = el("button", { type: "button", class: "btn sm" }, [t("arm.auto")]);
+        yes.onclick = () => { if (!sel.value) { sel.focus(); return; } ans.armor_set = sel.value; say("me", "📌 " + sel.value); setTimeout(ask, 280); };
+        no.onclick = () => { ans.armor_set = ""; say("me", t("arm.auto")); setTimeout(ask, 280); };
+        choices.append(sel, yes, no);
+        return;
+      }
+      say("wm", t("pq." + k + ".q", { name: callsign || "" }));
+      opts.forEach(v => { const b = el("button", { type: "button", class: "btn sm" + (ans[k] === v ? " primary" : "") }, [prefLabel(k, v)]);
+        b.onclick = () => { ans[k] = v; say("me", prefLabel(k, v)); i++; setTimeout(ask, 280); }; choices.appendChild(b); });
+    };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, ["◈ " + t("pq.title")]), x]), el("div", { class: "mbody" }, [log, choices]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    say("wm", t("pq.hello", { name: callsign || "" })); setTimeout(ask, 350);
+  }
+
+  // ======================================================================= compass (#30)
+  // quiet <-> loud across, hold <-> push up; one dot per diver, a ring for the squad
+  function compassSvg(points, size, labels) {
+    const S = size, c = S / 2, r = S / 2 - (labels ? 18 : 4);
+    const ns = "http://www.w3.org/2000/svg";
+    const mk = (tag, a) => { const n = document.createElementNS(ns, tag); for (const k in a) if (a[k] != null) n.setAttribute(k, a[k]); return n; };
+    const svg = mk("svg", { viewBox: labels ? "-64 -18 " + (S + 128) + " " + (S + 36) : "0 0 " + S + " " + S, width: labels ? "100%" : S, height: labels ? null : S, class: "compass", role: "img",
+      "aria-label": t("cmp.title") + ": " + points.map(p => (p.label || "") + " " + t("cmp.say", { loud: Math.round(p.loud * 100), push: Math.round(p.push * 100) })).join("; ") });
+    svg.appendChild(mk("circle", { cx: c, cy: c, r: r, class: "cring" }));
+    svg.appendChild(mk("circle", { cx: c, cy: c, r: r / 2, class: "cring2" }));
+    svg.appendChild(mk("line", { x1: c - r, y1: c, x2: c + r, y2: c, class: "caxis" }));
+    svg.appendChild(mk("line", { x1: c, y1: c - r, x2: c, y2: c + r, class: "caxis" }));
+    if (labels) [["cmp.loud", c + r + 2, c + 4, "start"], ["cmp.quiet", c - r - 2, c + 4, "end"], ["cmp.push", c, c - r - 6, "middle"], ["cmp.hold", c, c + r + 14, "middle"]].forEach(([k, x, y, a]) => {
+      const tx = mk("text", { x: x, y: y, "text-anchor": a, class: "clab" }); tx.textContent = t(k); svg.appendChild(tx); });
+    points.forEach(p => {
+      const x = c + p.loud * r * 0.92, y = c - p.push * r * 0.92;
+      if (p.squad) { svg.appendChild(mk("circle", { cx: x, cy: y, r: labels ? 9 : 5, class: "csq" })); return; }
+      const d = mk("circle", { cx: x, cy: y, r: labels ? 6 : 4, class: "cdot", fill: p.color || "#ffb469" }); svg.appendChild(d);
+      if (labels && p.label) { const tx = mk("text", { x: x + 9, y: y + 4, class: "cname" }); tx.textContent = p.label; svg.appendChild(tx); }
+    });
+    return svg;
+  }
+  const compassWord = p => t("cmp.w." + (p.loud > 0.2 ? "loud" : p.loud < -0.2 ? "quiet" : "mid") + "." + (p.push > 0.2 ? "push" : p.push < -0.2 ? "hold" : "mid"));
+
+  // ======================================================================= costs (what Claude costs to run WARMIND)
+  let costTimer = null;
+  const usd = v => v == null ? "—" : "$" + (v < 1 ? v.toFixed(v < 0.1 ? 3 : 2) : v.toFixed(2));
+  async function renderCosts() {
+    app.innerHTML = ""; app.className = "stack";
+    app.appendChild(el("div", { class: "lknav" }, [el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")])]));
+    const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(body);
+    const load = async () => { try { paintCosts(body, await api("/api/costs")); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "alert" }, [e.message])); } };
+    await load();
+    clearInterval(costTimer);   // poll while the page is open
+    costTimer = setInterval(() => { if (!document.body.contains(body)) return clearInterval(costTimer); if (!document.hidden) load(); }, 60000);
+  }
+  function paintCosts(body, c) {
+    body.innerHTML = "";
+    const tile = (k, v, sub) => el("div", { class: "rstat" }, [nixie(usd(v)), el("small", {}, [t(k)]), sub ? el("small", { class: "sub" }, [sub]) : null]);
+    const bill = c.bill;
+    body.appendChild(panel("OPS-01", t("cost.title"), { status: c.mock ? t("cost.mock") : t("war.live"), statusKind: c.mock ? "warn" : "ok", tone: "amber" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("cost.what")]),
+      el("div", { class: "rstats ctiles" }, [tile("cost.today", c.app.today), tile("cost.7d", c.app["7d"]), tile("cost.30d", c.app["30d"]),
+        tile("cost.mtd", c.app.mtd), tile("cost.proj", c.projected_month, c.hosting_month != null ? t("cost.inclhost", { h: usd(c.hosting_month) }) : null)]),
+      el("div", { class: "hint" }, [t("cost.tracked")]),
+    ]));
+    // Anthropic's own bill
+    const bk = [];
+    if (bill) {
+      bk.push(el("div", { class: "rstats ctiles" }, [tile("cost.bill.today", bill.today), tile("cost.bill.mtd", bill.mtd), tile("cost.bill.30d", bill["30d"])]));
+      const by = Object.entries(bill.by || {}).sort((a, b) => b[1] - a[1]);
+      if (by.length) bk.push(el("div", { class: "chips" }, by.map(([k, v]) => el("span", { class: "chip" }, [k + " · " + usd(v)]))));
+      bk.push(el("div", { class: "hint" }, [t("cost.bill.note", { at: c.admin.at ? new Date(c.admin.at * 1000).toLocaleString(LANG) : "—" })]));
+    } else bk.push(el("div", { class: "hint", style: "margin:0" }, [c.admin.enabled ? (c.admin.status === "failed" ? t("cost.bill.err", { e: c.admin.error || "" }) : t("cost.bill.wait")) : t("cost.bill.off")]));
+    if (c.admin.enabled) { const b = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("cost.refresh")]);
+      b.onclick = async () => { b.disabled = true; try { paintCosts(body, await api("/api/costs/poll", { method: "POST" })); toast(t("cost.refreshed")); } catch (e) { toast(e.message); b.disabled = false; } }; bk.push(el("div", { class: "btnrow" }, [b])); }
+    body.appendChild(panel("OPS-02", t("cost.bill"), {}, bk));
+    // last 30 days: one bar per day (the bill when we have it, else what the app tracked)
+    const series = bill ? bill.daily : c.daily, max = Math.max(0.0001, ...series);
+    const W = 300, H = 120, n = series.length, gap = 2, bw = (W - gap * (n - 1)) / n;
+    const ns = "http://www.w3.org/2000/svg", mk = (tg, a) => { const e = document.createElementNS(ns, tg); for (const k in a) e.setAttribute(k, a[k]); return e; };
+    const readout = el("div", { class: "hint costread", "aria-live": "polite", style: "margin:0 0 6px" }, [t("cost.tap") + " · " + t("cost.peak", { v: usd(series.length ? Math.max(...series) : 0) })]);
+    const svg = mk("svg", { viewBox: "0 0 " + W + " " + (H + 16), width: "100%", class: "costbars", role: "img", "aria-label": t(bill ? "cost.chart.bill" : "cost.chart.app") });
+    svg.appendChild(mk("line", { x1: 0, y1: H, x2: W, y2: H, class: "base" }));
+    series.forEach((v, i) => {
+      const h = v > 0 ? Math.max(2, v / max * (H - 6)) : 0, x = i * (bw + gap), y = H - h;
+      const g = mk("g", { class: "bar", tabindex: "0" });
+      g.appendChild(mk("rect", { x: x, y: 0, width: bw, height: H, class: "hit" }));   // hover target bigger than the bar
+      if (h) g.appendChild(mk("path", { d: `M${x},${H} V${y + Math.min(4, h)} Q${x},${y} ${x + Math.min(4, bw / 2)},${y} H${x + bw - Math.min(4, bw / 2)} Q${x + bw},${y} ${x + bw},${y + Math.min(4, h)} V${H} Z`, class: "fill" }));
+      const tt = mk("title", {}); tt.textContent = c.days[i] + ": " + usd(v); g.appendChild(tt);
+      const show = () => { readout.textContent = c.days[i] + " · " + usd(v); };   // phones: tap a bar to read it
+      g.addEventListener("pointerenter", show); g.addEventListener("focus", show); g.addEventListener("click", show);
+      svg.appendChild(g);
+    });
+    [[0, c.days[0]], [n - 1, c.days[n - 1]]].forEach(([i, d], j) => { const tx = mk("text", { x: j ? W : 0, y: H + 13, "text-anchor": j ? "end" : "start", class: "ax" }); tx.textContent = d.slice(5); svg.appendChild(tx); });
+    const tbl = el("details", { class: "fold" }, [el("summary", {}, [t("cost.table")]), el("div", { class: "body" }, [el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [
+      el("thead", {}, [el("tr", {}, [el("th", {}, [t("lk.h.date")]), el("th", {}, [t("cost.col.usd")])])]),
+      el("tbody", {}, c.days.map((d, i) => el("tr", {}, [el("td", {}, [d]), el("td", {}, [usd(series[i])])])).reverse())])])])]);
+    body.appendChild(panel("OPS-03", t(bill ? "cost.chart.bill" : "cost.chart.app"), {}, [readout, svg, tbl]));
+    // by kind of call
+    const kinds = Object.entries(c.by_kind || {}).sort((a, b) => b[1].usd - a[1].usd);
+    const ktable = kinds.length ? el("div", { class: "tblwrap" }, [el("table", { class: "lktable" }, [
+      el("thead", {}, [el("tr", {}, ["cost.col.kind", "cost.col.calls", "cost.col.avg", "cost.col.usd", "cost.col.tok"].map(k => el("th", {}, [t(k)])))]),
+      el("tbody", {}, kinds.map(([k, v]) => el("tr", {}, [el("td", {}, [has("cost.k." + k) ? t("cost.k." + k) : k]), el("td", {}, [nf(v.calls)]), el("td", {}, [usd(v.avg)]),
+        el("td", {}, [usd(v.usd)]), el("td", {}, [nf(v.in) + " / " + nf(v.out) + (v.cache_read ? " · ↺" + nf(v.cache_read) : "")])])))])])
+      : el("div", { class: "hint", style: "margin:0" }, [t("cost.none")]);
+    body.appendChild(panel("OPS-04", t("cost.bykind"), {}, [ktable, c.unpriced_calls ? el("div", { class: "hint" }, [t("cost.unpriced", { n: c.unpriced_calls })]) : null]));
+    // guard rails
+    const cp = c.caps || {};
+    body.appendChild(panel("OPS-05", t("cost.caps"), {}, [
+      el("div", { class: "rstats ctiles" }, [
+        el("div", { class: "rstat" }, [nixie((cp.calls_today || 0) + "/" + (cp.per_day_cap || 0)), el("small", {}, [t("cost.cap.reads")])]),
+        el("div", { class: "rstat" }, [nixie((cp.plans_today || 0) + "/" + (cp.plans_per_day_cap || 0)), el("small", {}, [t("cost.cap.plans")])])]),
+      el("div", { class: "hint" }, [t("cost.models", { v: c.vision_model, p: c.planner.model, e: c.planner.effort })]),
+      el("div", { class: "hint" }, [Object.entries(c.prices || {}).map(([m, r]) => m + ": $" + r.in + " in / $" + r.out + " out / $" + (r.cache_read != null ? r.cache_read : "—") + " cached per M").join(" · ")])]));
+  }
+
+  // ======================================================================= roster + leaderboard
+  const ROS_SORT = [["accuracy", "sc.accuracy"], ["kd", "sc.kd"], ["kills_pm", "sc.kills_pm"], ["win_rate", "sc.success"], ["medals", "lk.medals"], ["active", "ros.recent"]];
+  let rosSort = (() => { try { return localStorage.getItem("wm_rossort") || "accuracy"; } catch (e) { return "accuracy"; } })();
+  const rosVal = (d, k) => k === "medals" ? d.medals : k === "active" ? d.active : (d.rates || {})[k];
+  const rosFmt = (d, k) => { const v = rosVal(d, k); if (v == null) return "—";
+    return k === "accuracy" || k === "win_rate" ? (v * 100).toFixed(1) + "%" : k === "active" ? dt(v) : k === "medals" ? "🎖 " + v : String(v); };
+  function rosNav(back) {
+    const nav = el("div", { class: "lknav" });
+    if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
+    nav.appendChild(el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]));
+    if (store.locker()) nav.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]));
+    return nav;
+  }
+  async function renderRoster() {
+    app.innerHTML = ""; app.className = "stack";
+    const id = new URLSearchParams(location.search).get("roster");
+    if (id) return renderProfile(id);
+    app.appendChild(rosNav(false));
+    const body = el("div", {}, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
+    let data; try { data = await api("/api/roster"); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "hint" }, [e.message])); return; }
+    const me = store.locker();
+    const paint = () => {
+      body.innerHTML = "";
+      const seg = el("div", { class: "seg rossort", role: "group", "aria-label": t("ros.sort") });
+      ROS_SORT.forEach(([k, lab]) => { const b = el("button", { type: "button", "aria-pressed": String(rosSort === k) }, [t(lab)]);
+        b.onclick = () => { rosSort = k; try { localStorage.setItem("wm_rossort", k); } catch (e) {} paint(); }; seg.appendChild(b); });
+      body.appendChild(seg);
+      const rows = data.divers.slice().sort((a, b) => { const x = rosVal(a, rosSort), y = rosVal(b, rosSort);
+        if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return y - x; });
+      if (!rows.length) body.appendChild(el("div", { class: "hint" }, [t("ros.none")]));
+      body.appendChild(el("ol", { class: "roslist" }, rows.map((d, i) => el("li", { class: me && me.id === d.id ? "me" : null }, [
+        el("a", { href: "/?roster=" + d.id }, [
+          el("span", { class: "rk" }, [rosVal(d, rosSort) == null ? "·" : String(i + 1)]),
+          el("span", { class: "who" }, [el("b", {}, [d.callsign]), el("small", {}, [[d.play_style ? styleLabel(d.play_style) : null,
+            d.rates && d.rates.missions ? t("ros.missions", { n: nf(d.rates.missions) }) : null, d.medals ? "🎖 " + d.medals : null].filter(Boolean).join(" · ")])]),
+          el("span", { class: "val" }, [rosFmt(d, rosSort)]),
+        ])]))));
+    };
+    paint();
+  }
+  async function renderProfile(id) {
+    app.appendChild(rosNav(true));
+    let d; try { d = await api("/api/roster/" + encodeURIComponent(id)); }
+    catch (e) { app.appendChild(panel("ERR", t("ros.title"), { tone: "red" }, [el("div", { class: "hint" }, [t("ros.gone")])])); return; }
+    app.appendChild(panel("ROS-02", t("ros.profile"), { status: d.medals.length ? "🎖 " + d.medals.length : "", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [d.callsign]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [d.play_style ? t("lk.style", { style: styleLabel(d.play_style) }) : t("me.noread")])])])]));
+    const car = lkCarousel(d.loadouts, { readonly: true }); if (car) app.appendChild(car);
+    const kids = [];
+    if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
+      el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
+    else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
+      el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
+    if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
+      el("b", {}, [(r.mission && r.mission.name) || "—"]), " · " + dt(r.at),
+      r.kills != null ? " · " + t("lk.r.kills", { n: nf(r.kills) }) : "", r.deaths != null ? " · " + t("lk.r.deaths", { n: nf(r.deaths) }) : "",
+      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name))]))));
+    app.appendChild(panel("ROS-03", t("lk.tab.stats"), {}, kids));
+  }
+
   function lkStats() {
     const kids = [];
     if (LK.stats) kids.push(statBlock({ scorecard: LK.scorecard, stats: LK.stats, confidence: null }));
@@ -1859,7 +2556,7 @@
       const del = el("button", { class: "btn sm red", type: "button" }, ["✕ " + t("lk.delete")]);
       del.onclick = async () => { if (!window.confirm(t("lk.delete.confirm", { name: o.name }))) return; await lpost("/api/locker/" + L.id + "/loadouts/" + o.id + "/delete"); await loadLocker(); };
       const src = o.source || {};
-      const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ffc23a");
+      const card = el("article", { class: "dcard lkcard" }); card.style.setProperty("--acc", "#ff9a3c");
       card.appendChild(el("div", { class: "hd" }, [
         el("div", { class: "role" }, [o.kit.role || o.name]),
         el("div", { class: "meta" }, [o.kit.role && o.name !== o.kit.role ? el("span", { class: "cs" }, [o.name]) : null,
@@ -1932,19 +2629,19 @@
     for (let y = 0; y < H; y += 40) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
     const rg = g.createRadialGradient(300, 315, 10, 300, 315, 330); rg.addColorStop(0, "rgba(255,194,58,.28)"); rg.addColorStop(1, "rgba(255,194,58,0)");
     g.fillStyle = rg; g.fillRect(0, 0, W, H);
-    g.strokeStyle = "#ffc23a"; g.lineWidth = 6; g.shadowColor = "#ffc23a"; g.shadowBlur = 24;   // medal hex
+    g.strokeStyle = "#ff9a3c"; g.lineWidth = 6; g.shadowColor = "#ff9a3c"; g.shadowBlur = 24;   // medal hex
     g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; g.lineTo(300 + 150 * Math.cos(a), 315 + 150 * Math.sin(a)); } g.closePath(); g.stroke();
-    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ffc23a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
+    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ff9a3c"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
     g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
     const fit = (txt, font, max) => { let sz = font; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; while (g.measureText(txt).width > max && sz > 22) { sz -= 2; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; } };
-    g.fillStyle = "#3ee6ff"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
+    g.fillStyle = "#78ffaa"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
     g.fillStyle = "#ffffff"; fit(mname.toUpperCase(), 58, 650); g.fillText(mname.toUpperCase(), 500, 222);
-    g.fillStyle = "#ffc23a"; fit(callsign, 44, 650); g.fillText(callsign, 500, 290);
+    g.fillStyle = "#ff9a3c"; fit(callsign, 44, 650); g.fillText(callsign, 500, 290);
     g.fillStyle = "#9fb3c2"; g.font = "400 26px 'JetBrains Mono', monospace";
     g.fillText(t("oath." + v.oath + ".name") + " · " + (mm ? mm.name : ""), 500, 345);
     g.fillText((STATE.name || "Squad") + (mission.difficulty ? " · D" + mission.difficulty : ""), 500, 385);
     g.fillStyle = "#4dffa1"; g.font = "500 24px 'JetBrains Mono', monospace"; g.fillText("ID " + v.medal.id, 500, 450);
-    g.fillStyle = "#3ee6ff"; g.font = "700 34px 'Chakra Petch', sans-serif"; g.fillText("WARMIND", 500, 560);
+    g.fillStyle = "#78ffaa"; g.font = "700 34px 'Chakra Petch', sans-serif"; g.fillText("WARMIND", 500, 560);
     g.fillStyle = "#5d7383"; g.font = "400 18px 'JetBrains Mono', monospace"; g.fillText(location.host, 680, 558);
     const blob = await new Promise(r => c.toBlob(r, "image/png"));
     const file = blob && new File([blob], "warmind-medal-" + v.medal.id + ".png", { type: "image/png" });

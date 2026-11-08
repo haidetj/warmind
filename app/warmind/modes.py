@@ -28,7 +28,7 @@ OPTIMIZE_META_W = 1.5      # optimize: the meta prior counts for more (replaces 
 # still dominates, so the kit stays mission-relevant — brutal, not hopeless.
 D100_COMFORT_W = 0.60
 D100_META_W = -0.8    # replaces the +1.0 base-grade weight
-D100_PRESSURE = 1.6
+D100_PRESSURE = 1.8
 
 
 def item_term(item, play_style, history: set[str], mode: str) -> float:

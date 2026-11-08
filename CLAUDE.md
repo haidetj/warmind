@@ -8,6 +8,12 @@ labelled `feedback` in this repo. At the start of a session, list the open
 first), and agree what to pick up. Close an issue (with a short comment) when
 it's done or declined.
 
+## Who and how
+WARMIND is a phone-first app, used by a Discord squad on their phones, and built by one
+engineer (the user) who usually works from a phone. So: check every UI change at phone
+widths first (360 and 448 px, then desktop); keep replies short and say clearly what, if
+anything, the user has to do; when they say "push" / "push all" / "deploy", merge and deploy.
+
 ## Deploys
 Merging to `main` deploys to Render (restart: about a minute of 502s). Don't
 deploy while the squad is playing; ask first. `health.yml` runs after every
@@ -24,8 +30,34 @@ reroll re-picks them with the full context (mission, hazards, modifiers, oaths, 
 each diver's career rates and drills, ranked shortlists of owned gear with stats and
 "ask"). Every pick goes back through `resolve_squad(override=...)`, so ownership, kit
 rules and the squad review still hold. Plans are cached in the `plan` table.
+One set per diver: while the planner works the briefing shows a single "building your loadouts"
+screen (no engine picks). The finished set is pinned under `mind.brief_key` (mission, reroll,
+squad, each diver's stated preferences), so background changes (gear ticks, stat re-reads) never
+swap kits; only gear a diver no longer owns is refilled. Past `WARMIND_PLAN_SLOW_S` (100s), or on
+failure / budget, the engine's set is pinned instead and stays.
 Env: `WARMIND_PLANNER=0` turns it off, `WARMIND_PLAN_MODEL` (defaults to
 `WARMIND_MODEL`), `WARMIND_PLAN_EFFORT` (default medium), caps
 `WARMIND_PLAN_PER_LOBBY_HOUR` (20) / `WARMIND_PLAN_PER_DAY` (150). `/health` →
 `planner.last` shows the latest plan's status, error and token usage.
 Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
+
+## War rooms, roster, profiles
+- Profile = locker (device-keyed, `x-locker` header). Home asks for a callsign first.
+- `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
+- `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
+  room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
+  (`_room_tally`); ribbons and the ship's log (`room_log`, i18n keys `log.*`) build up over time.
+  Anyone with the room code can set the mission and orders; only the founder (token in
+  `wm_roomc_<id>`) renames it. Joining a room table with a locker makes you a member, and your
+  rooms follow your locker into the new-table picker.
+- Go / No-Go: `player.go`, shown in the war table's command panel.
+- D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
+  no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
+
+## Costs (`app/costs.py`, `/?costs`)
+Every Claude call records its `usage` (input, cache write/read, output) into `api_usage`, priced
+at list rates (`costs.PRICES`, override with `WARMIND_PRICES`), tagged by kind (plan, career,
+result, review, mission, squad). With `ANTHROPIC_ADMIN_KEY` (an Admin API key, sk-ant-admin...)
+a background thread polls `GET /v1/organizations/cost_report` every 30 min (whole org, daily
+USD) into `kv.cost_report`. `/api/costs` serves both; `/?costs` shows them (polls every 60s);
+`/health` → `costs` has a one-line summary. Hosting has no billing API: `WARMIND_HOSTING_USD_MONTH`.

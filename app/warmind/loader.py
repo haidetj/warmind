@@ -195,6 +195,8 @@ def armory() -> list:
         e = {"name": rec["name"], "source": src.get(rec["name"], BASE_SOURCE), "icon": m.get("icon"), "img": m.get("img")}
         if m.get("stats"):
             e["stats"] = m["stats"]
+        if rec.get("passive"):   # armour: the passive, for "the armour I wear" pickers
+            e["passive"] = rec["passive"]
         return e
 
     out = []

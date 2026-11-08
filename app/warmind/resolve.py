@@ -54,6 +54,7 @@ class Player:
     accuracy: float | None = None    # career shots hit / fired, when the diver uploaded stats
     derived: dict | None = None      # career rates (stats.derive), when the diver uploaded stats
     favorites: list = field(default_factory=list)   # loadouts the diver saved in their locker (planner context)
+    prefs: dict = field(default_factory=dict)       # from the profile chat: {vibe, focus, armor}
 
 
 @dataclass
@@ -109,6 +110,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
     scored = []
     best, best_s = None, float("-inf")
     fb, fb_s = None, float("-inf")  # fallback ignoring ownership, so a slot never strands
+    crutch, crutch_s = None, float("-inf")   # Helldive∞: an owned crutch only if nothing else fits
+    no_crutch = session.mode == "d100"
     for it in cands:
         if it.name in exclude:  # hard excludes (squad dupes, explicit) always hold
             continue
@@ -123,6 +126,8 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         if not (it.slot in ("primary", "secondary") and getattr(session, "_sk", None) is not None):
             s += ask_mod.ask_term(it, session.mode)
         s += ask_mod.drill_term(it, getattr(session, "_drills", ()))
+        s += _pref_term(it, getattr(session, "_prefs", None))
+        s += _worn_term(it, getattr(session, "_worn", None), session.faction)
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
@@ -131,6 +136,10 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         if s > fb_s:
             fb, fb_s = it, s
         if it.name in excl_owned:  # ownership exclusion is soft
+            continue
+        if no_crutch and ask_mod.is_crutch(it):
+            if s > crutch_s:
+                crutch, crutch_s = it, s
             continue
         scored.append((s, it))
         if s > best_s:
@@ -141,7 +150,82 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
                       key=lambda it: zlib.crc32(f"{salt}|{it.name}".encode()))
         order = [best] + near   # reroll n takes the n-th: every reroll changes while alternatives last
         return order[session.seed % len(order)]
+    if best is None and crutch is not None:
+        return crutch
     return best if best is not None or owned_only else fb
+
+
+PREF_MODES = ("optimize", "fun", "improvement")
+FOCUS_W = 0.6   # a nudge: the mission's pressure still decides what the kit must answer
+VIBE_W = 0.4
+
+
+def _pref_term(it, prefs) -> float:
+    """What the diver told WARMIND they like: a focus (anti-tank, hordes, objectives, support,
+    scouting) and a vibe (big booms, precision, stealth, holding ground)."""
+    if not prefs:
+        return 0.0
+    s = 0.0
+    f = prefs.get("focus")
+    if f in ("at", "ch", "st", "bc") and f in it.coverage:
+        s += FOCUS_W
+    elif f == "support" and (it.category in ("backpack", "sentry", "emplacement", "relay") or "static_position" in it.tags):
+        s += FOCUS_W
+    elif f == "scout" and ({"stealth", "mobility", "radar_booster"} & it.tags or it.category == "backpack" and "jump_pack" in it.tags):
+        s += FOCUS_W
+    v = prefs.get("vibe")
+    reason = ask_mod.ask(it)[1]
+    if v == "boom" and (reason == "danger_close" or it.category in ("eagle", "orbital") or "explosive_secondary" in it.tags):
+        s += VIBE_W
+    elif v == "precision" and (reason == "precision" or "marksman" in it.tags):
+        s += VIBE_W
+    elif v == "stealth" and ("stealth" in it.tags or "light_armor" in it.tags):
+        s += VIBE_W
+    elif v == "hold" and ("static_position" in it.tags or it.category in ("sentry", "emplacement")):
+        s += VIBE_W
+    return s
+
+
+WORN_W = 1.2   # the diver chose this armour: weapons and stratagems that use its passive go up a notch
+_NONE = None
+
+
+def _blank():
+    global _NONE
+    if _NONE is None:
+        from .items import Item
+        _NONE = Item(name="—", slot="none")
+    return _NONE
+
+
+def _worn_term(it, worn, faction) -> float:
+    """How much this item makes the diver's chosen armour pay off (its passive, in isolation)."""
+    if worn is None or it.slot in ("armor",):
+        return 0.0
+    b = _blank()
+    kit = {"primary": it if it.slot == "primary" else b, "secondary": it if it.slot == "secondary" else b,
+           "grenade": it if it.slot == "grenade" else b, "strat": [it] if it.slot == "stratagem" else []}
+    try:
+        return WORN_W * passives.bonus(worn.passive, kit, faction)[0]
+    except Exception:
+        return 0.0
+
+
+def worn_armor(pl, pool, session, quiet: bool):
+    """The armour this diver asked to wear, if they own it and the mode allows it.
+    D100 keeps it only if it's Light with no defensive passive; a quiet run never wears Heavy."""
+    name = (pl.prefs or {}).get("armor_set")
+    if not name:
+        return None, None
+    it = next((a for a in pool.armor if a.name == name), None)
+    if it is None:
+        return None, None
+    # naming the set you wear says you own it: no gear-list check here
+    if session.mode == "d100" and (it.weight != "Light" or ask_mod.is_crutch(it)):
+        return None, "d100"
+    if quiet and it.weight == "Heavy":
+        return None, "quiet"
+    return it, None
 
 
 def _jitter(name: str, seed: int, salt: str) -> float:
@@ -161,6 +245,8 @@ def _chosen(cands, name, session):
     if not name:
         return None
     it = next((c for c in cands if c.name == name), None)
+    if it and session.mode == "d100" and (ask_mod.is_crutch(it) or (it.slot == "armor" and it.weight != "Light")):
+        return None   # Helldive∞: the planner doesn't get to hand out crutches either
     return it if it and it.name not in session_excluded(session) else None
 
 
@@ -332,7 +418,7 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(divers, pool, seed=0):
+def _assign_boosters(divers, pool, seed=0, mode=""):
     """divers: [(role_name, excluded_names)] in role order. In the game every diver
     brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
     diver gets a unique booster they own, preferring the strong picks and their role's
@@ -340,13 +426,17 @@ def _assign_boosters(divers, pool, seed=0):
     chosen, used = {}, set()
     for role_name, excluded in divers:
         avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
+        if mode == "d100":   # no safety-net boosters, and the quirky ones before the strong ones
+            avail = [b for b in avail if b["name"] not in ask_mod.D100_NO_BOOST] or avail
         bias = _ROLE_BIAS.get(role_name, "any")
         pick = None
         top = [b for b in avail if b["role_bias"] in (bias, "any") and b.get("strong")]
+        if mode == "d100":
+            top = []
         if seed and len(top) > 1:   # reroll: rotate among the strong boosters that suit the role
             top.sort(key=lambda b: zlib.crc32(f"{role_name}|{b['name']}".encode()))
             avail = [top[seed % len(top)]] + [b for b in avail if b is not top[seed % len(top)]]
-        for want_strong in (True, False):
+        for want_strong in ((False, True) if mode == "d100" else (True, False)):
             pick = next((b for b in avail if b["role_bias"] in (bias, "any")
                          and bool(b.get("strong")) == want_strong), None)
             if pick:
@@ -458,7 +548,7 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
-    boosters = _assign_boosters(order, pool, session.seed)
+    boosters = _assign_boosters(order, pool, session.seed, session.mode)
     if override:   # the planner's boosters: owned by that diver and not doubled up
         names = {b["name"] for b in pool.boosters}
         for pl in players:
@@ -472,12 +562,19 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
 
     session._squad_n = len(players)
     ctx = {}   # pid -> (pl, role, pstyle, hist, excluded)
+    worn_note = {}   # pid -> (worn armour, why it was set aside, what they asked for)
 
     def as_diver(pl):
         session._excluded = ctx[pl.id][4]
         session._salt = pl.id
         session._sk = handling.skill(pl.accuracy)
         session._drills = drills.get(pl.id, [])
+        # the diver's own preferences count in the comfortable modes; Challenge and D100 push past them
+        session._prefs = (pl.prefs or {}) if session.mode in PREF_MODES else {}
+        # the armour the diver wears (their pick, every mode): the kit is built around its passive
+        worn, worn_skip = worn_armor(pl, pool, session, quiet)
+        session._worn = worn
+        worn_note[pl.id] = (worn.name if worn else None, worn_skip, (pl.prefs or {}).get("armor_set"))
 
     drills = {pl.id: ask_mod.drills(pl.derived, session.mode) for pl in players}
 
@@ -539,11 +636,13 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
         # quiet: no Heavy; a glass-cannon drill goes a weight class lighter
-        weight = ask_mod.armor_weight_for(role.armor_weight, drills.get(pl.id, []), quiet)
+        pw = (pl.prefs or {}).get("armor") if session.mode in PREF_MODES else None
+        weight = ask_mod.armor_weight_for(pw if pw in ("Light", "Medium", "Heavy") else role.armor_weight,
+                                          drills.get(pl.id, []), quiet, session.mode)
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map
-        chosen_armor = _chosen(pool.armor, ov.get("armor"), session)
+        chosen_armor = getattr(session, "_worn", None) or _chosen(pool.armor, ov.get("armor"), session)
         if chosen_armor and quiet and chosen_armor.weight == "Heavy":
             chosen_armor = None   # quiet runs never wear Heavy
         armor = chosen_armor or _pick(pool.armor_of_weight(weight), session, pstyle, hist,
@@ -587,6 +686,12 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         why = _why_kit(pl, role, session, role_map.get(pl.id), primary, secondary, armor, strat,
                        chaff_for.get(pl.id), passive_why.get(pl.id), growth, thin, matrix,
                        grenade=grenade, drills=drills.get(pl.id, []))
+        wn = worn_note.get(pl.id)
+        if wn and wn[0]:   # their armour, kept: say so, and what in the kit uses its passive
+            why = [w for w in why if w["kind"] != "armor"] + [{"kind": "armor", "k": "why.worn",
+                   "p": {"armor": armor.name, "passive": armor.passive, "why": (passive_why.get(pl.id) or [None])[0]}}]
+        elif wn and wn[2] and wn[1]:
+            why.append({"kind": "armor", "k": "why.worn.skip." + wn[1], "p": {"armor": wn[2]}})
         final.append(Assignment(
             why=why,
             player_id=pl.id, callsign=pl.callsign, role=role.name,

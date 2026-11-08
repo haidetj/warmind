@@ -19,6 +19,12 @@ services:
         value: /data/warmind.db
       - key: WARMIND_MODEL
         value: claude-sonnet-5
+      # optional: an Admin API key (sk-ant-admin...) lets /?costs show Anthropic's real bill
+      - key: ANTHROPIC_ADMIN_KEY
+        sync: false
+      # optional: your Render plan's monthly price, added to the projected month on /?costs
+      - key: WARMIND_HOSTING_USD_MONTH
+        sync: false
     disk:
       name: warmind-data
       mountPath: /data
