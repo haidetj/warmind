@@ -680,6 +680,21 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .order .meter{grid-column:1/-1} .order.done .ot b{color:var(--green)} .order .nixie{font-size:14px}
   .shiplog{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-family:var(--crt);font-size:17px;line-height:1.3;color:var(--phos);text-shadow:0 0 5px rgba(141,255,180,.35)}
   .shiplog .ts{display:block;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--muted);text-shadow:none}
+  /* profile chat */
+  .modal.chat .mbody{display:flex;flex-direction:column;gap:12px}
+  .chatlog{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow-y:auto;padding:4px 2px}
+  .bub{max-width:86%;padding:8px 12px;line-height:1.35;border:1px solid var(--line-2)}
+  .bub.wm{align-self:flex-start;font-family:var(--crt);font-size:18px;color:var(--phos);text-shadow:0 0 5px rgba(141,255,180,.4);background:rgba(10,30,14,.6)}
+  .bub.me{align-self:flex-end;color:var(--nixie);border-color:rgba(255,150,60,.4);background:rgba(255,120,30,.07)}
+  .chatpick{display:flex;flex-wrap:wrap;gap:6px}
+  .prefline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:10px;color:var(--ink-2);font-size:13.5px}
+  /* compass */
+  .compass .cring{fill:rgba(3,6,3,.6);stroke:var(--line-2)} .compass .cring2{fill:none;stroke:var(--line);stroke-dasharray:2 3}
+  .compass .caxis{stroke:var(--line-2)} .compass .clab{fill:var(--muted);font:10px var(--mono);letter-spacing:1.5px}
+  .compass .cdot{stroke:#000;stroke-width:1;filter:drop-shadow(0 0 4px currentColor)} .compass .cname{fill:var(--ink-2);font:10px var(--mono)}
+  .compass .csq{fill:none;stroke:var(--nixie);stroke-width:2;filter:drop-shadow(0 0 5px #ff8a1a)}
+  .cmini{display:flex;align-items:center;gap:8px;margin-top:6px} .cmini small{font-family:var(--mono);font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+  .cbig{max-width:340px;margin:0 auto}
 </style>
 </head><body>
 <div class="langfab"><select id="lang" aria-label="Language"></select></div>

@@ -983,11 +983,22 @@
     const lockerHint = L ? el("div", { class: "hint" }, [t("join.locker.hint")]) : null;
     if (L) lget("/api/locker/" + L.id).then(lk => { if (lk && lk.callsign && !name.value) name.value = lk.callsign; }).catch(() => {});
     const controls = [upload, skip, name];
+    // returning diver on a new device: pick your callsign from the roster (your last read and gear come back)
+    let picker = null;
+    if (!L) {
+      const sel = el("select", { id: "cs-pick", "aria-label": t("join.pick") }, [el("option", { value: "" }, [t("join.pick.ph")])]);
+      picker = el("div", { class: "field", hidden: true }, [el("label", { class: "label", for: "cs-pick" }, [t("join.pick")]), sel, el("div", { class: "hint", style: "margin:4px 0 0" }, [t("join.pick.hint")])]);
+      api("/api/roster").then(r => { const names = [...new Set((r.divers || []).map(d => d.callsign).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        if (!names.length) return; names.forEach(n => sel.appendChild(el("option", { value: n }, [n]))); picker.hidden = false; }).catch(() => {});
+      sel.onchange = () => { if (!sel.value) return; name.value = sel.value; skip.textContent = t("join.as", { name: sel.value }); skip.classList.add("primary"); };
+      name.addEventListener("input", () => { if (name.value !== sel.value) { sel.value = ""; skip.textContent = t("join.skip"); } });
+    }
     upload.querySelector("input").onchange = ev => { if (ev.target.files && ev.target.files.length) doJoin(name.value, ev.target.files, status, controls); };
     skip.onclick = () => { if (!name.value.trim()) { name.focus(); toast(t("prof.need")); return; } doJoin(name.value, null, status, controls); };
     name.addEventListener("keydown", e => { if (e.key === "Enter") skip.click(); });
     return panel(t("join.pid"), t("join.title"), { tone: "amber", status: t("common.diver"), statusKind: "warn" }, [
       nP >= exp ? el("div", { class: "upstatus err", style: "margin:0 0 10px" }, [t("join.extra", { n: exp, m: nP + 1 })]) : null,
+      picker,
       el("div", { class: "field" }, [el("label", { class: "label", for: "cs" }, [t("join.cs.label")]), name]),
       el("div", { class: "btnrow" }, L ? [skip, upload] : [upload, skip]),
       status,
@@ -1747,8 +1758,13 @@
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
-    if (m.status === "thinking") return el("div", { class: "mind thinking", role: "status" }, [
-      el("span", { class: "spin", "aria-hidden": "true" }), el("b", {}, ["◈ " + t("mind.thinking.t")]), " ", t("mind.thinking")]);
+    if (m.status === "thinking") {
+      const clock = el("span", { class: "met" }, ["T+", nixie(metText(m.since || Date.now() / 1000).slice(3))]);
+      const tm = setInterval(() => { if (!clock.isConnected) return clearInterval(tm); clock.lastChild.replaceWith(nixie(metText(m.since || Date.now() / 1000).slice(3))); }, 1000);
+      return el("div", { class: "mind thinking", role: "status" }, [
+        el("span", { class: "spin", "aria-hidden": "true" }), el("b", {}, ["◈ " + t("mind.thinking.t")]), " ", clock, el("div", {}, [t("mind.thinking")]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.thinking.eta")])]);
+    }
     if (m.status === "ready") return el("div", { class: "mind ready" }, [
       el("div", {}, [el("b", {}, ["◈ " + t("mind.ready.t")]), " ", m.summary || ""]),
       el("div", { class: "hint", style: "margin:4px 0 0" }, [t("mind.ready.checked", { a: m.kept || 0, b: m.total || 0 })])]);
@@ -1867,6 +1883,12 @@
       mtx.appendChild(el("div", { class: h.length ? "" : "none" }, [h.length ? h.join(", ") : t("coord.nobody")]));
     });
     const blocks = [el("div", {}, [el("div", { class: "sub-h", style: "margin-top:0" }, [t("coord.matrix")]), mtx])];
+    if (d.compass) {
+      const pts = STATE.players.filter(p => p.assignment && p.assignment.compass).map(p => Object.assign({ label: p.callsign, color: p.accent }, p.assignment.compass));
+      pts.push(Object.assign({ squad: true }, d.compass));
+      blocks.push(el("div", {}, [el("div", { class: "sub-h" }, [t("cmp.title")]), el("div", { class: "cbig" }, [compassSvg(pts, 220, true)]),
+        el("div", { class: "hint" }, [t("cmp.squad", { w: compassWord(d.compass) }) + " " + t("cmp.hint")])]));
+    }
     if (d.loop && d.loop.length) {
       const order = d.loop.map(x => x[0]); const loop = el("div", { class: "loop" });
       order.forEach(x => { loop.appendChild(el("span", {}, [x])); loop.appendChild(el("span", { class: "arw" }, ["→"])); });
@@ -1964,6 +1986,7 @@
       el("div", { class: "role" }, [a ? a.role : t("card.awaiting"), a && provisional ? tag("amber dash", t("brief.prov")) : null]),
       el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", t("card.style", { style: styleLabel(p.play_style) }),
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
+      a && a.compass ? el("div", { class: "cmini", title: t("cmp.title") }, [compassSvg([Object.assign({ color: p.accent }, a.compass)], 44, false), el("small", {}, [compassWord(a.compass)])]) : null,
     ]));
     if (!a) return card;
     if (kitView === "screen") {
@@ -2066,7 +2089,7 @@
       try {
         const r = await jpost("/api/locker", { callsign: v }); store.setLocker({ id: r.locker_id, key: r.locker_key });
         if (files.length) { const stop = workTicker(status, lines("tick.read.", 10)); try { const fd = new FormData(); files.forEach(f => fd.append("images", f)); await lfd("/api/locker/" + r.locker_id + "/career", fd); } finally { stop(); } }
-        toast(t("prof.done", { name: v })); renderHome();
+        toast(t("prof.done", { name: v })); renderHome(); profileChat(v, {}, null);
       } catch (e) { toast(e.message); go.disabled = false; }
     };
     cs.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); });
@@ -2154,6 +2177,9 @@
     app.appendChild(panel("LKR-01", t("lk.title"), { status: LK.medals.length ? "🎖 " + LK.medals.length : "", statusKind: "warn", tone: "amber" }, [
       head,
       el("div", { class: "btnrow" }, [up, dev]), status,
+      el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]),
+        el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]),
+        (() => { const b = el("button", { class: "btn sm", type: "button" }, ["◈ " + t("pq.tune")]); b.onclick = () => profileChat(LK.callsign, LK.prefs, p => { LK.prefs = p; paintLocker(); }); return b; })()]),
       el("div", { class: "hint" }, [t("lk.private")]),
       (() => {   // the open roster: listed unless you opt out
         const seg = el("div", { class: "seg", role: "group", "aria-label": t("ros.show") });
@@ -2214,6 +2240,68 @@
     return panel("LKR-00", t("lk.tab.loadouts"), { status: String(L.length), statusKind: "info" }, [track,
       el("div", { class: "lkcarnav" }, [prev, count, next, el("span", { style: "flex:1" }), neu])]);
   }
+  // ======================================================================= profile chat
+  // WARMIND asks a few questions; the answers lean the kits in Optimize / Fun / Improvement
+  const PREF_Q = [
+    ["vibe", ["boom", "precision", "stealth", "hold", "any"]],
+    ["focus", ["at", "ch", "st", "support", "scout", "any"]],
+    ["armor", ["Light", "Medium", "Heavy", "any"]],
+    ["front", ["terminids", "automatons", "illuminate", "any"]],
+  ];
+  const prefLabel = (k, v) => t("pq." + k + "." + v);
+  const prefSummary = p => PREF_Q.map(([k]) => p && p[k] && p[k] !== "any" ? prefLabel(k, p[k]) : null).filter(Boolean).join(" · ");
+  function profileChat(callsign, prefs, done) {
+    const L = store.locker(); if (!L) return;
+    const ans = Object.assign({}, prefs || {});
+    const dlg = el("dialog", { class: "modal chat", "aria-label": t("pq.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const log = el("div", { class: "chatlog", role: "log", "aria-live": "polite" });
+    const choices = el("div", { class: "chatpick" });
+    const say = (who, text) => { log.appendChild(el("div", { class: "bub " + who }, [text])); log.scrollTop = log.scrollHeight; };
+    let i = 0;
+    const ask = () => {
+      choices.innerHTML = "";
+      if (i >= PREF_Q.length) {
+        say("wm", t("pq.done", { name: callsign || "" }));
+        lpost("/api/locker/" + L.id + "/prefs", ans).then(() => { if (done) done(ans); }).catch(e => toast(e.message));
+        const ok = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("pq.close")]); ok.onclick = () => dlg.close(); choices.appendChild(ok);
+        return;
+      }
+      const [k, opts] = PREF_Q[i];
+      say("wm", t("pq." + k + ".q", { name: callsign || "" }));
+      opts.forEach(v => { const b = el("button", { type: "button", class: "btn sm" + (ans[k] === v ? " primary" : "") }, [prefLabel(k, v)]);
+        b.onclick = () => { ans[k] = v; say("me", prefLabel(k, v)); i++; setTimeout(ask, 280); }; choices.appendChild(b); });
+    };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, ["◈ " + t("pq.title")]), x]), el("div", { class: "mbody" }, [log, choices]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    say("wm", t("pq.hello", { name: callsign || "" })); setTimeout(ask, 350);
+  }
+
+  // ======================================================================= compass (#30)
+  // quiet <-> loud across, hold <-> push up; one dot per diver, a ring for the squad
+  function compassSvg(points, size, labels) {
+    const S = size, c = S / 2, r = S / 2 - (labels ? 18 : 4);
+    const ns = "http://www.w3.org/2000/svg";
+    const mk = (tag, a) => { const n = document.createElementNS(ns, tag); for (const k in a) if (a[k] != null) n.setAttribute(k, a[k]); return n; };
+    const svg = mk("svg", { viewBox: labels ? "-64 -18 " + (S + 128) + " " + (S + 36) : "0 0 " + S + " " + S, width: labels ? "100%" : S, height: labels ? null : S, class: "compass", role: "img",
+      "aria-label": t("cmp.title") + ": " + points.map(p => (p.label || "") + " " + t("cmp.say", { loud: Math.round(p.loud * 100), push: Math.round(p.push * 100) })).join("; ") });
+    svg.appendChild(mk("circle", { cx: c, cy: c, r: r, class: "cring" }));
+    svg.appendChild(mk("circle", { cx: c, cy: c, r: r / 2, class: "cring2" }));
+    svg.appendChild(mk("line", { x1: c - r, y1: c, x2: c + r, y2: c, class: "caxis" }));
+    svg.appendChild(mk("line", { x1: c, y1: c - r, x2: c, y2: c + r, class: "caxis" }));
+    if (labels) [["cmp.loud", c + r + 2, c + 4, "start"], ["cmp.quiet", c - r - 2, c + 4, "end"], ["cmp.push", c, c - r - 6, "middle"], ["cmp.hold", c, c + r + 14, "middle"]].forEach(([k, x, y, a]) => {
+      const tx = mk("text", { x: x, y: y, "text-anchor": a, class: "clab" }); tx.textContent = t(k); svg.appendChild(tx); });
+    points.forEach(p => {
+      const x = c + p.loud * r * 0.92, y = c - p.push * r * 0.92;
+      if (p.squad) { svg.appendChild(mk("circle", { cx: x, cy: y, r: labels ? 9 : 5, class: "csq" })); return; }
+      const d = mk("circle", { cx: x, cy: y, r: labels ? 6 : 4, class: "cdot", fill: p.color || "#ffb469" }); svg.appendChild(d);
+      if (labels && p.label) { const tx = mk("text", { x: x + 9, y: y + 4, class: "cname" }); tx.textContent = p.label; svg.appendChild(tx); }
+    });
+    return svg;
+  }
+  const compassWord = p => t("cmp.w." + (p.loud > 0.2 ? "loud" : p.loud < -0.2 ? "quiet" : "mid") + "." + (p.push > 0.2 ? "push" : p.push < -0.2 ? "hold" : "mid"));
+
   // ======================================================================= roster + leaderboard
   const ROS_SORT = [["accuracy", "sc.accuracy"], ["kd", "sc.kd"], ["kills_pm", "sc.kills_pm"], ["win_rate", "sc.success"], ["medals", "lk.medals"], ["active", "ros.recent"]];
   let rosSort = (() => { try { return localStorage.getItem("wm_rossort") || "accuracy"; } catch (e) { return "accuracy"; } })();

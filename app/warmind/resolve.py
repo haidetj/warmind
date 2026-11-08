@@ -54,6 +54,7 @@ class Player:
     accuracy: float | None = None    # career shots hit / fired, when the diver uploaded stats
     derived: dict | None = None      # career rates (stats.derive), when the diver uploaded stats
     favorites: list = field(default_factory=list)   # loadouts the diver saved in their locker (planner context)
+    prefs: dict = field(default_factory=dict)       # from the profile chat: {vibe, focus, armor}
 
 
 @dataclass
@@ -125,6 +126,7 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
         if not (it.slot in ("primary", "secondary") and getattr(session, "_sk", None) is not None):
             s += ask_mod.ask_term(it, session.mode)
         s += ask_mod.drill_term(it, getattr(session, "_drills", ()))
+        s += _pref_term(it, getattr(session, "_prefs", None))
         s -= 0.5 * squad_used.get(it.name, 0)  # duplicates across the squad are redundancy
         if it.name in kitrules.BUDDY_RELOAD and getattr(session, "_squad_n", 4) <= 3:
             s -= 0.4  # small squads: prefer anti-tank that doesn't need a loader
@@ -150,6 +152,37 @@ def _pick(cands, session, pstyle, history, *, pref_tags=frozenset(), pref_cover=
     if best is None and crutch is not None:
         return crutch
     return best if best is not None or owned_only else fb
+
+
+PREF_MODES = ("optimize", "fun", "improvement")
+FOCUS_W = 0.6   # a nudge: the mission's pressure still decides what the kit must answer
+VIBE_W = 0.4
+
+
+def _pref_term(it, prefs) -> float:
+    """What the diver told WARMIND they like: a focus (anti-tank, hordes, objectives, support,
+    scouting) and a vibe (big booms, precision, stealth, holding ground)."""
+    if not prefs:
+        return 0.0
+    s = 0.0
+    f = prefs.get("focus")
+    if f in ("at", "ch", "st", "bc") and f in it.coverage:
+        s += FOCUS_W
+    elif f == "support" and (it.category in ("backpack", "sentry", "emplacement", "relay") or "static_position" in it.tags):
+        s += FOCUS_W
+    elif f == "scout" and ({"stealth", "mobility", "radar_booster"} & it.tags or it.category == "backpack" and "jump_pack" in it.tags):
+        s += FOCUS_W
+    v = prefs.get("vibe")
+    reason = ask_mod.ask(it)[1]
+    if v == "boom" and (reason == "danger_close" or it.category in ("eagle", "orbital") or "explosive_secondary" in it.tags):
+        s += VIBE_W
+    elif v == "precision" and (reason == "precision" or "marksman" in it.tags):
+        s += VIBE_W
+    elif v == "stealth" and ("stealth" in it.tags or "light_armor" in it.tags):
+        s += VIBE_W
+    elif v == "hold" and ("static_position" in it.tags or it.category in ("sentry", "emplacement")):
+        s += VIBE_W
+    return s
 
 
 def _jitter(name: str, seed: int, salt: str) -> float:
@@ -492,6 +525,8 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         session._salt = pl.id
         session._sk = handling.skill(pl.accuracy)
         session._drills = drills.get(pl.id, [])
+        # the diver's own preferences count in the comfortable modes; Challenge and D100 push past them
+        session._prefs = (pl.prefs or {}) if session.mode in PREF_MODES else {}
 
     drills = {pl.id: ask_mod.drills(pl.derived, session.mode) for pl in players}
 
@@ -553,7 +588,9 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
         # quiet: no Heavy; a glass-cannon drill goes a weight class lighter
-        weight = ask_mod.armor_weight_for(role.armor_weight, drills.get(pl.id, []), quiet, session.mode)
+        pw = (pl.prefs or {}).get("armor") if session.mode in PREF_MODES else None
+        weight = ask_mod.armor_weight_for(pw if pw in ("Light", "Medium", "Heavy") else role.armor_weight,
+                                          drills.get(pl.id, []), quiet, session.mode)
         pk = {"primary": primary, "secondary": secondary, "grenade": grenade, "strat": strat}
         # armour's value is mostly its passive: let mission pressure count 40% here so a
         # passive that answers this kit beats one that merely shares a tag with the map

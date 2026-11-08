@@ -89,7 +89,7 @@ def signature(session, players, mission: dict) -> str:
         "p": [[p.id, p.play_style, sorted(p.owned_items) if p.owned_items is not None else None,
                round(p.accuracy, 3) if p.accuracy is not None else None,
                {k: round(v, 3) for k, v in (p.derived or {}).items()}, sorted(p.excluded_items or []),
-               [f.get("name") for f in (p.favorites or [])]]
+               [f.get("name") for f in (p.favorites or [])], p.prefs or {}]
               for p in players],
         "v": 1,
     }
@@ -292,6 +292,9 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         "drills": sl["drills"],
         "role_locked": locked or None,   # the squad leader set this role: keep it
         "saved_loadouts": pl.favorites or None,   # kits this diver saved in their locker: a hint at what they like
+        # what the diver told WARMIND they like (vibe, focus, armour). Honour it in Optimize / Fun /
+        # Improvement as long as the mission is still answered; Challenge and D100 push past it.
+        "told_us": pl.prefs or None,
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                         "grenade": a.grenade, "armor": f"{a.armor} ({a.armor_weight}, {a.armor_passive})",
                         "booster": a.booster, "stratagems": a.stratagems},

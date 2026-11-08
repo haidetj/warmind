@@ -25,7 +25,8 @@ import budget
 import db
 import vision
 import war
-from warmind import coverage, kitrules, loader, oaths, passives, stats
+from warmind import compass, coverage, kitrules, loader, oaths, passives, stats
+from warmind.items import Pool
 from warmind.resolve import Player, Session, resolve_squad
 import mind
 
@@ -137,6 +138,21 @@ def _conf_of(p) -> dict | None:
 _RULES = kitrules.rules()
 
 
+PREF_KEYS = {"vibe": {"boom", "precision", "stealth", "hold", "any"},
+             "focus": {"at", "ch", "st", "support", "scout", "any"},
+             "armor": {"Light", "Medium", "Heavy", "any"},
+             "front": {"terminids", "automatons", "illuminate", "any"}}
+
+
+def _prefs_of(locker_id) -> dict:
+    lk = db.get_locker(locker_id) if locker_id else None
+    try:
+        p = json.loads(lk["prefs_json"]) if lk and lk.get("prefs_json") else {}
+    except Exception:
+        p = {}
+    return {k: v for k, v in p.items() if k in PREF_KEYS and v in PREF_KEYS[k] and v != "any"}
+
+
 def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
@@ -152,6 +168,7 @@ def _resolve(lobby) -> dict:
             derived=_derived_of(p),
             favorites=[{"name": o["name"], "kit": o["kit"]} for o in db.list_loadouts(p["locker_id"])[:3]]
             if p.get("locker_id") else [],
+            prefs=_prefs_of(p.get("locker_id")),
         ))
     directive = None
     by_pid = {}
@@ -195,6 +212,8 @@ def _resolve(lobby) -> dict:
             "pressure": {"top": d.pressure.top(), "driver": d.pressure.driver(),
                          "vector": d.pressure.vector},
             "matrix": d.capability_matrix,
+            "compass": compass.squad([compass.point([_POOL.get(n) for n in [x.primary, x.secondary, x.grenade, x.armor] + list(x.stratagems)])
+                                      for x in d.assignments]),
             "loop": d.loop, "cadence": d.cadence, "reactive": d.reactive_role, "notes": d.notes,
             "swaps": d.swaps, "doctrine": d.doctrine, "notes_i18n": d.notes_i18n,
             # squad redundancy/impact review, each line carrying its research sources
@@ -286,10 +305,12 @@ def _assignment_dict(a):
         "thin": a.thin, "thin_axes": [_AXIS_CODE.get(t, t) for t in a.thin],
         "rationale": a.rationale, "rationale_parts": a.rationale_parts,
         "why": a.why,   # "why this kit": [{"kind", "k", "p"}], translated on the client
+        "compass": compass.point([_POOL.get(n) for n in [a.primary, a.secondary, a.grenade, a.armor] + list(a.stratagems)]),
     }
 
 
-_AXIS_CODE = {v: k for k, v in coverage.AXIS_LABEL.items()}  # "heavy armour" -> "at", for the client
+_AXIS_CODE = {v: k for k, v in coverage.AXIS_LABEL.items()}
+_POOL = Pool()  # "heavy armour" -> "at", for the client
 
 
 def _ip(request: Request) -> str:
@@ -886,6 +907,14 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
             note, source, restored = (f"Restored your last stat read ({when}) by callsign — re-upload to refresh.",
                                       "remembered", True)
             confidence = json.loads(mem["confidence_json"]) if mem.get("confidence_json") else None
+    if snapshot is None and not vision_error and parsed_call and not lk:
+        # picked from the roster on a new device: their profile's latest read
+        pub = db.public_locker_by_callsign(parsed_call)
+        if pub:
+            snapshot = json.loads(pub["snapshot_json"])
+            play_style = pub.get("play_style") or stats.classify(snapshot)[0]
+            when = time.strftime("%b %d", time.gmtime(pub.get("updated_at") or time.time()))
+            note, source, restored = (f"From your profile ({when}): upload new stats to refresh.", "remembered", True)
     callsign_final = parsed_call or f"Diver {n_existing + 1}"
     db.add_or_update_player(pid, lid, token, callsign_final, play_style, source, note, snapshot)
     if confidence:
@@ -1327,7 +1356,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
     record, medals = _record_of(lid)
     tables = [{"lobby_id": p["lobby_id"], "callsign": p["callsign"], "joined_at": p.get("joined_at")}
               for p in db.locker_players(lid)][:20]
-    return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")),
+    return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")), "prefs": _prefs_of(lid),
             "owned": _owned_from_json(lk.get("owned_json")) if lk.get("gear_set") else None,
             "play_style": lk.get("play_style"), "style_note": lk.get("style_note"),
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
@@ -1481,6 +1510,14 @@ def roster_profile(lid: str):
     return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
             "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
             "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])]}
+
+
+@app.post("/api/locker/{lid}/prefs")
+def locker_prefs(lid: str, payload: dict, x_locker: str = Header(None)):
+    _require_locker(lid, x_locker)
+    p = {k: v for k, v in (payload or {}).items() if k in PREF_KEYS and v in PREF_KEYS[k]}
+    db.update_locker(lid, prefs_json=json.dumps(p))
+    return {"ok": True, "prefs": p}
 
 
 @app.post("/api/locker/{lid}/visibility")

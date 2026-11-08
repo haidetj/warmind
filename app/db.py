@@ -182,6 +182,8 @@ def init():
         lkcols = {r["name"] for r in c.execute("PRAGMA table_info(locker)").fetchall()}
         if "public" not in lkcols:    # listed on the open roster / leaderboard (the diver can opt out)
             c.execute("ALTER TABLE locker ADD COLUMN public INTEGER DEFAULT 1")
+        if "prefs_json" not in lkcols:   # what the diver told WARMIND in the profile chat
+            c.execute("ALTER TABLE locker ADD COLUMN prefs_json TEXT")
         if "locker_id" not in cols:   # the diver's locker (gear, stat history, record), if linked
             c.execute("ALTER TABLE player ADD COLUMN locker_id TEXT")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
@@ -398,7 +400,7 @@ def get_locker(lid):
 
 
 def update_locker(lid, **fields):
-    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note", "public"}
+    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note", "public", "prefs_json"}
     sets = {k: v for k, v in fields.items() if k in allowed}
     if not sets:
         return
@@ -578,3 +580,11 @@ def room_log_list(rid, limit=40):
 def set_player_go(pid, go):
     with _lock, _conn() as c:
         c.execute("UPDATE player SET go=?, updated_at=? WHERE id=?", (1 if go else 0, time.time(), pid))
+
+
+def public_locker_by_callsign(callsign):
+    """The newest public profile with this callsign (a returning diver on a new device)."""
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM locker WHERE COALESCE(public,1)=1 AND lower(callsign)=lower(?) AND snapshot_json IS NOT NULL "
+                      "ORDER BY updated_at DESC LIMIT 1", (callsign,)).fetchone()
+    return dict(r) if r else None
