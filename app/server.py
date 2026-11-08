@@ -1545,7 +1545,8 @@ def roster_profile(lid: str):
     record, medals = _record_of(lk["id"])
     hist = [{"at": h["at"], "rates": _round(stats.derive(h["snapshot"])), "missions": h["snapshot"].get("missions_played")}
             for h in db.locker_stats(lk["id"])]
-    recent = [{"at": r["at"], "mission": r["mission"], "kills": (r["result"] or {}).get("kills"),
+    recent = [{"at": r["at"], "mission": r["mission"], "table": r.get("lobby"), "kills": (r["result"] or {}).get("kills"),
+               "accuracy": (r["result"] or {}).get("accuracy_pct"), "medal": next((v["medal"]["name"] for v in r["verdicts"] if v and v.get("medal")), None),
                "deaths": (r["result"] or {}).get("deaths"),
                "oaths": [{"name": v.get("name"), "passed": v.get("passed")} for v in r["verdicts"] if v]}
               for r in record[:10]]
