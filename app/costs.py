@@ -37,12 +37,25 @@ except Exception:
     pass
 CACHE_WRITE_X = 1.25
 
-ADMIN_KEY = os.environ.get("ANTHROPIC_ADMIN_KEY", "")
+def _find_admin_key() -> tuple[str, str]:
+    """(env var name, key): ANTHROPIC_ADMIN_KEY first, else any variable holding an Admin API key."""
+    for name in ("ANTHROPIC_ADMIN_KEY", "ANTHROPIC_ADMIN_API_KEY", "ADMIN_API_KEY", "WARMIND_ADMIN_KEY"):
+        if os.environ.get(name):
+            return name, os.environ[name].strip()
+    for name, val in os.environ.items():
+        if (val or "").strip().startswith("sk-ant-admin"):
+            return name, val.strip()
+    return "", ""
+
+
+ADMIN_VAR, ADMIN_KEY = _find_admin_key()
 BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
 POLL_S = int(os.environ.get("WARMIND_COST_POLL_S", "1800"))   # every 30 minutes (the API asks for at most once a minute)
 HOSTING = os.environ.get("WARMIND_HOSTING_USD_MONTH", "")
 
-ADMIN = {"enabled": bool(ADMIN_KEY), "status": "off" if not ADMIN_KEY else "waiting", "at": None, "error": None}
+ADMIN = {"enabled": bool(ADMIN_KEY), "status": "off" if not ADMIN_KEY else "waiting", "at": None, "error": None,
+         "var": ADMIN_VAR or None,   # which env variable held it (never the value)
+         "looks_admin": ADMIN_KEY.startswith("sk-ant-admin") if ADMIN_KEY else None}
 _started = False
 
 

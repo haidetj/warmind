@@ -437,10 +437,13 @@ def feedback_export(after: float = 0.0):
 # ---------------------------------------------------------------- lobby lifecycle
 @app.post("/api/lobby")
 def create_lobby(name: str = Form("Squad"), squad_size: int = Form(4), room_id: str = Form(""),
-                 callsign: str = Form("")):
+                 callsign: str = Form(""), locker_id: str = Form(""), locker_key: str = Form("")):
     lid, token = _id(4), secrets.token_urlsafe(16)
     room = db.get_room(room_id[:40]) if room_id else None
     db.create_lobby(lid, name.strip() or "Squad", token, max(1, min(4, squad_size)))
+    lk = _locker_ok(locker_id, locker_key)
+    if lk:   # the creator's profile can run this table from any device it signs in on
+        db.set_lobby_creator_locker(lid, lk["id"])
     if room:   # a war room's table opens on the room's current mission
         db.set_lobby_room(lid, room["id"])
         if room.get("mission_json"):
@@ -1331,13 +1334,104 @@ def create_locker(payload: dict):
     their callsign, gear and stat read move in, and the diver is linked."""
     lid, key = _id(5), secrets.token_urlsafe(18)
     name = " ".join(str(payload.get("callsign") or "").split())[:24]
+    pin = payload.get("pin")
+    if pin is not None:   # the sign-in gate: callsigns are unique there, and need a PIN
+        if not _pin_ok(pin):
+            raise HTTPException(400, "pick a 4 to 8 digit PIN")
+        if not name:
+            raise HTTPException(400, "enter a callsign")
+        if db.lockers_by_callsign(name):
+            raise HTTPException(409, "that callsign is taken: sign in with its PIN")
     db.create_locker(lid, key, name)
+    if pin is not None:
+        _set_pin(lid, pin)
     pid, tok = payload.get("player_id"), payload.get("player_token")
     if pid and tok:
         p = db.get_player(pid)
         if p and secrets.compare_digest(p["token"], str(tok)):
             _adopt(lid, p)
     return {"locker_id": lid, "locker_key": key}
+
+
+# ---------------------------------------------------------------- sign in: callsign + PIN
+_signin_tries: dict = {}
+
+
+def _pin_ok(pin) -> bool:
+    return isinstance(pin, str) and pin.isdigit() and 4 <= len(pin) <= 8
+
+
+def _pin_hash(pin: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", pin.encode(), salt.encode(), 120_000).hex()
+
+
+def _set_pin(lid, pin):
+    salt = secrets.token_hex(8)
+    db.update_locker(lid, pin_hash=_pin_hash(pin, salt), pin_salt=salt)
+
+
+def _throttle(key: str, limit=8, window=600):
+    now = time.time()
+    hits = [t for t in _signin_tries.get(key, []) if now - t < window]
+    if len(hits) >= limit:
+        raise HTTPException(429, "too many tries: wait a few minutes")
+    hits.append(now)
+    _signin_tries[key] = hits
+
+
+def _similar_callsigns(name: str) -> list[str]:
+    import difflib
+    names = sorted({(lk.get("callsign") or "") for lk in db.list_public_lockers(500)} - {""})
+    low = {n.lower(): n for n in names}
+    near = difflib.get_close_matches(name.lower(), list(low), n=3, cutoff=0.8)
+    near += [k for k in low if (k.startswith(name.lower()) or name.lower().startswith(k)) and k not in near and abs(len(k) - len(name)) <= 2]
+    return [low[k] for k in near][:3]
+
+
+@app.post("/api/signin")
+def signin(payload: dict, request: Request):
+    """Callsign + PIN: this device becomes that diver. A callsign nobody has yet answers
+    {"new": true}; a profile from before PINs takes the PIN entered as its own."""
+    name = " ".join(str(payload.get("callsign") or "").split())[:24]
+    pin = str(payload.get("pin") or "")
+    if not name:
+        raise HTTPException(400, "enter your callsign")
+    _throttle("ip:" + _ip(request), 30)
+    found = db.lockers_by_callsign(name)
+    if not found:   # nobody has it: the client creates it, unless it looks like a typo of a callsign that exists
+        return {"new": True, "callsign": name, "similar": _similar_callsigns(name)}
+    if not _pin_ok(pin):
+        raise HTTPException(400, "enter your 4 to 8 digit PIN")
+    _throttle("cs:" + name.lower())
+    for lk in found:
+        if lk.get("pin_hash"):
+            if secrets.compare_digest(lk["pin_hash"], _pin_hash(pin, lk.get("pin_salt") or "")):
+                return {"locker_id": lk["id"], "locker_key": lk["key"], "callsign": lk["callsign"]}
+        else:   # first sign-in since PINs arrived: the PIN they choose now is theirs
+            _set_pin(lk["id"], pin)
+            return {"locker_id": lk["id"], "locker_key": lk["key"], "callsign": lk["callsign"], "pin_set": True}
+    raise HTTPException(403, "wrong PIN for that callsign")
+
+
+@app.post("/api/locker/{lid}/pin")
+def locker_pin(lid: str, payload: dict, x_locker: str = Header(None)):
+    _require_locker(lid, x_locker)
+    if not _pin_ok(payload.get("pin")):
+        raise HTTPException(400, "pick a 4 to 8 digit PIN")
+    _set_pin(lid, payload["pin"])
+    return {"ok": True}
+
+
+@app.get("/api/locker/{lid}/tables")
+def locker_tables(lid: str, x_locker: str = Header(None)):
+    """The war tables this profile created or sat at, with what this device needs to be
+    them there: the creator token for tables it made, its seat (player id + token) where it joined."""
+    _require_locker(lid, x_locker)
+    out = []
+    for r in db.locker_tables(lid):
+        out.append({"lobby_id": r["lobby_id"], "creator_token": r["creator_token"] if r["mine"] else None,
+                    "player_id": r["player_id"], "player_token": r["player_token"]})
+    return {"tables": out}
 
 
 def _adopt(lid, p):
@@ -1398,7 +1492,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
     record, medals = _record_of(lid)
     tables = [{"lobby_id": p["lobby_id"], "callsign": p["callsign"], "joined_at": p.get("joined_at")}
               for p in db.locker_players(lid)][:20]
-    return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")), "prefs": _prefs_of(lid),
+    return {"id": lid, "callsign": lk.get("callsign") or "", "gear_set": bool(lk.get("gear_set")), "prefs": _prefs_of(lid), "has_pin": bool(lk.get("pin_hash")),
             "owned": _owned_from_json(lk.get("owned_json")) if lk.get("gear_set") else None,
             "play_style": lk.get("play_style"), "style_note": lk.get("style_note"),
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
@@ -1422,6 +1516,8 @@ def locker_callsign(lid: str, payload: dict, x_locker: str = Header(None)):
     name = " ".join(str(payload.get("callsign") or "").split())[:24]
     if not name:
         raise HTTPException(400, "callsign can't be empty")
+    if any(o["id"] != lid for o in db.lockers_by_callsign(name)):   # callsigns sign people in: one each
+        raise HTTPException(409, "another diver already uses that callsign")
     db.update_locker(lid, callsign=name)
     return {"ok": True, "callsign": name}
 

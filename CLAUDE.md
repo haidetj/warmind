@@ -42,7 +42,13 @@ Env: `WARMIND_PLANNER=0` turns it off, `WARMIND_PLAN_MODEL` (defaults to
 Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 
 ## War rooms, roster, profiles
-- Profile = locker (device-keyed, `x-locker` header). Home asks for a callsign first.
+- Profile = locker (`x-locker` header). You are your callsign: home, war tables and the locker
+  open behind a sign-in gate (callsign + 4–8 digit PIN, `/api/signin`; PBKDF2 hash on the locker).
+  A new callsign creates the profile in the same step, unless it looks like a typo of an existing
+  one ("did you mean"). Pre-PIN profiles take the first PIN entered. Callsigns are unique.
+  Tables record `lobby.creator_locker`; `/api/locker/{id}/tables` hands a signed-in device its
+  creator tokens and seats, so a diver's tables, creator rights and seat follow them to any device.
+  Home lands on the Profile tab (Profile / Front / War rooms / War tables / Welcome).
 - `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
@@ -57,7 +63,7 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 ## Costs (`app/costs.py`, `/?costs`)
 Every Claude call records its `usage` (input, cache write/read, output) into `api_usage`, priced
 at list rates (`costs.PRICES`, override with `WARMIND_PRICES`), tagged by kind (plan, career,
-result, review, mission, squad). With `ANTHROPIC_ADMIN_KEY` (an Admin API key, sk-ant-admin...)
+result, review, mission, squad). With an Admin API key (sk-ant-admin..., in `ANTHROPIC_ADMIN_KEY` or any env var whose value starts with it)
 a background thread polls `GET /v1/organizations/cost_report` every 30 min (whole org, daily
 USD) into `kv.cost_report`. `/api/costs` serves both; `/?costs` shows them (polls every 60s);
 `/health` → `costs` has a one-line summary. Hosting has no billing API: `WARMIND_HOSTING_USD_MONTH`.
