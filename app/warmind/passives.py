@@ -19,6 +19,17 @@ def table() -> dict:
     return loader._load("passives.yaml")["passives"]
 
 
+@lru_cache(maxsize=1)
+def throwables() -> dict:
+    """{passive: extra grenades carried}, read from the wiki effect ("+2 throwables")."""
+    out = {}
+    for k, v in table().items():
+        m = re.search(r"\+(\d+) throwables?", v.get("effect", ""), re.I)
+        if m:
+            out[k] = int(m.group(1))
+    return out
+
+
 # kit_name families: arc and gas weapons don't all say so in their names
 NAME_PATTERNS = {
     "arc": r"(^|[^a-z])arc([^a-z]|$)|tesla|blitzer|k-9",

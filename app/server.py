@@ -250,7 +250,7 @@ def _resolve(lobby) -> dict:
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
-                     "verdicts": _verdicts_of(res.get("verdict_json")),
+                     "verdicts": _with_endorsements(res, players_rows),
                      "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
         })
@@ -262,6 +262,7 @@ def _resolve(lobby) -> dict:
         "squad_readout_keys": stats.squad_readout_keys(all_snaps),
         "readiness": readiness, "reroll": int(lobby.get("reroll") or 0), "created_at": lobby.get("created_at"),
         "room": _room_brief(lobby.get("room_id")),
+        "status": _table_status(lobby, players_rows),
     }
 
 
@@ -298,6 +299,95 @@ def _readiness(lobby, players_rows, mission) -> dict:
     return {"expected": expected, "joined": joined, "read": read, "gear": gear,
             "mission_set": mission_set, "ready": ready, "briefed": briefed,
             "final": ready or briefed}
+
+
+def _with_endorsements(res, players_rows):
+    """Verdicts plus, for the ones the table can endorse, who has and how many are needed."""
+    vs = _verdicts_of(res.get("verdict_json"))
+    names = {p["id"]: p["callsign"] for p in players_rows}
+    got = db.endorsements(res["id"])
+    need = oaths.needed_endorsements(len(players_rows))
+    out = []
+    for v in vs:
+        if not v:
+            continue
+        v = dict(v)
+        if v.get("endorsable") or v.get("passed") is None or v.get("endorsed_by"):
+            ids = got.get(v["oath"], [])
+            v["endorsers"] = [names.get(i, "?") for i in ids]
+            v["endorser_ids"] = ids
+            v["needed"] = need
+        out.append(v)
+    return out
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/endorse")
+def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Another diver at the table vouches that `pid` kept an oath no scoreboard shows.
+    Enough endorsements (a majority of the other divers, at least one) keep the oath:
+    the verdict passes, records who endorsed it, and earns the medal."""
+    who = _require_player(str(payload.get("by") or ""), x_token)
+    subject = db.get_player(pid)
+    if not subject or subject["lobby_id"] != lid or who["lobby_id"] != lid:
+        raise HTTPException(404, "not at this war table")
+    if who["id"] == pid:
+        raise HTTPException(400, "you can't endorse your own oath")
+    res = db.latest_result(pid)
+    if not res:
+        raise HTTPException(400, "no debrief to endorse yet")
+    oath = str(payload.get("oath") or "")
+    verdicts = _verdicts_of(res.get("verdict_json"))
+    v = next((x for x in verdicts if x and x.get("oath") == oath), None)
+    if not v or v.get("passed") is False:
+        raise HTTPException(400, "nothing to endorse for that oath")
+    db.add_endorsement(res["id"], oath, who["id"])
+    players = db.list_players(lid)
+    ids = db.endorsements(res["id"]).get(oath, [])
+    if v.get("passed") is None and len(ids) >= oaths.needed_endorsements(len(players)):
+        names = {p["id"]: p["callsign"] for p in players}
+        lobby = db.get_lobby(lid)
+        mission = _mission_from(lobby) or {}
+        v.update(passed=True, endorsed_by=[names.get(i, "?") for i in ids], reason_key="v.endorsed",
+                 reason_params={"names": ", ".join(names.get(i, "?") for i in ids)},
+                 reason="Endorsed by " + ", ".join(names.get(i, "?") for i in ids) + ".")
+        v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=json.loads(res["result_json"] or "{}"), mode=mission.get("mode"))
+        db.set_result_verdicts(res["id"], verdicts)
+        if lobby.get("room_id") and v.get("medal"):
+            db.room_log(lobby["room_id"], "medal", json.dumps({"k": "log.endorsed", "p": {"who": subject["callsign"], "medal": v["medal"]["name"],
+                                                                                            "names": ", ".join(v["endorsed_by"])}}))
+    return _resolve(db.get_lobby(lid))
+
+
+def _table_status(lobby, players=None) -> str:
+    """open -> debriefing (some divers debriefed) -> done (every diver has); folded overrides."""
+    if lobby.get("folded"):
+        return "folded"
+    players = players if players is not None else db.list_players(lobby["id"])
+    if not players:
+        return "open"
+    got = db.lobby_debriefed(lobby["id"])
+    if not got:
+        return "open"
+    return "done" if all(p["id"] in got for p in players) else "debriefing"
+
+
+@app.post("/api/lobby/{lid}/fold")
+def fold_table(lid: str, payload: dict, x_token: str = Header(None)):
+    """The creator folds the table (closes it: no joins, no changes), done or not; or unfolds it."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    fold = payload.get("fold") is not False
+    db.set_lobby_folded(lid, fold)
+    if lobby.get("room_id"):
+        db.room_log(lobby["room_id"], "fold", json.dumps({"k": "log.fold" if fold else "log.unfold", "p": {"name": lobby["name"]}}))
+    return _resolve(db.get_lobby(lid))
+
+
+def _not_folded(lobby):
+    if lobby.get("folded"):
+        raise HTTPException(409, "this war table is folded: its creator can unfold it")
 
 
 def _round(d: dict) -> dict:
@@ -394,6 +484,7 @@ def meta():
             "sources": loader.sources()["list"],
             "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
+            "passive_throwables": passives.throwables(),
             "vision": vision.status()}
 
 
@@ -500,6 +591,7 @@ def reroll(lid: str, x_token: str = Header(None)):
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
+    _not_folded(lobby)
     db.bump_reroll(lid)
     if lobby.get("briefed"):  # a reroll regenerates the whole squad, late joiners included
         db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
@@ -532,7 +624,7 @@ def lobbies_summary(payload: dict):
             m = loader.missions().get(mission["mission_id"])
             mname = m["display_name"] if m else None
         out.append({
-            "id": lid, "name": lobby["name"], "players": len(db.list_players(lid)),
+            "id": lid, "name": lobby["name"], "players": len(db.list_players(lid)), "status": _table_status(lobby),
             "squad_size": lobby.get("squad_size"),
             "mission_name": mname, "mode": mission.get("mode") if mission else None,
             "updated_at": lobby["updated_at"],
@@ -551,6 +643,7 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     if not lobby:
         raise HTTPException(404, "lobby not found")
     _require_creator(lobby, x_token)
+    _not_folded(lobby)
     m = _clean_mission(payload.get("mission"))
     db.set_mission(lid, m)
     if lobby.get("briefed"):  # a new mission regenerates the whole squad, late joiners included
@@ -700,7 +793,7 @@ def _room_out(rid):
         n = len(db.list_players(l["id"]))
         full += n >= 4
         tables.append({"id": l["id"], "name": l["name"], "players": n, "squad_size": l.get("squad_size"),
-                       "at": l["created_at"], "mission": _mission_name(l.get("mission_json"))})
+                       "at": l["created_at"], "mission": _mission_name(l.get("mission_json")), "status": _table_status(l)})
     tally = _room_tally(results)
     nights = len({time.strftime("%Y-%m-%d", time.gmtime(l["created_at"] or 0)) for l in lobbies})
     st = dict(tally, full=full, orders_done=sum(1 for o in orders if o["done_at"]))
@@ -714,6 +807,7 @@ def _room_out(rid):
     members = [{"id": m["locker_id"], "callsign": m["callsign"], "play_style": m["play_style"],
                 "public": bool(m["public"])} for m in db.room_members(rid) if m.get("callsign")]
     return {"id": r["id"], "name": r["name"], "ship": r["ship"], "created_at": r["created_at"],
+            "message": r.get("message"), "message_at": r.get("message_at"),
             "mission": json.loads(r["mission_json"]) if r.get("mission_json") else None,
             "mission_name": _mission_name(r.get("mission_json")), "mission_by": r.get("mission_by"),
             "orders": orders, "tables": tables, "members": members, "log": log,
@@ -730,13 +824,43 @@ def create_room(payload: dict, x_locker_id: str = Header(None), x_locker: str = 
     lk = _locker_ok(x_locker_id, x_locker)
     if lk:
         db.add_room_member(rid, lk["id"])
+        db.update_room(rid, creator_locker=lk["id"])   # the founder, on any device they sign in on
     db.room_log(rid, "open", json.dumps({"k": "log.open", "p": {"who": (lk or {}).get("callsign")}}))
     return {"room_id": rid, "creator_token": token}
 
 
+def _is_founder(r, x_token=None, x_locker_id=None, x_locker=None) -> bool:
+    if x_token and secrets.compare_digest(str(x_token), r["creator_token"] or ""):
+        return True
+    lk = _locker_ok(x_locker_id, x_locker)
+    return bool(lk and r.get("creator_locker") and lk["id"] == r["creator_locker"])
+
+
+def _require_founder(rid, x_token, x_locker_id, x_locker):
+    r = db.get_room(rid)
+    if not r:
+        raise HTTPException(404, "war room not found")
+    if not _is_founder(r, x_token, x_locker_id, x_locker):
+        raise HTTPException(403, "only the room's founder can do that")
+    return r
+
+
 @app.get("/api/room/{rid}")
-def get_room(rid: str):
-    return _room_out(rid[:40])
+def get_room(rid: str, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    out = _room_out(rid[:40])
+    out["founder"] = _is_founder(db.get_room(rid[:40]), x_token, x_locker_id, x_locker)
+    return out
+
+
+@app.post("/api/room/{rid}/message")
+def room_message(rid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    """The founder's pinned message to the crew (empty clears it)."""
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    text = str(payload.get("message") or "").strip()[:500]
+    db.update_room(rid, message=text or None, message_at=time.time() if text else None)
+    if text:
+        db.room_log(rid, "message", json.dumps({"k": "log.message", "p": {"t": text[:120]}}))
+    return get_room(rid, x_token, x_locker_id, x_locker)
 
 
 @app.post("/api/room/{rid}/join")
@@ -747,6 +871,17 @@ def join_room(rid: str, x_locker_id: str = Header(None), x_locker: str = Header(
     if not any(m["locker_id"] == lk["id"] for m in db.room_members(rid)):
         db.add_room_member(rid, lk["id"])
         db.room_log(rid, "member", json.dumps({"k": "log.member", "p": {"who": lk.get("callsign") or "?"}}))
+    return {"ok": True}
+
+
+@app.post("/api/room/{rid}/leave")
+def leave_room(rid: str, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    """Step out of the war room's crew (it stops following your profile). Tables you sat at keep their history."""
+    if not db.get_room(rid):
+        raise HTTPException(404, "war room not found")
+    lk = _require_locker(x_locker_id, x_locker)
+    db.remove_room_member(rid, lk["id"])
+    db.room_log(rid, "member", json.dumps({"k": "log.left", "p": {"who": lk.get("callsign") or "?"}}))
     return {"ok": True}
 
 
@@ -774,14 +909,25 @@ def room_mission(rid: str, payload: dict, x_locker_id: str = Header(None), x_loc
     m.pop("roles", None)   # creator-applied swaps belong to one table, not the room
     db.update_room(rid, mission_json=json.dumps(m), mission_by=who)
     label = (_mission_name(json.dumps(m)) or {}).get("name") or m.get("planet_name") or m.get("faction")
-    db.room_log(rid, "mission", json.dumps({"k": "log.mission", "p": {"who": who, "what": label, "planet": m.get("planet_name")}}))
-    return _room_out(rid)
+    # tonight's open tables in the room follow: any table from the last day with no debrief yet
+    pushed = 0
+    for l in db.room_lobbies(rid):
+        if time.time() - (l.get("created_at") or 0) > 86400 or l.get("folded") or db.lobby_has_results(l["id"]):
+            continue
+        keep = {k: v for k, v in (_mission_from(l) or {}).items() if k in ("roles", "lang", "think")}   # the table's own swaps + settings
+        db.set_mission(l["id"], dict(m, **keep))
+        if l.get("briefed"):
+            db.lock_roster(l["id"], [p["id"] for p in db.list_players(l["id"])])
+        pushed += 1
+    db.room_log(rid, "mission", json.dumps({"k": "log.mission", "p": {"who": who, "what": label, "planet": m.get("planet_name"), "n": pushed}}))
+    out = _room_out(rid)
+    out["pushed"] = pushed
+    return out
 
 
 @app.post("/api/room/{rid}/orders")
-def add_order(rid: str, payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
-    if not db.get_room(rid):
-        raise HTTPException(404, "war room not found")
+def add_order(rid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)   # standing orders are the founder's call
     kind = payload.get("kind")
     if kind not in ORDER_KINDS:
         raise HTTPException(400, "unknown order")
@@ -809,9 +955,8 @@ def add_order(rid: str, payload: dict, x_locker_id: str = Header(None), x_locker
 
 
 @app.post("/api/room/{rid}/orders/{oid}")
-def edit_order(rid: str, oid: str, payload: dict):
-    if not db.get_room(rid):
-        raise HTTPException(404, "war room not found")
+def edit_order(rid: str, oid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
     if payload.get("retire"):
         db.update_room_order(oid, rid, retired=1)
     if payload.get("done") is not None:
@@ -870,6 +1015,7 @@ async def join(lid: str, request: Request, callsign: str = Form(""), images: lis
     lobby = db.get_lobby(lid)
     if not lobby:
         raise HTTPException(404, "lobby not found")
+    _not_folded(lobby)
     lk = _locker_ok(locker_id, locker_key)   # the diver's locker, if their device has one
     if lk and not callsign.strip():
         callsign = lk.get("callsign") or ""
@@ -1202,6 +1348,8 @@ async def squad_results_commit(lid: str, rid: str, payload: dict, request: Reque
 @app.delete("/api/lobby/{lid}/player/{pid}")
 def leave(lid: str, pid: str, x_token: str = Header(None)):
     _require_player_or_creator(lid, pid, x_token)
+    if db.latest_result(pid):   # a debriefed diver's drop stays in their record (and the room's)
+        raise HTTPException(409, "you've debriefed at this table: it stays in your record")
     db.remove_player(pid)
     return {"ok": True}
 
@@ -1574,6 +1722,16 @@ def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
     _require_locker(lid, x_locker)
     if len(db.list_loadouts(lid)) >= 60:
         raise HTTPException(400, "locker is full (60 loadouts): delete one first")
+    kit, name, note = _clean_kit(payload)
+    src = payload.get("source") if isinstance(payload.get("source"), dict) else None
+    if src:
+        src = {k: str(v)[:80] for k, v in src.items() if k in ("lobby_id", "mission", "mode", "faction", "difficulty")}
+    oid = _id(4)
+    db.add_loadout(oid, lid, name, kit, note, src)
+    return {"ok": True, "id": oid}
+
+
+def _clean_kit(payload):
     raw = payload.get("kit") or {}
     valid = set(loader.warbond_catalog()["map"]) | {b["name"] for b in loader.items().get("boosters", [])}
     kit = {k: raw.get(k) for k in _KIT_KEYS if isinstance(raw.get(k), str) and raw.get(k) in valid}
@@ -1583,12 +1741,17 @@ def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
     if not any(kit.get(k) for k in _KIT_KEYS) and not kit["stratagems"]:
         raise HTTPException(400, "empty loadout")
     name = " ".join(str(payload.get("name") or "").split())[:40] or "Loadout"
-    note = str(payload.get("note") or "")[:400]
-    src = payload.get("source") if isinstance(payload.get("source"), dict) else None
-    if src:
-        src = {k: str(v)[:80] for k, v in src.items() if k in ("lobby_id", "mission", "mode", "faction", "difficulty")}
-    oid = _id(4)
-    db.add_loadout(oid, lid, name, kit, note, src)
+    return kit, name, str(payload.get("note") or "")[:400]
+
+
+@app.post("/api/locker/{lid}/loadouts/{oid}")
+def edit_loadout(lid: str, oid: str, payload: dict, x_locker: str = Header(None)):
+    """Change a saved loadout: its name, note and kit."""
+    _require_locker(lid, x_locker)
+    if not any(o["id"] == oid for o in db.list_loadouts(lid)):
+        raise HTTPException(404, "loadout not found")
+    kit, name, note = _clean_kit(payload)
+    db.update_loadout(lid, oid, name, kit, note)
     return {"ok": True, "id": oid}
 
 
