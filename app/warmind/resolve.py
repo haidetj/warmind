@@ -55,6 +55,7 @@ class Player:
     derived: dict | None = None      # career rates (stats.derive), when the diver uploaded stats
     favorites: list = field(default_factory=list)   # loadouts the diver saved in their locker (planner context)
     prefs: dict = field(default_factory=dict)       # from the profile chat: {vibe, focus, armor}
+    lessons: list = field(default_factory=list)     # kit lessons from this diver's recent debriefs (planner context)
 
 
 @dataclass

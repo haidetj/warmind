@@ -144,7 +144,8 @@ _RULES = kitrules.rules()
 PREF_KEYS = {"vibe": {"boom", "precision", "stealth", "hold", "any"},
              "focus": {"at", "ch", "st", "support", "scout", "any"},
              "armor": {"Light", "Medium", "Heavy", "any"},
-             "front": {"terminids", "automatons", "illuminate", "any"}}
+             "front": {"terminids", "automatons", "illuminate", "any"},
+             "role": set(__import__("warmind.roles", fromlist=["ROLES"]).ROLES) | {"any"}}   # the role a diver asks for
 
 
 _ARMOR_NAMES = {r["name"] for r in loader.items().get("armor", [])}
@@ -178,6 +179,7 @@ def _resolve(lobby) -> dict:
             favorites=[{"name": o["name"], "kit": o["kit"]} for o in db.list_loadouts(p["locker_id"])[:3]]
             if p.get("locker_id") else [],
             prefs=_prefs_of(p.get("locker_id")),
+            lessons=[x["lesson"] for x in db.locker_lessons(p["locker_id"])] if p.get("locker_id") else [],
         ))
     directive = None
     by_pid = {}
@@ -196,19 +198,20 @@ def _resolve(lobby) -> dict:
         rest = [p for p in roster if p not in core]
         groups = [core[i:i + SQUAD_MAX] for i in range(0, len(core), SQUAD_MAX)]
         groups += [rest[i:i + SQUAD_MAX] for i in range(0, len(rest), SQUAD_MAX)]
-        taken, d, mind_status = set(), None, {"status": "off"}
+        taken, d, mind_status, plan = set(), None, {"status": "off"}, None
         for gi, grp in enumerate(groups):
             for pl in grp:  # later groups avoid the stratagems the squad already brings
                 pl.excluded_items = sorted(taken)
-            dg = resolve_squad(_session_of(mission, lobby), grp, {})
+            dg = resolve_squad(_with_wants(_session_of(mission, lobby), grp), grp, {})
             if gi == 0:   # WARMIND thinks it over: the planner's picks, checked by the engine
-                plan, mind_status = mind.plan_for(lobby["id"], _session_of(mission, lobby), grp, mission)
+                plan, mind_status = mind.plan_for(lobby["id"], _with_wants(_session_of(mission, lobby), grp), grp, mission)
                 if plan:
                     try:
-                        dg, info = mind.apply(_session_of(mission, lobby), grp, plan)
+                        dg, info = mind.apply(_with_wants(_session_of(mission, lobby), grp), grp, plan)
                         mind_status.update(info)
                     except Exception as e:   # a bad plan never breaks the briefing
                         mind_status = {"status": "failed", "error": str(e)[:200]}
+            dg = _with_saved_kits(dg, grp, players_rows, _with_wants(_session_of(mission, lobby), grp), plan if gi == 0 else None)
             taken |= {s for a in dg.assignments for s in a.stratagems}
             if d is None:
                 d = dg
@@ -249,9 +252,11 @@ def _resolve(lobby) -> dict:
             "owned": _owned_of(p),           # None = owns everything; else every item owned
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "go": bool(p.get("go")),
+            "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
+            "kit_choice": p.get("kit_choice"),   # the saved loadout this diver chose to fight with, if any
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
-            "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
+            "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]), "lesson": res.get("lesson"),
                      "verdicts": _with_endorsements(res, players_rows),
                      "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
@@ -269,6 +274,56 @@ def _resolve(lobby) -> dict:
 
 
 SQUAD_MAX = 4  # a Helldivers 2 squad
+
+
+_KIT_SLOTS = ("primary", "secondary", "grenade", "armor", "booster", "stratagems")
+
+
+def _with_saved_kits(dg, grp, players_rows, session, plan):
+    """#41: divers who chose one of their saved loadouts fight with it. Their kit goes back through
+    the engine like the planner's picks (owned, legal, kit rules); their role and the rest of the
+    squad's picks stay as they were."""
+    rows = {r["id"]: r for r in players_rows}
+    chosen = {}
+    for pl in grp:
+        r = rows.get(pl.id) or {}
+        if r.get("kit_choice") and r.get("locker_id"):
+            o = next((x for x in db.list_loadouts(r["locker_id"]) if x["id"] == r["kit_choice"]), None)
+            if o:
+                chosen[pl.id] = o
+    if not chosen:
+        return dg
+    by = {a.player_id: a for a in dg.assignments}
+    override = {}
+    for a in dg.assignments:   # everyone else keeps exactly what they had
+        override[a.player_id] = {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
+                                 "grenade": a.grenade, "armor": a.armor, "booster": a.booster, "stratagems": list(a.stratagems)}
+    for pid, o in chosen.items():
+        kit = {k: o["kit"].get(k) for k in _KIT_SLOTS if o["kit"].get(k)}
+        override[pid] = dict(kit, role=by[pid].role.replace(" ", "_")) if pid in by else kit
+    old_why = {a.player_id: a.why for a in dg.assignments}
+    d2 = resolve_squad(session, grp, {}, override=override)
+    for a in d2.assignments:
+        if a.player_id in chosen:
+            a.why = [{"kind": "role", "k": "why.saved", "p": {"name": chosen[a.player_id]["name"]}}] + \
+                    [w for w in a.why if w.get("kind") in ("role", "thin", "nostats")]
+        else:
+            a.why = old_why.get(a.player_id, a.why)
+    return d2
+
+
+def _with_wants(session, grp):
+    """The roles divers asked for (profile / war table), on top of the creator's applied swaps.
+    The creator's call wins; two divers wanting the same role: the first to join gets it."""
+    roles = dict(session.roles or {})
+    taken = set(roles.values())
+    for pl in grp:
+        w = (pl.prefs or {}).get("role")
+        if w and w != "any" and pl.id not in roles and w not in taken:
+            roles[pl.id] = w
+            taken.add(w)
+    session.roles = roles
+    return session
 
 
 def _session_of(mission, lobby) -> Session:
@@ -470,7 +525,7 @@ def meta():
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
                  for t in loader.tactical_objectives().values()]
     from warmind.roles import ROLES, PLAY_STYLES
-    roles = [{"name": r.name, "blurb": r.blurb, "reactive": r.reactive} for r in ROLES.values()]
+    roles = [{"key": k, "name": r.name, "blurb": r.blurb, "reactive": r.reactive} for k, r in ROLES.items()]
     play_styles = [{"key": k, "label": PLAY_STYLES[k].label, "desc": PLAY_STYLE_DESC.get(k, "")}
                    for k in stats.ALLOWED]
     return {"missions": sorted(missions, key=lambda x: x["name"]),
@@ -1209,6 +1264,18 @@ def _require_player_or_creator(lid, pid, token):
     raise HTTPException(403, "not your diver")
 
 
+@app.post("/api/lobby/{lid}/player/{pid}/kit")
+def set_kit_choice(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """#41: fight with one of your saved loadouts at this table (null: let WARMIND build it)."""
+    p = _require_player(pid, x_token)
+    oid = payload.get("loadout_id") or None
+    if oid:
+        if not p.get("locker_id") or not any(o["id"] == oid for o in db.list_loadouts(p["locker_id"])):
+            raise HTTPException(404, "no such saved loadout in your locker")
+    db.set_kit_choice(pid, oid)
+    return _resolve(db.get_lobby(lid))
+
+
 @app.post("/api/lobby/{lid}/player/{pid}/style")
 def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     p = _require_player(pid, x_token)
@@ -1217,6 +1284,8 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         raise HTTPException(400, "unknown play style")
     db.add_or_update_player(pid, lid, p["token"], p["callsign"], ps, "manual",
                             "Chosen by the diver.", json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
+    if p.get("locker_id"):   # and it follows the diver: their Profile keeps it for the next table
+        db.update_locker(p["locker_id"], play_style=ps, style_note="Chosen by the diver.")
     return {"ok": True}
 
 
@@ -1317,20 +1386,52 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
         if v:
             v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=result, mode=mission.get("mode"))
             verdicts.append(v)
+    if p.get("locker_id"):   # what earlier debriefs taught WARMIND about this diver's kit
+        ctx["lessons"] = [x["lesson"] for x in db.locker_lessons(p["locker_id"])]
+    lesson = None
     try:
-        aar = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdicts, lang=lang)
+        aar, lesson = await run_in_threadpool(vision.write_aar, data, mt, result, ctx, verdicts, lang=lang)
     except Exception:
         # the numbers and verdicts already stand; don't lose them over the prose call
         aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
-    db.save_result(_id(5), lid, pid, result, aar, verdicts or None)
+    # #42: a re-upload of the same mission replaces the earlier read (a different mission is a new drop)
+    result = dict(result, table_mission=mission.get("mission_id"))   # the mission the table was on
+    replaced = [r for r in db.player_results(pid) if _same_drop(r, result)]
+    for r in replaced:
+        db.delete_result(r["id"])
+    loadout_id = (db.get_player(pid) or {}).get("kit_choice")
+    if loadout_id:
+        result = dict(result, loadout=next((o["name"] for o in db.list_loadouts(p.get("locker_id") or "") if o["id"] == loadout_id), None))
+    db.save_result(_id(5), lid, pid, result, aar, verdicts or None, lesson=lesson, loadout_id=loadout_id)
     lobby = db.get_lobby(lid) or {}
-    if lobby.get("room_id"):   # the ship's log
+    if lobby.get("room_id") and not replaced:   # the ship's log (once per drop)
         medals = [v["medal"]["name"] for v in (verdicts or []) if v and v.get("medal")]
         db.room_log(lobby["room_id"], "drop", json.dumps({"k": "log.drop", "p": {
             "who": p.get("callsign"), "mission": (_mission_name(lobby.get("mission_json")) or {}).get("name") or lobby.get("name"),
             "kills": (result or {}).get("kills"), "deaths": (result or {}).get("deaths"), "medals": medals}}))
-    return {"ok": True, "aar": aar, "result": result, "verdicts": verdicts,
-            "verdict": verdicts[0] if verdicts else None}
+    return {"ok": True, "aar": aar, "lesson": lesson, "result": result, "verdicts": verdicts,
+            "verdict": verdicts[0] if verdicts else None, "replaced": len(replaced)}
+
+
+_DROP_KEYS = ("kills", "deaths", "accuracy_pct", "shots_fired", "samples_extracted", "stratagems_used")
+
+
+def _same_drop(old_row, new):
+    """Is this upload the same mission as an earlier one at this table? The screenshot's mission
+    name decides when both have one; otherwise the same numbers mean the same scoreboard; and
+    with no mission name on either, a re-upload at the same table replaces the last read."""
+    try:
+        old = json.loads(old_row["result_json"]) if old_row.get("result_json") else {}
+    except Exception:
+        old = {}
+    a, b = _norm_name(old.get("mission_name") or ""), _norm_name(new.get("mission_name") or "")
+    if a and b:
+        return a == b and (_norm_name(old.get("planet") or "") == _norm_name(new.get("planet") or "")
+                           or not old.get("planet") or not new.get("planet"))
+    same_numbers = all(old.get(k) == new.get(k) for k in _DROP_KEYS if k in old or k in new)
+    # no names to go on: the same table mission is the same drop (a new mission is a new one)
+    same_mission = (old.get("table_mission") or None) == (new.get("table_mission") or None)
+    return same_numbers or (not (a or b) and same_mission)
 
 
 # ---------------------------------------------------------------- whole-squad scoreboard
@@ -1932,7 +2033,7 @@ def _record_of(lid):
         row = {"at": r["created_at"], "lobby": r.get("lobby_name"), "lobby_id": r.get("lobby_id"),
                "callsign": r.get("callsign"), "mission": _mission_name(r.get("mission_json")),
                "result": json.loads(r["result_json"]) if r.get("result_json") else {},
-               "verdicts": verdicts, "aar": r.get("aar_text") or ""}
+               "verdicts": verdicts, "aar": r.get("aar_text") or "", "lesson": r.get("lesson")}
         record.append(row)
         for v in verdicts:
             if v and v.get("medal"):
@@ -1960,8 +2061,32 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
             "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
-            "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables,
+            "loadouts": _with_records(lid, [_with_armor(o) for o in db.list_loadouts(lid)]), "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
+
+
+def _with_records(locker_id, loadouts):
+    """#41: each saved loadout's record from the drops fought with it (drops, kills and deaths per drop, medals)."""
+    rec = {}
+    for r in db.locker_record(locker_id, limit=400):
+        oid = r.get("loadout_id")
+        if not oid:
+            continue
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        x = rec.setdefault(oid, {"drops": 0, "kills": 0, "deaths": 0, "n_k": 0, "n_d": 0, "medals": 0, "last": 0})
+        x["drops"] += 1
+        x["last"] = max(x["last"], r["created_at"] or 0)
+        if isinstance(res.get("kills"), (int, float)):
+            x["kills"] += res["kills"]; x["n_k"] += 1
+        if isinstance(res.get("deaths"), (int, float)):
+            x["deaths"] += res["deaths"]; x["n_d"] += 1
+        x["medals"] += sum(1 for v in _verdicts_of(r.get("verdict_json")) if v and v.get("medal"))
+    for o in loadouts:
+        x = rec.get(o["id"])
+        o["record"] = {"drops": x["drops"], "medals": x["medals"], "last": x["last"],
+                       "kills": round(x["kills"] / x["n_k"], 1) if x["n_k"] else None,
+                       "deaths": round(x["deaths"] / x["n_d"], 2) if x["n_d"] else None} if x else None
+    return loadouts
 
 
 def _with_armor(o):
@@ -2125,7 +2250,7 @@ def roster_profile(lid: str):
               for r in record[:10]]
     return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
             "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
-            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])], "awards": _awards_of(lk["id"])}
+            "recent": recent, "loadouts": _with_records(lk["id"], [_with_armor(o) for o in db.list_loadouts(lk["id"])]), "awards": _awards_of(lk["id"])}
 
 
 @app.post("/api/locker/{lid}/prefs")
@@ -2146,7 +2271,30 @@ def locker_prefs(lid: str, payload: dict, x_locker: str = Header(None)):
                 cur.pop(k, None)
     p = cur
     db.update_locker(lid, prefs_json=json.dumps(p))
-    return {"ok": True, "prefs": p}
+    out = {"ok": True, "prefs": p}
+    if "play_style" in (payload or {}):   # the play style the diver picks on their Profile
+        ps = stats.coerce_play_style(payload.get("play_style"))
+        if not ps:
+            raise HTTPException(400, "unknown play style")
+        db.update_locker(lid, play_style=ps, style_note="Chosen by the diver.")
+        _style_to_seats(lid, ps)
+        out["play_style"] = ps
+    return out
+
+
+def _style_to_seats(locker_id, ps):
+    """A play style picked on the Profile follows the diver to their seats at tables that
+    haven't built loadouts yet (a briefed table keeps its kits)."""
+    for row in db.locker_tables(locker_id, limit=20):
+        if not row.get("player_id"):
+            continue
+        lobby = db.get_lobby(row["lobby_id"])
+        if not lobby or lobby.get("briefed") or lobby.get("folded"):
+            continue
+        p = db.get_player(row["player_id"])
+        if p:
+            db.add_or_update_player(p["id"], p["lobby_id"], p["token"], p["callsign"], ps, "manual", "Chosen by the diver.",
+                                    json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
 
 
 @app.post("/api/locker/{lid}/visibility")

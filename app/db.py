@@ -244,6 +244,12 @@ def init():
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
         if "verdict_json" not in rcols:
             c.execute("ALTER TABLE result ADD COLUMN verdict_json TEXT")
+        if "lesson" not in rcols:       # the debrief's one-line kit lesson, carried into the next kit
+            c.execute("ALTER TABLE result ADD COLUMN lesson TEXT")
+        if "loadout_id" not in rcols:   # the saved loadout the diver fought with, if any
+            c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
+        if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
+            c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
 
 
 def set_owned(pid, owned):
@@ -387,11 +393,39 @@ def remove_player(pid):
         c.execute("DELETE FROM player WHERE id=?", (pid,))
 
 
-def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None):
+def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None,
+                lesson: str | None = None, loadout_id: str | None = None):
     with _lock, _conn() as c:
-        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at)"
-                  " VALUES(?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
-                                             json.dumps(verdict) if verdict else None, time.time()))
+        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id)"
+                  " VALUES(?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
+                                                 json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id))
+
+
+def player_results(player_id):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC", (player_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_result(rid):
+    """A re-upload of the same mission replaces the earlier read (and its endorsements)."""
+    with _lock, _conn() as c:
+        c.execute("DELETE FROM endorsement WHERE result_id=?", (rid,))
+        c.execute("DELETE FROM result WHERE id=?", (rid,))
+
+
+def locker_lessons(locker_id, limit=3):
+    """The latest kit lessons from this diver's debriefs (newest first)."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT r.lesson, r.created_at FROM result r JOIN player p ON p.id=r.player_id "
+                         "WHERE p.locker_id=? AND COALESCE(r.lesson,'')<>'' ORDER BY r.created_at DESC LIMIT ?",
+                         (locker_id, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_kit_choice(pid, loadout_id):
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET kit_choice=?, updated_at=? WHERE id=?", (loadout_id, time.time(), pid))
 
 
 def latest_result(player_id):

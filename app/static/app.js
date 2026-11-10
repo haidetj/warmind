@@ -144,6 +144,26 @@
     return t(ph.k, p);
   }
   const styleLabel = k => (has("ps." + k + ".label") ? t("ps." + k + ".label") : k);
+  // roles a diver can ask for (HARDPOINT, HAMMER, …): name + what it does for the squad
+  const roleName = k => ((META.roles || []).find(r => r.key === k) || {}).name || k;
+  const roleBlurb = r => { const key = "role." + r.name.replace(/ /g, "_") + ".blurb"; return has(key) ? t(key) : r.blurb; };
+  function roleSelect(cur, onPick) {
+    const sel = el("select", { "aria-label": t("me.role") }, [el("option", { value: "any" }, [t("me.role.any")]),
+      ...(META.roles || []).map(r => el("option", { value: r.key }, [r.name]))]);
+    sel.value = cur || "any";
+    const hint = el("div", { class: "hint", style: "margin:6px 0 0" });
+    const paint = () => { const r = (META.roles || []).find(x => x.key === sel.value); hint.textContent = r ? roleBlurb(r) : t("me.role.any.hint"); };
+    paint(); sel.onchange = async () => { paint(); await onPick(sel.value); };
+    return { sel, hint };
+  }
+  function styleSelect(cur, onPick) {
+    const sel = el("select", { "aria-label": t("me.style") }, (META.archetypes || []).map(k => el("option", { value: k }, [styleLabel(k)])));
+    if (cur) sel.value = cur;
+    const hint = el("div", { class: "hint", style: "margin:6px 0 0" });
+    const paint = () => { const ps = (META.play_styles || []).find(x => x.key === sel.value); hint.textContent = ps ? (has("ps." + ps.key + ".desc") ? t("ps." + ps.key + ".desc") : ps.desc) : ""; };
+    paint(); sel.onchange = async () => { paint(); await onPick(sel.value); };
+    return { sel, hint };
+  }
   const nf = n => (n == null ? "—" : Number(n).toLocaleString(LANG));
 
   function initLang() {
@@ -458,7 +478,7 @@
       el("div", { class: "field" }, [el("label", { class: "label", for: "gate-pin" }, [t("gate.pin")]), pin]),
       go, status, extra,
       el("div", { class: "hint" }, [t("gate.pin.hint")]),
-      el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]),
+      el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")])]),
     ]));
     setTimeout(() => cs.focus(), 50);
   }
@@ -495,7 +515,8 @@
     const term = el("div", { class: "term", "aria-hidden": "true" });
     // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
     // you land on your profile; the war, your rooms, your tables and the welcome sit beside it
-    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")], ["home", "⌂ " + t("ht.home")]];
+    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")],
+                ["roster", "☰ " + t("ros.title")], ["home", "⌂ " + t("ht.home")]];
     let ht = new URLSearchParams(location.search).get("tab") || "me";
     if (!HT.some(x => x[0] === ht)) ht = "me";
     const tabs = el("div", { class: "seg hometabs", role: "tablist" });
@@ -505,9 +526,12 @@
       b.onclick = () => show(k); tabs.appendChild(b);
       panes[k] = el("div", { class: "stack homepane", "data-k": k });
     });
+    let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
+      try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
-      Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; }); };
+      Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
+      if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
     app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
 
     // --- Welcome
@@ -563,7 +587,6 @@
     panes.tables.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
     const tablesSlot = el("div", { class: "slot" }); panes.tables.appendChild(tablesSlot);
     renderMyLobbies(tablesSlot);
-    panes.tables.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
     show(ht);
     rain(cv);
     bootSequence(term);
@@ -649,7 +672,7 @@
   async function renderRoom() {
     app.innerHTML = ""; app.className = "stack";
     const nav = el("div", { class: "lknav" }, [backLink(), el("a", { class: "btn sm", href: "/?tab=rooms" }, ["⌂ " + t("lk.homepage")]),
-      store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]);
+      store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")])]);
     app.appendChild(nav);
     const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
     app.appendChild(body);
@@ -1458,6 +1481,13 @@
       el("div", { class: "field" }, [el("label", { class: "label", for: "my-style" }, [t("me.style")]), styleSel]),
       el("div", { class: "field" }, [reread]),
     ]));
+    if (p.locker && store.locker()) {   // the role you want (HARDPOINT, HAMMER…): kept on your Profile
+      const rs = roleSelect(p.want_role, async v => {
+        if (STATE.readiness && STATE.readiness.final && !confirm(t("me.role.rebuild"))) { rs.sel.value = p.want_role || "any"; return; }
+        try { await lpost("/api/locker/" + store.locker().id + "/prefs", { role: v }); await refresh(); toast(v === "any" ? t("me.role.cleared") : t("me.role.saved", { role: roleName(v) })); }
+        catch (e) { toast(e.message); } });
+      kids.push(el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint]));
+    }
     kids.push(status);
     // rename after joining
     const nameIn = el("input", { id: "my-callsign", type: "text", maxlength: "24", value: p.callsign || "", autocomplete: "off" });
@@ -2314,6 +2344,7 @@
   function whyLine(w) {
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
+    if (w.k === "why.saved") return t("why.saved", { name: p.name || "" });
     if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
@@ -2335,6 +2366,38 @@
     ]);
   }
 
+  // #41: fight with one of your saved loadouts at this table, or let WARMIND build the kit
+  function kitChoiceRow(p) {
+    const b = el("button", { class: "btn sm", type: "button" }, [p.kit_choice ? "🗄 " + t("kc.change") : "🗄 " + t("kc.use")]);
+    b.onclick = () => kitChoiceDialog(p);
+    const kids = [b];
+    if (p.kit_choice) { const x = el("button", { class: "btn sm", type: "button" }, [t("kc.clear")]);
+      x.onclick = () => setKitChoice(p, null); kids.push(x); }
+    return el("div", { class: "kcrow" }, [p.kit_choice ? el("span", { class: "tag amber" }, [t("kc.on")]) : null, ...kids]);
+  }
+  async function setKitChoice(p, oid) {
+    if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
+    try { STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/kit", { loadout_id: oid }, meRec().token); lastSig = JSON.stringify(STATE); renderLive();
+      toast(oid ? t("kc.set") : t("kc.cleared")); } catch (e) { toast(e.message); }
+  }
+  async function kitChoiceDialog(p) {
+    const L = store.locker(); let lk; try { lk = await lget("/api/locker/" + L.id); } catch (e) { toast(e.message); return; }
+    const dlg = el("dialog", { class: "modal", "aria-label": t("kc.use") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const list = el("div", { class: "stack", style: "gap:8px" });
+    if (!lk.loadouts.length) list.appendChild(el("div", { class: "hint" }, [t("kc.none")]));
+    lk.loadouts.forEach(o => { const k = o.kit || {}, rec = o.record;
+      const b = el("button", { type: "button", class: "btn kcpick" + (o.id === p.kit_choice ? " primary" : "") }, [
+        el("b", {}, [o.name]), el("small", {}, [[k.primary, k.secondary, k.grenade].filter(Boolean).join(" · ")]),
+        el("small", {}, [(k.stratagems || []).join(" · ")]), rec ? el("small", { class: "rec" }, [loadoutRecordLine(rec)]) : null]);
+      b.onclick = () => { dlg.close(); setKitChoice(p, o.id); }; list.appendChild(b); });
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("kc.use")]), x]), el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("kc.hint")]), list]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  const loadoutRecordLine = r => t("kc.rec", { n: r.drops, k: r.kills != null ? nf(r.kills) : "—", d: r.deaths != null ? nf(r.deaths) : "—" }) + (r.medals ? " · 🎖 " + r.medals : "");
+
   function diverCard(p, mine, provisional) {
     const a = p.assignment;
     const card = el("article", { class: "dcard" + (mine ? " me" : "") }); card.style.setProperty("--acc", p.accent);
@@ -2352,6 +2415,13 @@
         return el("div", { class: "wornrow" }, [b]); })() : null,
     ]));
     if (!a) return card;
+    if (mine && p.locker && store.locker()) card.appendChild(kitChoiceRow(p));
+    if (mine && p.want_role && p.want_role !== "any") {   // the role you asked for: got it, or who has it
+      const wn = roleName(p.want_role);
+      if (a.role === wn) card.appendChild(el("div", { class: "wantrole ok" }, ["✓ " + t("me.role.got", { role: wn })]));
+      else { const h = (STATE.players || []).find(x => x.id !== p.id && x.assignment && x.assignment.role === wn);
+        card.appendChild(el("div", { class: "wantrole" }, [h ? t("me.role.taken", { role: wn, who: h.callsign }) : t("me.role.not", { role: wn })])); }
+    }
     if (kitView === "screen") {
       card.appendChild(locker(a));
     } else {
@@ -2435,7 +2505,7 @@
         box.append(el("div", {}, [el("div", { class: "label", style: "margin:0" }, [t("prof.welcome")]), el("div", { class: "big" }, [lk.callsign || "—"]),
           lk.play_style ? el("div", { class: "hint", style: "margin:2px 0 0" }, [styleLabel(lk.play_style)]) : null]),
           el("div", { class: "btnrow", style: "margin:0" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]),
-            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")]),
+            el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")]),
             (() => { const b = el("button", { class: "btn sm", type: "button" }, [t("prof.signout")]); b.onclick = signOut; return b; })()]));
         if (!lk.has_pin) box.appendChild(pinSetter(L));
         try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
@@ -2484,6 +2554,11 @@
         el("div", { class: "hint", style: "margin:4px 0 0" }, [LK.play_style ? t("lk.style", { style: styleLabel(LK.play_style) }) : t("me.noread")])])]),
       LK.has_pin ? null : pinSetter(L),
       el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]), el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]), tune]),
+      (() => { const ss = styleSelect(LK.play_style, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { play_style: v }); LK.play_style = v; toast(t("me.style.saved", { style: styleLabel(v) })); } catch (e) { toast(e.message); } });
+        const rs = roleSelect((LK.prefs || {}).role, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { role: v }); toast(v === "any" ? t("me.role.cleared") : t("me.role.saved", { role: roleName(v) })); } catch (e) { toast(e.message); } });
+        return el("div", { class: "grid2 prefpick", style: "margin-top:10px" }, [
+          el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.style")]), ss.sel, ss.hint]),
+          el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint])]); })(),
       el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
@@ -2607,7 +2682,7 @@
           seg.appendChild(b);
         });
         return el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, ["☰ " + t("ros.show")]), seg,
-          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
+          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?tab=roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
       })(),
     ]));
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
@@ -2721,6 +2796,7 @@
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
       card.appendChild(locker(o.kit));
       if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
+      card.appendChild(el("div", { class: "lkrecline" }, [o.record ? "⚔ " + loadoutRecordLine(o.record) : t("kc.norec")]));
       // ⋮ menu: Edit / Share as PNG / Delete (share only on someone else's profile)
       const items = [];
       const after = opts.after || loadLocker;
@@ -2918,14 +2994,14 @@
   function backLink() {
     const f = new URLSearchParams(location.search).get("from");
     if (!f || !/^\/\?(room|l|roster|locker|tab)=?/.test(f)) return null;
-    const k = /\?room=/.test(f) ? "nav.back.room" : /\?l=/.test(f) ? "nav.back.table" : /\?locker/.test(f) ? "nav.back.locker" : /\?roster/.test(f) ? "nav.back.roster" : "nav.back";
+    const k = /\?room=/.test(f) ? "nav.back.room" : /\?l=/.test(f) ? "nav.back.table" : /\?locker/.test(f) ? "nav.back.locker" : /\?(roster|tab=roster)/.test(f) ? "nav.back.roster" : "nav.back";
     return el("a", { class: "btn primary sm", href: f }, ["← " + t(k)]);
   }
   function rosNav(back) {
     const nav = el("div", { class: "lknav" });
     const bl = back ? backLink() : null;
     if (bl) nav.appendChild(bl);
-    else if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
+    else if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?tab=roster" }, ["← " + t("ros.title")]));
     nav.appendChild(el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]));
     if (store.locker()) nav.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]));
     return nav;
@@ -2935,8 +3011,12 @@
     const id = new URLSearchParams(location.search).get("roster");
     if (id) return renderProfile(id);
     app.appendChild(rosNav(false));
+    await rosterPane(app);
+  }
+  // the roster leaderboard: on its own page (?roster) and as a home tab
+  async function rosterPane(host) {
     const body = el("div", {}, [el("div", { class: "hint" }, [t("home.loading")])]);
-    app.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
+    host.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
     let data; try { data = await api("/api/roster"); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "hint" }, [e.message])); return; }
     const me = store.locker();
     const paint = () => {
@@ -2949,7 +3029,7 @@
         if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return y - x; });
       if (!rows.length) body.appendChild(el("div", { class: "hint" }, [t("ros.none")]));
       body.appendChild(el("ol", { class: "roslist" }, rows.map((d, i) => el("li", { class: me && me.id === d.id ? "me" : null }, [
-        el("a", { href: "/?roster=" + d.id }, [
+        el("a", { href: "/?roster=" + d.id + fromHere() }, [
           el("span", { class: "rk" }, [rosVal(d, rosSort) == null ? "·" : String(i + 1)]),
           el("span", { class: "who" }, [el("b", {}, [d.callsign]), el("small", {}, [[d.play_style ? styleLabel(d.play_style) : null,
             d.rates && d.rates.missions ? t("ros.missions", { n: nf(d.rates.missions) }) : null, d.medals ? "🎖 " + d.medals : null].filter(Boolean).join(" · ")])]),
@@ -3014,6 +3094,7 @@
       kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]),
         el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
           r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
+          r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null,
           r.lobby_id ? el("a", { class: "btn sm", href: "/?l=" + r.lobby_id }, [t("lk.r.open")]) : null])]));
     });
     return panel("LKR-03", t("lk.tab.record"), {}, kids);
@@ -3253,8 +3334,8 @@
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
           const vs = rr.verdicts || (rr.verdict ? [rr.verdict] : []), won = vs.filter(v => v.passed === true && v.medal);
-          toast(won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
-            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar"));
+          toast((rr.replaced ? t("deb.replaced") + " " : "") + (won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
+            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar")));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
@@ -3300,7 +3381,10 @@
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
         if (chips.length) inner.push(el("div", { class: "scoreline", title: t("deb.score") }, chips.map(([k, v]) => el("span", {}, [t(k), el("b", {}, [String(v)])]))));
+        if (r.mission_name) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.read.mission", { m: r.mission_name + (r.planet ? " · " + r.planet : "") })]));
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
+        if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));
+        if (r.loadout) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.withkit", { name: r.loadout })]));
       }
       const row = el("div", { class: "hrow" }, [el("div", { class: "stripe" }), el("div", { class: "in" }, inner)]);
       row.style.setProperty("--acc", p.accent);
