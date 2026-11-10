@@ -2311,30 +2311,37 @@
     const plus = (META.passive_throwables || {})[a.armor_passive] || 0;
     return plus ? t("st.nades.plus", { n: nf(base + plus), plus: plus }) : t("st.nades", { n: nf(base) });
   }
-  function locker(a) {
+  function locker(a, onSwap) {
+    // onSwap(slot, name): your own card: tap a piece of kit to swap it (the name stays a wiki link)
+    const tap = (node, slot, name) => { if (!onSwap || !name) return node;
+      node.classList.add("swappable"); node.setAttribute("role", "button"); node.setAttribute("tabindex", "0");
+      node.setAttribute("aria-label", t("sw.title", { item: name }));
+      node.addEventListener("click", e => { if (e.target.closest("a")) return; onSwap(slot, name); });
+      node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSwap(slot, name); } });
+      node.appendChild(el("span", { class: "swapmark", "aria-hidden": "true" }, ["⇄"])); return node; };
     const strats = el("div", { class: "strats" }, (a.stratagems || []).map(s => {
       const pm = String(((META.pics || {})[s] || {}).permit || "supply").toLowerCase();
-      return el("div", { class: "sslot " + pm, title: s }, [
+      return tap(el("div", { class: "sslot " + pm, title: s }, [
         el("div", { class: "sq" }, [pic(s, "icon"), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
         el("div", { class: "sn" }, [wk(s)]),
-      ]);
+      ]), "stratagem", s);
     }));
-    const wt = (cls, label, name, stats) => { const line = typeof stats === "string" ? stats : stats ? statLine(itemStats(name)) : "";
-      return el("div", { class: "wtile " + cls }, [
+    const wt = (cls, label, name, stats, slot) => { const line = typeof stats === "string" ? stats : stats ? statLine(itemStats(name)) : "";
+      return tap(el("div", { class: "wtile " + cls }, [
       el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [name ? wk(name) : "—"]),
-      line ? el("div", { class: "st" }, [line]) : null]); };
+      line ? el("div", { class: "st" }, [line]) : null]), slot, name); };
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = !a.armor_passive ? null : has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
-    const armor = el("div", { class: "armorfig" }, [
+    const armor = tap(el("div", { class: "armorfig" }, [
       el("span", { class: "lab" }, [t("card.armor")]), el("div", { class: "pv" }, [pic(a.armor, "img")]),
       el("div", { class: "nm" }, [wk(a.armor)]),
       a.armor_weight || a.armor_passive ? el("div", { class: "ps", title: eff || "" }, [[has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight, a.armor_passive].filter(Boolean).join(" · ")]) : null,
-    ]);
+    ]), "armor", a.armor);
     return el("div", { class: "locker" }, [
       strats,
       el("div", { class: "equip" }, [armor, el("div", { class: "weps" }, [
-        wt("primary", t("card.primary"), a.primary, true), wt("", t("card.secondary"), a.secondary, true),
-        wt("", t("card.grenade"), a.grenade, nadeLine(a)), wt("booster", t("card.booster"), a.booster)])]),
+        wt("primary", t("card.primary"), a.primary, true, "primary"), wt("", t("card.secondary"), a.secondary, true, "secondary"),
+        wt("", t("card.grenade"), a.grenade, nadeLine(a), "grenade"), wt("booster", t("card.booster"), a.booster, false, "booster")])]),
       eff ? el("div", { class: "eff" }, [el("b", {}, [a.armor_passive + ": "]), eff]) : null,
     ]);
   }
@@ -2348,6 +2355,7 @@
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
     if (w.k === "why.saved") return t("why.saved", { name: p.name || "" });
+    if (w.k === "why.swap" || w.k === "why.swap.no" || w.k === "why.swap.out") return t(w.k, { to: p.to || "", from: p.from || "" });
     if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
@@ -2389,8 +2397,41 @@
     items.push([worn ? t("arm.release.menu") : t("arm.keep", { armor: a.armor }), "", async () => {
       try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
         toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); } }]);
+    if (p.swapped) items.push(["sw.reset", "", () => swapPost(p, { reset: true }, t("sw.undone"))]);
     items.push(["lk.save", "", () => saveKitDialog(a)]);
     return kebab(items);
+  }
+  // quick swap: the profile's gear was off (an item you don't have, or one you do that WARMIND
+  // didn't know about). Fixes this kit now and your profile's gear for the next one.
+  const SLOT_TAB = { primary: "Primary", secondary: "Secondary", grenade: "Grenade", armor: "Armor", booster: "Booster", stratagem: "Stratagem" };
+  async function swapPost(p, body, msg) {
+    try { STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/swap", body, meRec().token); lastSig = JSON.stringify(STATE); renderLive(); if (msg) toast(msg); }
+    catch (e) { toast(e.message); }
+  }
+  function swapDialog(p, slot, name) {
+    const tab = (META.armory || []).find(tb => tb.slot === SLOT_TAB[slot]); if (!tab) return;
+    const owned = p.owned == null ? null : new Set(p.owned);
+    const items = []; tab.groups.forEach(g => g.items.forEach(i => { if (i.name !== name) items.push(i); }));
+    items.sort((x, y) => ((owned && !owned.has(x.name)) - (owned && !owned.has(y.name))) || x.name.localeCompare(y.name));
+    const dlg = el("dialog", { class: "modal swapdlg", "aria-label": t("sw.title", { item: name }) });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const no = el("button", { type: "button", class: "btn red" }, [t("sw.notowned", { item: name })]);
+    no.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, not_owned: true }, t("sw.removed", { item: name })); };
+    const q = el("input", { type: "search", placeholder: t("sw.search"), autocomplete: "off", "aria-label": t("sw.search") });
+    const list = el("div", { class: "swaplist" });
+    const paint = () => { list.innerHTML = ""; const f = q.value.trim().toLowerCase();
+      items.filter(i => !f || i.name.toLowerCase().includes(f)).slice(0, 80).forEach(i => {
+        const b = el("button", { type: "button", class: "swapitem" }, [el("span", { class: "pv" }, [pic(i.name, slot === "stratagem" ? "icon" : "img")]),
+          el("span", { class: "t" }, [el("b", {}, [i.name]), owned && !owned.has(i.name) ? el("small", {}, [t("sw.notlisted")]) : null])]);
+        b.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, to: i.name }, t("sw.done", { from: name, to: i.name })); };
+        list.appendChild(b); }); };
+    q.oninput = paint; paint();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("sw.title", { item: name })]), x]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("sw.explain")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [no]),
+        el("div", { class: "sub-h first" }, [t("sw.instead")]), q, list]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
   }
   async function setKitChoice(p, oid) {
     if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
@@ -2435,7 +2476,8 @@
         card.appendChild(el("div", { class: "wantrole" }, [h ? t("me.role.taken", { role: wn, who: h.callsign }) : t("me.role.not", { role: wn })])); }
     }
     if (kitView === "screen") {
-      card.appendChild(locker(a));
+      card.appendChild(locker(a, mine && p.locker ? (slot, name) => swapDialog(p, slot, name) : null));
+      if (mine && p.locker) card.appendChild(el("div", { class: "swaphint" }, [p.swapped ? t("sw.hint.on") : t("sw.hint")]));
     } else {
     const kit = el("ul", { class: "kit" });
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);

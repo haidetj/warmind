@@ -117,11 +117,11 @@ html:lang(ja) .sect .tt,html:lang(ko) .sect .tt,html:lang(zh) .sect .tt{letter-s
 .filebtn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
 
-input[type=text],input[type=password],input[type=number],select{width:100%;min-height:48px;padding:12px 14px;background:rgba(3,6,3,.75);color:var(--ink);
+input[type=text],input[type=password],input[type=number],input[type=search],select{width:100%;min-height:48px;padding:12px 14px;background:rgba(3,6,3,.75);color:var(--ink);
   border:1px solid var(--line-2);border-radius:0;font-family:var(--mono);font-size:14.5px;letter-spacing:.5px;
   box-shadow:inset 0 0 18px rgba(120,255,170,.04)}
-input[type=text]::placeholder,input[type=password]::placeholder{color:var(--faint);text-transform:uppercase;letter-spacing:1.5px;font-size:12.5px}
-input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),var(--glow-c)}
+input[type=text]::placeholder,input[type=password]::placeholder,input[type=search]::placeholder{color:var(--faint);text-transform:uppercase;letter-spacing:1.5px;font-size:12.5px}
+input[type=text]:focus,input[type=password]:focus,input[type=search]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),var(--glow-c)}
 input.locked,input:disabled{opacity:.45;cursor:not-allowed}
 select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:38px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2378ffaa' stroke-width='1.6'/%3E%3C/svg%3E");
@@ -718,6 +718,17 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .lesson b{color:var(--amber);font-family:var(--mono);font-size:11px;letter-spacing:1px;text-transform:uppercase}
   .dcard .hd.hasmenu{position:relative;padding-right:46px}
   .met.stopped{opacity:.6;filter:saturate(.4)}
+  .swappable{position:relative;cursor:pointer}
+  .swappable:hover,.swappable:focus-visible{outline:1px solid var(--line-3);outline-offset:-1px}
+  .swapmark{position:absolute;top:4px;right:5px;font-size:12px;color:var(--muted);line-height:1;pointer-events:none}
+  .sslot.swappable .swapmark{top:2px;right:3px}
+  .swaphint{margin:8px 0 0;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .swapdlg input[type=search]{width:100%;margin:6px 0 10px}
+  .swaplist{display:grid;gap:6px;max-height:50vh;overflow:auto}
+  .swapitem{display:flex;gap:10px;align-items:center;text-align:left;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:6px 10px;cursor:pointer;font:inherit}
+  .swapitem:hover,.swapitem:focus-visible{border-color:var(--line-3);outline:none}
+  .swapitem .pv{width:56px;height:40px;flex:none;display:grid;place-items:center} .swapitem .pv img{max-width:56px;max-height:40px}
+  .swapitem .t{display:flex;flex-direction:column} .swapitem b{font-size:14px} .swapitem small{font-size:11.5px;color:var(--amber)}
   .mychips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
   .mychips .tag{white-space:normal;text-align:left}
   .kcpick{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;min-height:auto;padding:10px 12px;text-transform:none;letter-spacing:0}

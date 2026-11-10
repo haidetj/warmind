@@ -250,6 +250,8 @@ def init():
             c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
         if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
             c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
+        if "kit_edits" not in cols:     # quick swaps on this table's kit: {slot or "strat:<old>": item}
+            c.execute("ALTER TABLE player ADD COLUMN kit_edits TEXT")
 
 
 def set_owned(pid, owned):
@@ -326,6 +328,7 @@ def lock_roster(lobby_id, player_ids):
 def bump_reroll(lobby_id) -> int:
     with _lock, _conn() as c:
         c.execute("UPDATE lobby SET reroll=COALESCE(reroll,0)+1, updated_at=? WHERE id=?", (time.time(), lobby_id))
+        c.execute("UPDATE player SET kit_edits=NULL WHERE lobby_id=?", (lobby_id,))   # a reroll: quick swaps start over
         return c.execute("SELECT reroll FROM lobby WHERE id=?", (lobby_id,)).fetchone()["reroll"]
 
 
@@ -356,8 +359,11 @@ def get_lobby(lobby_id):
 
 def set_mission(lobby_id, mission: dict):
     with _lock, _conn() as c:
+        old = c.execute("SELECT mission_json FROM lobby WHERE id=?", (lobby_id,)).fetchone()
         c.execute("UPDATE lobby SET mission_json=?, updated_at=? WHERE id=?",
                   (json.dumps(mission), time.time(), lobby_id))
+        if not old or (old["mission_json"] or "") != json.dumps(mission):   # new kits: quick swaps start over
+            c.execute("UPDATE player SET kit_edits=NULL WHERE lobby_id=?", (lobby_id,))
 
 
 def add_or_update_player(pid, lobby_id, token, callsign, play_style, style_source, style_note, snapshot):
@@ -425,7 +431,12 @@ def locker_lessons(locker_id, limit=3):
 
 def set_kit_choice(pid, loadout_id):
     with _lock, _conn() as c:
-        c.execute("UPDATE player SET kit_choice=?, updated_at=? WHERE id=?", (loadout_id, time.time(), pid))
+        c.execute("UPDATE player SET kit_choice=?, kit_edits=NULL, updated_at=? WHERE id=?", (loadout_id, time.time(), pid))
+
+
+def set_kit_edits(pid, edits: dict | None):
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET kit_edits=?, updated_at=? WHERE id=?", (json.dumps(edits) if edits else None, time.time(), pid))
 
 
 def latest_result(player_id):

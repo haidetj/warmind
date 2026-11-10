@@ -71,6 +71,11 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one of their locker kits; `_with_saved_kits` sends it through the engine as an override (owned / legal / kit rules,
   role kept, the rest of the squad unchanged). Results carry `loadout_id`; `_with_records` gives each saved kit
   its record (drops, kills and deaths per drop, medals).
+- Quick swap (`player.kit_edits`, `POST /api/lobby/{lid}/player/{pid}/swap`): on your own card, tap a piece of kit to
+  use another item (`to`) or say you don't have it (`not_owned`: that slot alone is refilled). Either also fixes the
+  profile's gear. Swaps sit on top of the squad's pinned picks in `_with_saved_kits`; a refilled slot never takes a
+  squadmate's stratagem, so nobody else's kit moves. Cleared on a new mission or reroll; "Undo my swaps" in the ⋮ menu.
+- Pinning armour (`prefs.armor_set`) is left out of `mind.brief_key`: it swaps that diver's armour only, no rebuild.
 - Re-uploads (`_same_drop`): the screenshot's mission name (read with the numbers) decides; without names the
   table's mission at upload time does, and identical numbers are always the same scoreboard. Same drop = replaced
   (endorsements too); a different mission is a new drop.

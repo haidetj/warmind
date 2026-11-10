@@ -102,7 +102,10 @@ def brief_key(session, players, mission: dict) -> str:
     diver told WARMIND. Once a set exists for this key it stays, so background changes
     (a gear tick, a re-read of stats) never swap kits under the squad's feet."""
     body = {"m": {k: v for k, v in sorted(mission.items()) if k not in ("think", "lang")}, "seed": session.seed,
-            "p": sorted([p.id, p.play_style, sorted((p.prefs or {}).items())] for p in players), "v": 1}
+            # the armour a diver pins is left out: pinning swaps that diver's armour only (the engine puts it
+            # on over the kept picks), it doesn't rebuild the squad
+            "p": sorted([p.id, p.play_style, sorted((k, v) for k, v in (p.prefs or {}).items() if k != "armor_set")] for p in players),
+            "v": 1}
     return "k:" + hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
 
 

@@ -256,6 +256,7 @@ def _resolve(lobby) -> dict:
             "go": bool(p.get("go")),
             "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
             "kit_choice": p.get("kit_choice"),   # the saved loadout this diver chose to fight with, if any
+            "swapped": bool(p.get("kit_edits")),  # quick swaps on this table's kit
             "kit_choice_name": next((o["name"] for o in db.list_loadouts(p["locker_id"]) if o["id"] == p.get("kit_choice")), None)
             if p.get("kit_choice") and p.get("locker_id") else None,
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
@@ -301,29 +302,74 @@ def _with_saved_kits(dg, grp, players_rows, session, plan):
     the engine like the planner's picks (owned, legal, kit rules); their role and the rest of the
     squad's picks stay as they were."""
     rows = {r["id"]: r for r in players_rows}
-    chosen = {}
+    chosen, edits = {}, {}
     for pl in grp:
         r = rows.get(pl.id) or {}
         if r.get("kit_choice") and r.get("locker_id"):
             o = next((x for x in db.list_loadouts(r["locker_id"]) if x["id"] == r["kit_choice"]), None)
             if o:
                 chosen[pl.id] = o
-    if not chosen:
+        try:
+            e = json.loads(r["kit_edits"]) if r.get("kit_edits") else {}
+        except Exception:
+            e = {}
+        if e:
+            edits[pl.id] = e
+    if not chosen and not edits:
         return dg
     by = {a.player_id: a for a in dg.assignments}
     override = {}
-    for a in dg.assignments:   # everyone else keeps exactly what they had
+    pinned = (plan or {}).get("override") or {}
+    for a in dg.assignments:   # everyone else keeps exactly what they had (the squad's pinned picks)
         override[a.player_id] = {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                                  "grenade": a.grenade, "armor": a.armor, "booster": a.booster, "stratagems": list(a.stratagems)}
+        if a.player_id not in chosen and pinned.get(a.player_id):   # edits apply on top of the pinned picks
+            override[a.player_id] = dict(override[a.player_id], **{k: v for k, v in pinned[a.player_id].items() if v})
     for pid, o in chosen.items():
         kit = {k: o["kit"].get(k) for k in _KIT_SLOTS if o["kit"].get(k)}
         override[pid] = dict(kit, role=by[pid].role.replace(" ", "_")) if pid in by else kit
+    for pid, e in edits.items():   # quick swaps, on top of whatever this diver has
+        ov = dict(override.get(pid) or {})
+        strat = list(ov.get("stratagems") or [])
+        for k, v in e.items():
+            gone = v.startswith("!")   # "I don't have it": empty the slot, WARMIND refills just that
+            if k.startswith("strat:"):
+                old = k[6:]
+                strat = [s_ for s_ in strat if s_ != old] if gone else [v if s_ == old else s_ for s_ in strat]
+            elif k in _KIT_SLOTS:
+                if gone:
+                    ov.pop(k, None)
+                else:
+                    ov[k] = v
+        ov["stratagems"] = strat
+        override[pid] = ov
     old_why = {a.player_id: a.why for a in dg.assignments}
-    d2 = resolve_squad(session, grp, {}, override=override)
+    # a refilled slot never takes a stratagem a squadmate already carries (that would bump them)
+    saved_ex = {pl.id: list(pl.excluded_items or []) for pl in grp}
+    for pl in grp:
+        if pl.id in edits:
+            mine = set((override.get(pl.id) or {}).get("stratagems") or [])
+            theirs = {x for q, ov in override.items() if q != pl.id for x in (ov.get("stratagems") or [])}
+            pl.excluded_items = sorted(set(pl.excluded_items or []) | (theirs - mine))
+    try:
+        d2 = resolve_squad(session, grp, {}, override=override)
+    finally:
+        for pl in grp:
+            pl.excluded_items = saved_ex[pl.id]
     for a in d2.assignments:
+        lines = []
         if a.player_id in chosen:
-            a.why = [{"kind": "role", "k": "why.saved", "p": {"name": chosen[a.player_id]["name"]}}] + \
-                    [w for w in a.why if w.get("kind") in ("role", "thin", "nostats")]
+            lines.append({"kind": "role", "k": "why.saved", "p": {"name": chosen[a.player_id]["name"]}})
+        for k, v in (edits.get(a.player_id) or {}).items():
+            if v.startswith("!"):
+                lines.append({"kind": "role", "k": "why.swap.out", "p": {"from": v[1:]}})
+                continue
+            got = v in ([a.primary, a.secondary, a.grenade, a.armor, a.booster] + list(a.stratagems))
+            lines.append({"kind": "role", "k": "why.swap" if got else "why.swap.no", "p": {"to": v, "from": k[6:] if k.startswith("strat:") else ""}})
+        if lines:
+            keep = [w for w in (a.why if a.player_id in chosen else old_why.get(a.player_id, a.why))
+                    if a.player_id not in chosen or w.get("kind") in ("role", "thin", "nostats")]
+            a.why = lines + keep
         else:
             a.why = old_why.get(a.player_id, a.why)
     return d2
@@ -1290,6 +1336,65 @@ def set_kit_choice(lid: str, pid: str, payload: dict, x_token: str = Header(None
         if not p.get("locker_id") or not any(o["id"] == oid for o in db.list_loadouts(p["locker_id"])):
             raise HTTPException(404, "no such saved loadout in your locker")
     db.set_kit_choice(pid, oid)
+    return _resolve(db.get_lobby(lid))
+
+
+_SWAP_SLOTS = {"primary": "Primary", "secondary": "Secondary", "grenade": "Grenade", "armor": "Armor",
+               "booster": "Booster", "stratagem": "Stratagem"}
+
+
+def _slot_names(slot):
+    tab = next((tb for tb in loader.armory() if tb["slot"] == _SWAP_SLOTS[slot]), None)
+    return {i["name"] for g in (tab or {}).get("groups", []) for i in g["items"]}
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/swap")
+def quick_swap(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Quick swap on your kit at this table: {slot, from, to} uses another item instead, and/or
+    {not_owned: true} says you don't have `from`. Either fixes your profile's gear too (you own
+    `to`; you don't own `from`), so the next kit comes out right. {reset: true} undoes the swaps."""
+    p = _require_player(pid, x_token)
+    edits = json.loads(p["kit_edits"]) if p.get("kit_edits") else {}
+    if payload.get("reset"):
+        db.set_kit_edits(pid, None)
+        return _resolve(db.get_lobby(lid))
+    slot = payload.get("slot")
+    if slot not in _SWAP_SLOTS:
+        raise HTTPException(400, "unknown slot")
+    names = _slot_names(slot)
+    frm, to = str(payload.get("from") or ""), payload.get("to")
+    if to is not None and to not in names:
+        raise HTTPException(400, "that item doesn't go in this slot")
+    if frm and frm not in names:
+        raise HTTPException(400, "unknown item")
+    # the profile's gear follows what the diver tells us
+    owned = _owned_of(p)
+    every = {i["name"] for tb in loader.armory() for g in tb["groups"] for i in g["items"]}
+    have = set(every if owned is None else owned)
+    if payload.get("not_owned") and frm:
+        have.discard(frm)
+    if to:
+        have.add(to)
+    if owned is None and not payload.get("not_owned"):
+        pass   # owns everything already: nothing to record
+    else:
+        stored = _owned_store(sorted(have))
+        db.set_owned(pid, stored)
+        db.remember_gear(p["callsign"], stored)
+        if p.get("locker_id"):
+            db.update_locker(p["locker_id"], owned_json=json.dumps(stored), gear_set=1)
+    key = "strat:" + frm if slot == "stratagem" else slot
+    if to:
+        edits[key] = to
+    else:   # not owned, no pick: this one slot is refilled by WARMIND, the rest of the kit stays
+        edits = {k: v for k, v in edits.items() if v != frm}
+        edits[key] = "!" + frm
+    if slot == "armor" and to and p.get("locker_id") and _prefs_of(p["locker_id"]).get("armor_set"):
+        lk = db.get_locker(p["locker_id"])   # a pinned armour would win over the swap: the swap becomes the pin
+        cur = json.loads(lk["prefs_json"]) if lk and lk.get("prefs_json") else {}
+        cur["armor_set"] = to
+        db.update_locker(p["locker_id"], prefs_json=json.dumps(cur))
+    db.set_kit_edits(pid, edits or None)
     return _resolve(db.get_lobby(lid))
 
 
