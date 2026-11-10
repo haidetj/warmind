@@ -273,6 +273,9 @@
   })();
   (async function boot() {
     META = await api("/api/meta");
+    // you are your callsign: home, war tables and the locker need it; roster, rooms and costs are open to look at
+    if (!store.locker() && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE) return renderGate();
+    if (store.locker()) await syncTables();
     if (LOCKER_PAGE) return renderLocker();
     if (ROSTER_PAGE) return renderRoster();
     if (ROOM_ID) return renderRoom();
@@ -281,6 +284,84 @@
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
   })().catch(e => { app.innerHTML = ""; app.appendChild(el("div", { class: "alert red" }, [el("b", {}, ["ERR"]), t("err.start", { msg: e.message })])); });
+
+  // ======================================================================= who you are
+  // the profile's war tables (made or joined) come back to any device it signs in on
+  async function syncTables() {
+    const L = store.locker(); if (!L) return;
+    try {
+      const r = await lget("/api/locker/" + L.id + "/tables");
+      (r.tables || []).forEach(x => {
+        if (x.creator_token && !store.creator(x.lobby_id)) store.setCreator(x.lobby_id, x.creator_token);
+        if (x.player_id && !store.me(x.lobby_id)) store.setMe(x.lobby_id, { id: x.player_id, token: x.player_token });
+      });
+    } catch (e) { if (/not your locker/i.test(e.message)) { try { localStorage.removeItem("wm_locker"); } catch (e2) {} } }
+  }
+  function signOut() {
+    if (!confirm(t("prof.signout.q"))) return;
+    try {
+      const drop = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^wm_(locker|creator_|me_|rooms|lastroom|roomc_|gear|tab_|last_lobby)/.test(k)) drop.push(k); }
+      drop.forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+    location.href = "/";
+  }
+  async function renderGate() {
+    app.innerHTML = ""; app.className = "stack";
+    const cs = el("input", { type: "text", id: "gate-cs", maxlength: "24", autocomplete: "username", placeholder: t("lk.callsign.ph"), autocapitalize: "off", spellcheck: "false" });
+    const pin = el("input", { type: "password", id: "gate-pin", maxlength: "8", inputmode: "numeric", autocomplete: "current-password", placeholder: "••••", pattern: "[0-9]*" });
+    const go = el("button", { class: "btn primary wide", type: "button" }, ["➤ " + t("gate.go")]);
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    const extra = el("div", { class: "stack", style: "gap:8px" });
+    const done = (r, created) => {
+      store.setLocker({ id: r.locker_id, key: r.locker_key });
+      try { if (created) sessionStorage.setItem("wm_chat_new", r.callsign || cs.value.trim()); } catch (e) {}
+      toast(created ? t("prof.done", { name: r.callsign || cs.value.trim() }) : t("gate.welcome", { name: r.callsign }));
+      setTimeout(() => location.reload(), 600);
+    };
+    go.onclick = async () => {
+      const v = cs.value.trim(), p = pin.value.trim();
+      extra.innerHTML = "";
+      if (!v) { cs.focus(); toast(t("prof.need")); return; }
+      if (!/^[0-9]{4,8}$/.test(p)) { pin.focus(); toast(t("gate.pin.need")); return; }
+      go.disabled = true; setStatus(status, "working", t("gate.checking"));
+      try {
+        const r = await jpost("/api/signin", { callsign: v, pin: p });
+        if (r.new) {   // nobody has this callsign: it becomes yours, unless it looks like a typo of one that exists
+          const create = async () => { setStatus(status, "working", t("gate.creating"));
+            try { const c = await jpost("/api/locker", { callsign: v, pin: p }); done(Object.assign({ callsign: v }, c), true); }
+            catch (e) { setStatus(status, "err", e.message); go.disabled = false; } };
+          if ((r.similar || []).length) {
+            status.style.display = "none";
+            const row = el("div", { class: "btnrow", style: "margin:0" }, r.similar.map(n => { const b = el("button", { class: "btn sm primary", type: "button" }, [n]);
+              b.onclick = () => { cs.value = n; extra.innerHTML = ""; go.click(); }; return b; }));
+            const mine = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("gate.create", { name: v })]); mine.onclick = () => { extra.innerHTML = ""; create(); };
+            row.appendChild(mine);
+            extra.append(el("div", { class: "hint", style: "margin:0" }, [t("gate.didyou")]), row);
+            go.disabled = false; return;
+          }
+          return create();
+        }
+        done(r, false);
+      } catch (e) { setStatus(status, "err", e.message); go.disabled = false; }
+    };
+    [cs, pin].forEach(x => x.addEventListener("keydown", e => { if (e.key === "Enter") go.click(); }));
+    let ctx = null;
+    if (LID) { try { const l = await api("/api/lobby/" + LID); ctx = t("gate.join", { name: l.name || "Squad" }); } catch (e) {} }
+    app.appendChild(el("section", { class: "hero gatehero" }, [el("div", { class: "hero-body" }, [
+      el("div", { class: "eyebrow" }, [t("app.eyebrow")]),
+      el("div", { class: "wordmark", style: "font-size:clamp(40px,11vw,72px)" }, ["WARMIND"]),
+      el("div", { class: "tag-line" }, [t("app.tagline")])])]));
+    app.appendChild(panel("ID-01", ctx || t("gate.title"), { tone: "amber" }, [
+      el("div", { class: "hint", style: "margin:0 0 12px" }, [t("gate.hint")]),
+      el("div", { class: "field" }, [el("label", { class: "label", for: "gate-cs" }, [t("me.callsign")]), cs]),
+      el("div", { class: "field" }, [el("label", { class: "label", for: "gate-pin" }, [t("gate.pin")]), pin]),
+      go, status, extra,
+      el("div", { class: "hint" }, [t("gate.pin.hint")]),
+      el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]),
+    ]));
+    setTimeout(() => cs.focus(), 50);
+  }
 
   // ======================================================================= home
   function renderHome() {
@@ -313,10 +394,10 @@
 
     const term = el("div", { class: "term", "aria-hidden": "true" });
     // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
-    const HT = [["home", "⌂ " + t("ht.home")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")]];
-    let ht = (() => { try { return localStorage.getItem("wm_hometab"); } catch (e) { return null; } })();
-    const qtab = new URLSearchParams(location.search).get("tab"); if (qtab) ht = qtab;
-    if (!HT.some(x => x[0] === ht)) ht = storedLobbies().length ? "tables" : "home";
+    // you land on your profile; the war, your rooms, your tables and the welcome sit beside it
+    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")], ["home", "⌂ " + t("ht.home")]];
+    let ht = new URLSearchParams(location.search).get("tab") || "me";
+    if (!HT.some(x => x[0] === ht)) ht = "me";
     const tabs = el("div", { class: "seg hometabs", role: "tablist" });
     const panes = {};
     HT.forEach(([k, label]) => {
@@ -346,7 +427,7 @@
       ]),
     ]));
     panes.home.querySelectorAll("[data-go]").forEach(b => { b.onclick = () => { show(b.dataset.go); window.scrollTo(0, 0); }; });
-    panes.home.appendChild(profilePanel());          // who you are: your locker carries into every war table
+    profilePane(panes.me);
     const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
     fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
     panes.home.appendChild(fmFold);
@@ -392,7 +473,8 @@
   async function startTable(nm, size, planet, roomId) {
     const fd = new FormData(); fd.append("name", nm); fd.append("squad_size", String(size || 4));
     if (roomId) { fd.append("room_id", roomId); store.addRoom(roomId); store.setLastRoom(roomId); }
-    const L = store.locker(); if (L) try { const lk = await lget("/api/locker/" + L.id); if (lk && lk.callsign) fd.append("callsign", lk.callsign); } catch (e) {}
+    const L = store.locker(); if (L) { fd.append("locker_id", L.id); fd.append("locker_key", L.key);
+      try { const lk = await lget("/api/locker/" + L.id); if (lk && lk.callsign) fd.append("callsign", lk.callsign); } catch (e) {} }
     const r = await fdpost("/api/lobby", fd);
     store.setCreator(r.lobby_id, r.creator_token);
     if (planet) try { localStorage.setItem("wm_preplanet_" + r.lobby_id, planet); localStorage.setItem("wm_tab_" + r.lobby_id, "2"); } catch (e) {}
@@ -2098,7 +2180,10 @@
         box.append(el("div", {}, [el("div", { class: "label", style: "margin:0" }, [t("prof.welcome")]), el("div", { class: "big" }, [lk.callsign || "—"]),
           lk.play_style ? el("div", { class: "hint", style: "margin:2px 0 0" }, [styleLabel(lk.play_style)]) : null]),
           el("div", { class: "btnrow", style: "margin:0" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]),
-            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
+            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")]),
+            (() => { const b = el("button", { class: "btn sm", type: "button" }, [t("prof.signout")]); b.onclick = signOut; return b; })()]));
+        if (!lk.has_pin) box.appendChild(pinSetter(L));
+        try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
       }).catch(() => { box.innerHTML = ""; box.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")])); });
       return panel("SYS-P", t("prof.title"), {}, [box]);
     }
@@ -2125,6 +2210,41 @@
       el("div", { class: "btnrow" }, [go, up]), picked, status,
       el("div", { class: "hint" }, [t("prof.later")]),
     ]);
+  }
+
+  // ---- the Profile tab: whoever is signed in on this device
+  async function profilePane(pane) {
+    const L = store.locker(); if (!L) return;
+    const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
+    pane.appendChild(body);
+    try { LK = await lget("/api/locker/" + L.id); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "alert" }, [e.message])); return; }
+    body.innerHTML = "";
+    const out = el("button", { class: "btn sm", type: "button" }, [t("prof.signout")]); out.onclick = signOut;
+    const link = el("button", { class: "btn sm", type: "button" }, ["🔗 " + t("lk.copylink")]); link.onclick = () => copy(location.origin + "/?locker#locker=" + L.id + "." + L.key, t("lk.device.copied"));
+    const tune = el("button", { class: "btn sm", type: "button" }, ["◈ " + t("pq.tune")]); tune.onclick = () => profileChat(LK.callsign, LK.prefs, () => renderHome());
+    const arm = armorSelect((LK.prefs || {}).armor_set, null, null);
+    arm.onchange = async () => { try { await setWorn(arm.value); toast(arm.value ? t("arm.saved", { armor: arm.value }) : t("arm.cleared")); } catch (e) { toast(e.message); } };
+    body.appendChild(panel("ME-01", t("prof.title"), { status: LK.medals.length ? "🎖 " + LK.medals.length : "", statusKind: "warn", tone: "amber" }, [
+      el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [LK.callsign || "—"]),
+        el("div", { class: "hint", style: "margin:4px 0 0" }, [LK.play_style ? t("lk.style", { style: styleLabel(LK.play_style) }) : t("me.noread")])])]),
+      LK.has_pin ? null : pinSetter(L),
+      el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]), el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]), tune]),
+      el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
+      el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
+    ]));
+    const car = lkCarousel(LK.loadouts, { readonly: true }); if (car) body.appendChild(car);
+    body.appendChild(lkStats());
+    body.appendChild(lkRecord());
+    try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
+  }
+
+  function pinSetter(L) {
+    const pin = el("input", { type: "password", maxlength: "8", inputmode: "numeric", placeholder: "••••", "aria-label": t("gate.pin") });
+    const b = el("button", { class: "btn sm primary", type: "button" }, ["🔒 " + t("prof.setpin")]);
+    b.onclick = async () => { if (!/^[0-9]{4,8}$/.test(pin.value)) { pin.focus(); toast(t("gate.pin.need")); return; }
+      try { await lpost("/api/locker/" + L.id + "/pin", { pin: pin.value }); toast(t("prof.pin.saved")); wrap.remove(); } catch (e) { toast(e.message); } };
+    const wrap = el("div", { class: "pinset" }, [el("div", { class: "hint", style: "margin:0 0 6px" }, [t("prof.nopin")]), el("div", { class: "joincode pinrow" }, [pin, b])]);
+    return wrap;
   }
 
   function lockerHomePanel() {
@@ -2391,6 +2511,7 @@
       if (by.length) bk.push(el("div", { class: "chips" }, by.map(([k, v]) => el("span", { class: "chip" }, [k + " · " + usd(v)]))));
       bk.push(el("div", { class: "hint" }, [t("cost.bill.note", { at: c.admin.at ? new Date(c.admin.at * 1000).toLocaleString(LANG) : "—" })]));
     } else bk.push(el("div", { class: "hint", style: "margin:0" }, [c.admin.enabled ? (c.admin.status === "failed" ? t("cost.bill.err", { e: c.admin.error || "" }) : t("cost.bill.wait")) : t("cost.bill.off")]));
+    if (c.admin.var) bk.push(el("div", { class: "hint" }, [t("cost.bill.var", { v: c.admin.var }) + (c.admin.looks_admin === false ? " " + t("cost.bill.notadmin") : "")]));
     if (c.admin.enabled) { const b = el("button", { class: "btn sm", type: "button" }, ["⟳ " + t("cost.refresh")]);
       b.onclick = async () => { b.disabled = true; try { paintCosts(body, await api("/api/costs/poll", { method: "POST" })); toast(t("cost.refreshed")); } catch (e) { toast(e.message); b.disabled = false; } }; bk.push(el("div", { class: "btnrow" }, [b])); }
     body.appendChild(panel("OPS-02", t("cost.bill"), {}, bk));

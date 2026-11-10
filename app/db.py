@@ -187,6 +187,8 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
         if "roster_json" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN roster_json TEXT")
+        if "creator_locker" not in lcols:   # whose profile created this table (creator rights on any device)
+            c.execute("ALTER TABLE lobby ADD COLUMN creator_locker TEXT")
         if "room_id" not in lcols:   # the war room this table belongs to
             c.execute("ALTER TABLE lobby ADD COLUMN room_id TEXT")
         if "go" not in cols:          # Go / No-Go poll before the drop
@@ -201,6 +203,9 @@ def init():
             c.execute("ALTER TABLE locker ADD COLUMN public INTEGER DEFAULT 1")
         if "prefs_json" not in lkcols:   # what the diver told WARMIND in the profile chat
             c.execute("ALTER TABLE locker ADD COLUMN prefs_json TEXT")
+        if "pin_hash" not in lkcols:     # callsign + PIN signs a profile in on any device
+            c.execute("ALTER TABLE locker ADD COLUMN pin_hash TEXT")
+            c.execute("ALTER TABLE locker ADD COLUMN pin_salt TEXT")
         if "locker_id" not in cols:   # the diver's locker (gear, stat history, record), if linked
             c.execute("ALTER TABLE player ADD COLUMN locker_id TEXT")
         rcols = {r["name"] for r in c.execute("PRAGMA table_info(result)").fetchall()}
@@ -417,7 +422,7 @@ def get_locker(lid):
 
 
 def update_locker(lid, **fields):
-    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note", "public", "prefs_json"}
+    allowed = {"callsign", "owned_json", "gear_set", "snapshot_json", "confidence_json", "play_style", "style_note", "public", "prefs_json", "pin_hash", "pin_salt"}
     sets = {k: v for k, v in fields.items() if k in allowed}
     if not sets:
         return
@@ -629,3 +634,29 @@ def get_cost_report():
     with _lock, _conn() as c:
         r = c.execute("SELECT v FROM kv WHERE k='cost_report'").fetchone()
     return r["v"] if r else None
+
+
+# ---------------------------------------------------------------- sign in (callsign + PIN)
+def lockers_by_callsign(callsign):
+    """Profiles with this callsign, best match first: a PIN set, then most recently used."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM locker WHERE lower(callsign)=lower(?) ORDER BY (pin_hash IS NOT NULL) DESC, "
+                         "updated_at DESC", (callsign,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_lobby_creator_locker(lobby_id, locker_id):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET creator_locker=? WHERE id=?", (locker_id, lobby_id))
+
+
+def locker_tables(locker_id, limit=40):
+    """War tables this profile created or sat at, newest first, with its seat (player id + token) if any."""
+    with _lock, _conn() as c:
+        rows = c.execute(
+            "SELECT l.id AS lobby_id, l.creator_token AS creator_token, (l.creator_locker=?) AS mine, "
+            "p.id AS player_id, p.token AS player_token, l.updated_at AS updated_at FROM lobby l "
+            "LEFT JOIN player p ON p.lobby_id=l.id AND p.locker_id=? "
+            "WHERE l.creator_locker=? OR p.locker_id=? ORDER BY l.updated_at DESC LIMIT ?",
+            (locker_id, locker_id, locker_id, locker_id, limit)).fetchall()
+    return [dict(r) for r in rows]
