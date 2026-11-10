@@ -458,7 +458,7 @@
       el("div", { class: "field" }, [el("label", { class: "label", for: "gate-pin" }, [t("gate.pin")]), pin]),
       go, status, extra,
       el("div", { class: "hint" }, [t("gate.pin.hint")]),
-      el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]),
+      el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")])]),
     ]));
     setTimeout(() => cs.focus(), 50);
   }
@@ -495,7 +495,8 @@
     const term = el("div", { class: "term", "aria-hidden": "true" });
     // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
     // you land on your profile; the war, your rooms, your tables and the welcome sit beside it
-    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")], ["home", "⌂ " + t("ht.home")]];
+    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")],
+                ["roster", "☰ " + t("ros.title")], ["home", "⌂ " + t("ht.home")]];
     let ht = new URLSearchParams(location.search).get("tab") || "me";
     if (!HT.some(x => x[0] === ht)) ht = "me";
     const tabs = el("div", { class: "seg hometabs", role: "tablist" });
@@ -505,9 +506,12 @@
       b.onclick = () => show(k); tabs.appendChild(b);
       panes[k] = el("div", { class: "stack homepane", "data-k": k });
     });
+    let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
+      try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
-      Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; }); };
+      Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
+      if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
     app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
 
     // --- Welcome
@@ -563,7 +567,6 @@
     panes.tables.appendChild(panel("SYS-00", t("home.code.title"), {}, [el("div", { class: "joincode" }, [codeIn, codeGo])]));
     const tablesSlot = el("div", { class: "slot" }); panes.tables.appendChild(tablesSlot);
     renderMyLobbies(tablesSlot);
-    panes.tables.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]));
     show(ht);
     rain(cv);
     bootSequence(term);
@@ -649,7 +652,7 @@
   async function renderRoom() {
     app.innerHTML = ""; app.className = "stack";
     const nav = el("div", { class: "lknav" }, [backLink(), el("a", { class: "btn sm", href: "/?tab=rooms" }, ["⌂ " + t("lk.homepage")]),
-      store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]);
+      store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")])]);
     app.appendChild(nav);
     const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
     app.appendChild(body);
@@ -2435,7 +2438,7 @@
         box.append(el("div", {}, [el("div", { class: "label", style: "margin:0" }, [t("prof.welcome")]), el("div", { class: "big" }, [lk.callsign || "—"]),
           lk.play_style ? el("div", { class: "hint", style: "margin:2px 0 0" }, [styleLabel(lk.play_style)]) : null]),
           el("div", { class: "btnrow", style: "margin:0" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]),
-            el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")]),
+            el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")]),
             (() => { const b = el("button", { class: "btn sm", type: "button" }, [t("prof.signout")]); b.onclick = signOut; return b; })()]));
         if (!lk.has_pin) box.appendChild(pinSetter(L));
         try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
@@ -2607,7 +2610,7 @@
           seg.appendChild(b);
         });
         return el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, ["☰ " + t("ros.show")]), seg,
-          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
+          el("div", { class: "hint" }, [t("ros.show.hint")]), el("a", { class: "btn sm", href: "/?tab=roster", style: "margin-top:8px" }, ["☰ " + t("ros.open")])]);
       })(),
     ]));
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
@@ -2918,14 +2921,14 @@
   function backLink() {
     const f = new URLSearchParams(location.search).get("from");
     if (!f || !/^\/\?(room|l|roster|locker|tab)=?/.test(f)) return null;
-    const k = /\?room=/.test(f) ? "nav.back.room" : /\?l=/.test(f) ? "nav.back.table" : /\?locker/.test(f) ? "nav.back.locker" : /\?roster/.test(f) ? "nav.back.roster" : "nav.back";
+    const k = /\?room=/.test(f) ? "nav.back.room" : /\?l=/.test(f) ? "nav.back.table" : /\?locker/.test(f) ? "nav.back.locker" : /\?(roster|tab=roster)/.test(f) ? "nav.back.roster" : "nav.back";
     return el("a", { class: "btn primary sm", href: f }, ["← " + t(k)]);
   }
   function rosNav(back) {
     const nav = el("div", { class: "lknav" });
     const bl = back ? backLink() : null;
     if (bl) nav.appendChild(bl);
-    else if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
+    else if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?tab=roster" }, ["← " + t("ros.title")]));
     nav.appendChild(el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]));
     if (store.locker()) nav.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]));
     return nav;
@@ -2935,8 +2938,12 @@
     const id = new URLSearchParams(location.search).get("roster");
     if (id) return renderProfile(id);
     app.appendChild(rosNav(false));
+    await rosterPane(app);
+  }
+  // the roster leaderboard: on its own page (?roster) and as a home tab
+  async function rosterPane(host) {
     const body = el("div", {}, [el("div", { class: "hint" }, [t("home.loading")])]);
-    app.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
+    host.appendChild(panel("ROS-01", t("ros.title"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("ros.hint")]), body]));
     let data; try { data = await api("/api/roster"); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "hint" }, [e.message])); return; }
     const me = store.locker();
     const paint = () => {
@@ -2949,7 +2956,7 @@
         if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return y - x; });
       if (!rows.length) body.appendChild(el("div", { class: "hint" }, [t("ros.none")]));
       body.appendChild(el("ol", { class: "roslist" }, rows.map((d, i) => el("li", { class: me && me.id === d.id ? "me" : null }, [
-        el("a", { href: "/?roster=" + d.id }, [
+        el("a", { href: "/?roster=" + d.id + fromHere() }, [
           el("span", { class: "rk" }, [rosVal(d, rosSort) == null ? "·" : String(i + 1)]),
           el("span", { class: "who" }, [el("b", {}, [d.callsign]), el("small", {}, [[d.play_style ? styleLabel(d.play_style) : null,
             d.rates && d.rates.missions ? t("ros.missions", { n: nf(d.rates.missions) }) : null, d.medals ? "🎖 " + d.medals : null].filter(Boolean).join(" · ")])]),

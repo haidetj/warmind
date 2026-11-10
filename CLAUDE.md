@@ -48,7 +48,8 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one ("did you mean"). Pre-PIN profiles take the first PIN entered. Callsigns are unique.
   Tables record `lobby.creator_locker`; `/api/locker/{id}/tables` hands a signed-in device its
   creator tokens and seats, so a diver's tables, creator rights and seat follow them to any device.
-  Home lands on the Profile tab (Profile / Front / War rooms / War tables / Welcome).
+  Home lands on the Profile tab (Profile / Front / War rooms / War tables / Roster / Welcome); the tab is
+  kept in the URL (`?tab=`) so back links return to it.
 - `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables

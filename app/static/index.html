@@ -607,7 +607,8 @@ dialog.modal::backdrop{background:rgba(2,4,7,.72);backdrop-filter:blur(2px)}
   .rerolln{color:var(--cyan)}
   @media (max-width:600px){ .subtabs{position:static} .subtabs button{font-size:12px;padding:8px 4px;min-height:40px;line-height:1.15} }
   .tile{grid-template-columns:18px 44px minmax(0,1fr) auto} .tile .wkx{margin-left:auto;align-self:center;padding:10px 8px;color:var(--muted);text-decoration:none;font-size:16px;line-height:1} .tile .wkx:hover{color:var(--cyan)}
-  .seg.hometabs{grid-auto-flow:row;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin:0 0 4px}
+  .seg.hometabs{grid-auto-flow:row;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;margin:0 0 4px}
+  @media (max-width:560px){.seg.hometabs{grid-template-columns:repeat(3,minmax(0,1fr))}.seg.hometabs button{min-height:42px}}
   .seg.hometabs button{min-height:50px;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;padding:4px 2px;line-height:1.2;min-width:0;overflow-wrap:anywhere}
   .seg.hometabs button[aria-selected="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(120,255,170,.09);box-shadow:inset 0 -2px 0 var(--cyan)}
   .homepane[hidden]{display:none}
