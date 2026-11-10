@@ -23,7 +23,18 @@ OATHS = {
                     "medal": "Marksman's Star"},
     "full_clear":  {"name": "Full Clear",      "rule": "Every objective on the map completed.",
                     "medal": "Liberator's Laurel"},
+    # no scoreboard shows these: the war table endorses them
+    "all_sides":   {"name": "Side Sweep",      "rule": "Every side objective on the map done.",
+                    "medal": "Field Commendation", "endorse": True},
+    "all_samples": {"name": "Sample Run",      "rule": "Extract with every sample type the map holds.",
+                    "medal": "Science Corps Ribbon", "endorse": True},
 }
+
+
+def needed_endorsements(table_size: int) -> int:
+    """How many other divers at the table must vouch: a majority of them, at least one."""
+    others = max(0, table_size - 1)
+    return max(1, (others // 2) + 1) if others else 1
 MARKSMAN_PCT = 75.0
 
 
@@ -42,7 +53,9 @@ def evaluate(oath: str | None, result: dict) -> dict | None:
         return None
     o = OATHS[oath]
     passed, reason, rk, rp = None, "", "", {}   # rk/rp: translation key + params for the reason
-    if oath == "no_deaths":
+    if o.get("endorse"):
+        reason, rk = "No scoreboard shows this: the war table endorses it.", "v.endorse_only"
+    elif oath == "no_deaths":
         d = _num(result, "deaths")
         if d is None:
             reason, rk = "Deaths aren't readable on this scoreboard.", "v.unread_deaths"
@@ -83,7 +96,7 @@ def evaluate(oath: str | None, result: dict) -> dict | None:
             passed, reason = (t > 0 and c >= t), f"{int(c)}/{int(t)} objectives."
             rk, rp = "v.obj", {"c": int(c), "t": int(t)}
     return {"oath": oath, "name": o["name"], "rule": o["rule"], "passed": passed, "reason": reason,
-            "reason_key": rk, "reason_params": rp}
+            "reason_key": rk, "reason_params": rp, "endorsable": passed is None}
 
 
 def medal(verdict: dict | None, *, lobby_id: str, player_id: str, result: dict, mode: str | None) -> dict | None:

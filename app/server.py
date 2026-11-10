@@ -250,7 +250,7 @@ def _resolve(lobby) -> dict:
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
-                     "verdicts": _verdicts_of(res.get("verdict_json")),
+                     "verdicts": _with_endorsements(res, players_rows),
                      "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
         })
@@ -298,6 +298,63 @@ def _readiness(lobby, players_rows, mission) -> dict:
     return {"expected": expected, "joined": joined, "read": read, "gear": gear,
             "mission_set": mission_set, "ready": ready, "briefed": briefed,
             "final": ready or briefed}
+
+
+def _with_endorsements(res, players_rows):
+    """Verdicts plus, for the ones the table can endorse, who has and how many are needed."""
+    vs = _verdicts_of(res.get("verdict_json"))
+    names = {p["id"]: p["callsign"] for p in players_rows}
+    got = db.endorsements(res["id"])
+    need = oaths.needed_endorsements(len(players_rows))
+    out = []
+    for v in vs:
+        if not v:
+            continue
+        v = dict(v)
+        if v.get("endorsable") or v.get("passed") is None or v.get("endorsed_by"):
+            ids = got.get(v["oath"], [])
+            v["endorsers"] = [names.get(i, "?") for i in ids]
+            v["endorser_ids"] = ids
+            v["needed"] = need
+        out.append(v)
+    return out
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/endorse")
+def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Another diver at the table vouches that `pid` kept an oath no scoreboard shows.
+    Enough endorsements (a majority of the other divers, at least one) keep the oath:
+    the verdict passes, records who endorsed it, and earns the medal."""
+    who = _require_player(str(payload.get("by") or ""), x_token)
+    subject = db.get_player(pid)
+    if not subject or subject["lobby_id"] != lid or who["lobby_id"] != lid:
+        raise HTTPException(404, "not at this war table")
+    if who["id"] == pid:
+        raise HTTPException(400, "you can't endorse your own oath")
+    res = db.latest_result(pid)
+    if not res:
+        raise HTTPException(400, "no debrief to endorse yet")
+    oath = str(payload.get("oath") or "")
+    verdicts = _verdicts_of(res.get("verdict_json"))
+    v = next((x for x in verdicts if x and x.get("oath") == oath), None)
+    if not v or v.get("passed") is False:
+        raise HTTPException(400, "nothing to endorse for that oath")
+    db.add_endorsement(res["id"], oath, who["id"])
+    players = db.list_players(lid)
+    ids = db.endorsements(res["id"]).get(oath, [])
+    if v.get("passed") is None and len(ids) >= oaths.needed_endorsements(len(players)):
+        names = {p["id"]: p["callsign"] for p in players}
+        lobby = db.get_lobby(lid)
+        mission = _mission_from(lobby) or {}
+        v.update(passed=True, endorsed_by=[names.get(i, "?") for i in ids], reason_key="v.endorsed",
+                 reason_params={"names": ", ".join(names.get(i, "?") for i in ids)},
+                 reason="Endorsed by " + ", ".join(names.get(i, "?") for i in ids) + ".")
+        v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=json.loads(res["result_json"] or "{}"), mode=mission.get("mode"))
+        db.set_result_verdicts(res["id"], verdicts)
+        if lobby.get("room_id") and v.get("medal"):
+            db.room_log(lobby["room_id"], "medal", json.dumps({"k": "log.endorsed", "p": {"who": subject["callsign"], "medal": v["medal"]["name"],
+                                                                                            "names": ", ".join(v["endorsed_by"])}}))
+    return _resolve(db.get_lobby(lid))
 
 
 def _round(d: dict) -> dict:
@@ -774,8 +831,20 @@ def room_mission(rid: str, payload: dict, x_locker_id: str = Header(None), x_loc
     m.pop("roles", None)   # creator-applied swaps belong to one table, not the room
     db.update_room(rid, mission_json=json.dumps(m), mission_by=who)
     label = (_mission_name(json.dumps(m)) or {}).get("name") or m.get("planet_name") or m.get("faction")
-    db.room_log(rid, "mission", json.dumps({"k": "log.mission", "p": {"who": who, "what": label, "planet": m.get("planet_name")}}))
-    return _room_out(rid)
+    # tonight's open tables in the room follow: any table from the last day with no debrief yet
+    pushed = 0
+    for l in db.room_lobbies(rid):
+        if time.time() - (l.get("created_at") or 0) > 86400 or db.lobby_has_results(l["id"]):
+            continue
+        keep = {k: v for k, v in (_mission_from(l) or {}).items() if k in ("roles", "lang", "think")}   # the table's own swaps + settings
+        db.set_mission(l["id"], dict(m, **keep))
+        if l.get("briefed"):
+            db.lock_roster(l["id"], [p["id"] for p in db.list_players(l["id"])])
+        pushed += 1
+    db.room_log(rid, "mission", json.dumps({"k": "log.mission", "p": {"who": who, "what": label, "planet": m.get("planet_name"), "n": pushed}}))
+    out = _room_out(rid)
+    out["pushed"] = pushed
+    return out
 
 
 @app.post("/api/room/{rid}/orders")
@@ -1574,6 +1643,16 @@ def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
     _require_locker(lid, x_locker)
     if len(db.list_loadouts(lid)) >= 60:
         raise HTTPException(400, "locker is full (60 loadouts): delete one first")
+    kit, name, note = _clean_kit(payload)
+    src = payload.get("source") if isinstance(payload.get("source"), dict) else None
+    if src:
+        src = {k: str(v)[:80] for k, v in src.items() if k in ("lobby_id", "mission", "mode", "faction", "difficulty")}
+    oid = _id(4)
+    db.add_loadout(oid, lid, name, kit, note, src)
+    return {"ok": True, "id": oid}
+
+
+def _clean_kit(payload):
     raw = payload.get("kit") or {}
     valid = set(loader.warbond_catalog()["map"]) | {b["name"] for b in loader.items().get("boosters", [])}
     kit = {k: raw.get(k) for k in _KIT_KEYS if isinstance(raw.get(k), str) and raw.get(k) in valid}
@@ -1583,12 +1662,17 @@ def save_loadout(lid: str, payload: dict, x_locker: str = Header(None)):
     if not any(kit.get(k) for k in _KIT_KEYS) and not kit["stratagems"]:
         raise HTTPException(400, "empty loadout")
     name = " ".join(str(payload.get("name") or "").split())[:40] or "Loadout"
-    note = str(payload.get("note") or "")[:400]
-    src = payload.get("source") if isinstance(payload.get("source"), dict) else None
-    if src:
-        src = {k: str(v)[:80] for k, v in src.items() if k in ("lobby_id", "mission", "mode", "faction", "difficulty")}
-    oid = _id(4)
-    db.add_loadout(oid, lid, name, kit, note, src)
+    return kit, name, str(payload.get("note") or "")[:400]
+
+
+@app.post("/api/locker/{lid}/loadouts/{oid}")
+def edit_loadout(lid: str, oid: str, payload: dict, x_locker: str = Header(None)):
+    """Change a saved loadout: its name, note and kit."""
+    _require_locker(lid, x_locker)
+    if not any(o["id"] == oid for o in db.list_loadouts(lid)):
+        raise HTTPException(404, "loadout not found")
+    kit, name, note = _clean_kit(payload)
+    db.update_loadout(lid, oid, name, kit, note)
     return {"ok": True, "id": oid}
 
 

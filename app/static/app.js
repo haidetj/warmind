@@ -11,6 +11,106 @@
     (kids || []).forEach(c => c != null && c !== false && n.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c));
     return n;
   };
+  // ======================================================================= icons
+  // One line-icon set in the app's own style replaces every emoji / pictograph in the UI:
+  // a pass over the DOM swaps each mapped character in text for its SVG (currentColor), as
+  // things render. Dropdown options and titles can't hold SVG, so there the character is dropped.
+  const ICON_SVG = {
+    medal: '<path d="M7 2l4 7M17 2l-4 7"/><circle cx="12" cy="15" r="5.5"/><path d="M12 12.5l.9 1.8 2 .3-1.4 1.4.3 2-1.8-1-1.8 1 .3-2-1.4-1.4 2-.3z"/>',
+    locker: '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M12 3v18M9.5 11v2M14.5 11v2M5 7h14"/>',
+    star: '<path d="M12 3l2.6 6.1 6.4.5-4.9 4.2 1.5 6.4L12 16.8l-5.6 3.4 1.5-6.4L3 9.6l6.4-.5z"/>',
+    roster: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    pin: '<path d="M12 21v-6M8 3h8l-1 6 3 3.5H6L9 9z"/>',
+    anchor: '<circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8.5 10.5h7M3.5 13.5H6M18 13.5h2.5"/>',
+    home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
+    swap: '<path d="M4 8h15l-3.5-3.5M20 16H5l3.5 3.5"/>',
+    diamond: '<path d="M12 3l9 9-9 9-9-9z"/>',
+    play: '<path d="M7 4.5l12 7.5-12 7.5z"/>',
+    edit: '<path d="M4 20h4L19.5 8.5l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    refresh: '<path d="M20 12a8 8 0 1 1-2.35-5.65"/><path d="M20 4v4.5h-4.5"/>',
+    go: '<path d="M4 12h15M13 6l6 6-6 6"/>',
+    grid: '<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>',
+    planet: '<circle cx="12" cy="12" r="5.5"/><ellipse cx="12" cy="12" rx="10.5" ry="3.2" transform="rotate(-20 12 12)"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+    cross: '<path d="M6 6l12 12M18 6L6 18"/>',
+    external: '<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>',
+    flag: '<path d="M5 21V3.5M5 4h12.5l-2.5 4.5 2.5 4.5H5"/>',
+    hex: '<path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.2 4-6.2 8-6.2s7 2 8 6.2"/>',
+    book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M8 7.5h8M8 11h6"/>',
+    marker: '<path d="M12 21.5s-7-6.3-7-11.5a7 7 0 0 1 14 0c0 5.2-7 11.5-7 11.5z"/><circle cx="12" cy="10" r="2.5"/>',
+    up: '<path d="M6 16l6-8 6 8z" class="f"/>',
+    down: '<path d="M6 8l6 8 6-8z" class="f"/>',
+    alert: '<path d="M12 3.5l9.5 17h-19z"/><path d="M12 10v5M12 17.6v.1"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8.2-8 9.5C7.5 20.2 4 17 4 12V6z"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    gauge: '<path d="M3.5 18a8.5 8.5 0 1 1 17 0"/><path d="M12 18l4.5-6.5M7 18h.1M17 18h.1"/>',
+    copy: '<rect x="8.5" y="8.5" width="12" height="12"/><path d="M15.5 8.5V3.5h-12v12h5"/>',
+    skull: '<path d="M5 11a7 7 0 1 1 14 0v4h-2.5v4h-9v-4H5z"/><circle cx="9.2" cy="11.2" r="1.5"/><circle cx="14.8" cy="11.2" r="1.5"/><path d="M11 19v-2.5M13 19v-2.5"/>',
+    satellite: '<path d="M10 10l4 4"/><path d="M4.5 9.5l3-3 4 4-3 3zM12.5 17.5l3-3 4 4-3 3z"/><path d="M15 4.5a4.5 4.5 0 0 1 4.5 4.5M15 1.5a7.5 7.5 0 0 1 7.5 7.5"/>',
+    burst: '<path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5L19 19M19 5l-3.5 3.5M8.5 15.5L5 19"/>',
+    waves: '<path d="M3 8.5c3-3 6 3 9 0s6 3 9 0M3 15.5c3-3 6 3 9 0s6 3 9 0"/>',
+    mind: '<path d="M12 2.5l9.5 9.5-9.5 9.5L2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+    ring: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+    crosshair: '<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.1"/>',
+    swords: '<path d="M4 3l11 11M20 3L9 14M3.5 15.5l5 5M20.5 15.5l-5 5M6 18l2.5-2.5M18 18l-2.5-2.5"/>',
+    lock: '<rect x="5" y="11" width="14" height="10"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/>',
+    share: '<path d="M12 15V3.5M7 8l5-5 5 5M5 14v7h14v-7"/>',
+    tri: '<path d="M9 6l6 6-6 6"/>',
+    search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>',
+    bolt: '<path d="M13 2L5 13h6l-1 9 8-11h-6z"/>',
+  };
+  const ICON_CHARS = { "🎖": "medal", "🗄": "locker", "★": "star", "☰": "roster", "＋": "plus", "📌": "pin", "⚓": "anchor", "⌂": "home",
+    "⇄": "swap", "◇": "diamond", "▶": "play", "✎": "edit", "⟳": "refresh", "↺": "refresh", "➤": "go", "▦": "grid", "✦": "planet",
+    "✓": "check", "✗": "cross", "✕": "close", "↗": "external", "⚑": "flag", "⬡": "hex", "◉": "user", "▤": "book", "📍": "marker",
+    "▲": "up", "▼": "down", "⚠": "alert", "⛨": "shield", "🔗": "link", "⛽": "gauge", "⧉": "copy", "☠": "skull", "🛰": "satellite",
+    "✹": "burst", "≋": "waves", "◈": "mind", "◆": "diamond", "◎": "ring", "⌖": "crosshair", "ⓘ": "info", "⚔": "swords", "🔒": "lock",
+    "⇪": "share", "▸": "tri", "⚲": "search", "🏴": "flag" };
+  ICON_SVG.close = ICON_SVG.cross;
+  const ICON_RE = new RegExp("(" + Object.keys(ICON_CHARS).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")️?", "u");
+  const ICON_RE_G = new RegExp(ICON_RE.source, "gu");
+  const STRIP_RE = new RegExp("(" + Object.keys(ICON_CHARS).join("|") + "|‍|️)\\s?", "gu");
+  function ico(name) {
+    const sp = document.createElement("span"); sp.className = "ico ico-" + name; sp.setAttribute("aria-hidden", "true");
+    sp.innerHTML = '<svg viewBox="0 0 24 24" focusable="false">' + (ICON_SVG[name] || ICON_SVG.diamond) + "</svg>";
+    return sp;
+  }
+  function iconize(root) {
+    if (!root) return;
+    if (root.nodeType === 3) { swapText(root); return; }
+    if (root.nodeType !== 1) return;
+    const tag = root.tagName;
+    if (tag === "OPTION" || tag === "TITLE" || tag === "OPTGROUP") { if (ICON_RE.test(root.textContent)) root.textContent = root.textContent.replace(STRIP_RE, ""); if (tag !== "OPTGROUP") return; }
+    if (tag === "SCRIPT" || tag === "STYLE" || tag === "TEXTAREA" || tag === "svg" || tag === "SVG" || root.closest && root.closest("svg")) return;
+    for (const a of ["aria-label", "title", "placeholder"]) { const v = root.getAttribute && root.getAttribute(a); if (v && ICON_RE.test(v)) root.setAttribute(a, v.replace(STRIP_RE, "")); }
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => ICON_RE.test(n.nodeValue) ? 1 : 3 });
+    const hits = []; let n; while ((n = w.nextNode())) hits.push(n);
+    hits.forEach(swapText);
+    root.querySelectorAll && root.querySelectorAll("option, optgroup, [title], [aria-label]").forEach(x => {
+      if ((x.tagName === "OPTION") && ICON_RE.test(x.textContent)) x.textContent = x.textContent.replace(STRIP_RE, "");
+      for (const a of ["aria-label", "title", "label"]) { const v = x.getAttribute(a); if (v && ICON_RE.test(v)) x.setAttribute(a, v.replace(STRIP_RE, "")); }
+    });
+  }
+  function swapText(t) {
+    const p = t.parentNode; if (!p || !ICON_RE.test(t.nodeValue)) return;
+    const ptag = p.nodeName;
+    if (ptag === "OPTION" || ptag === "TITLE" || ptag === "TEXTAREA" || ptag === "SCRIPT" || ptag === "STYLE" || (p.closest && p.closest("svg"))) {
+      if (ptag === "OPTION" || ptag === "TITLE") t.nodeValue = t.nodeValue.replace(STRIP_RE, ""); return;
+    }
+    const frag = document.createDocumentFragment(); let last = 0; const v = t.nodeValue;
+    v.replace(ICON_RE_G, (m, ch, off) => { if (off > last) frag.appendChild(document.createTextNode(v.slice(last, off))); frag.appendChild(ico(ICON_CHARS[ch])); last = off + m.length; return m; });
+    if (last < v.length) frag.appendChild(document.createTextNode(v.slice(last)));
+    p.replaceChild(frag, t);
+  }
+  new MutationObserver(ms => ms.forEach(m => {
+    if (m.type === "characterData") swapText(m.target);
+    else m.addedNodes.forEach(iconize);
+  })).observe(document.documentElement, { subtree: true, childList: true, characterData: true });
+  document.addEventListener("DOMContentLoaded", () => iconize(document.body));
+  if (document.body) iconize(document.body);
+
   const app = $("#app");
   const LID = new URLSearchParams(location.search).get("l");
   const LOCKER_PAGE = !LID && new URLSearchParams(location.search).has("locker");
@@ -533,7 +633,7 @@
   const orderTitle = o => o.title || t("ord.k." + o.kind, { n: nf(o.target), planet: (o.params || {}).planet || "", min: (o.params || {}).min || "" });
   async function renderRoom() {
     app.innerHTML = ""; app.className = "stack";
-    const nav = el("div", { class: "lknav" }, [el("a", { class: "btn sm", href: "/?tab=rooms" }, ["⌂ " + t("lk.homepage")]),
+    const nav = el("div", { class: "lknav" }, [backLink(), el("a", { class: "btn sm", href: "/?tab=rooms" }, ["⌂ " + t("lk.homepage")]),
       store.locker() ? el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]) : null, el("a", { class: "btn sm", href: "/?roster" }, ["☰ " + t("ros.open")])]);
     app.appendChild(nav);
     const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
@@ -545,6 +645,12 @@
     if (L && !ROOM.members.some(m => m.id === L.id)) { try { await rpost("/api/room/" + ROOM.id + "/join", {}); ROOM = await api("/api/room/" + ROOM.id); } catch (e) {} }
     loadWar();
     paintRoom(body);
+    let sig = JSON.stringify(ROOM);
+    const poll = setInterval(async () => {   // the room is shared: pick up what others change
+      if (!document.body.contains(body)) return clearInterval(poll);
+      if (document.hidden || body.querySelector("details.fold[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      try { const r = await api("/api/room/" + ROOM.id); const s2 = JSON.stringify(r); if (s2 !== sig) { sig = s2; ROOM = r; paintRoom(body); } } catch (e) {}
+    }, 15000);
   }
   function paintRoom(body) {
     const R0 = ROOM; body.innerHTML = "";
@@ -568,14 +674,14 @@
     body.appendChild(roomMissionPanel(body));
     body.appendChild(roomOrdersPanel(body));
     // tables
-    const tl = R0.tables.length ? el("div", { class: "stack", style: "gap:6px" }, R0.tables.slice(0, 12).map(x => el("a", { class: "roomrow", href: "/?l=" + x.id }, [
+    const tl = R0.tables.length ? el("div", { class: "stack", style: "gap:6px" }, R0.tables.slice(0, 12).map(x => el("a", { class: "roomrow", href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
       el("div", { class: "rm" }, [(x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])])))
       : el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]);
     body.appendChild(panel("RM-04", t("room.tables"), { status: String(R0.tables.length), statusKind: "info" }, [tl]));
     // crew
     if (R0.members.length) body.appendChild(panel("RM-05", t("room.crew"), { status: String(R0.members.length), statusKind: "info" }, [el("div", { class: "chips" },
-      R0.members.map(m => m.public ? el("a", { class: "chip", href: "/?roster=" + m.id }, [m.callsign]) : el("span", { class: "chip" }, [m.callsign])))]));
+      R0.members.map(m => m.public ? el("a", { class: "chip", href: "/?roster=" + m.id + fromHere() }, [m.callsign]) : el("span", { class: "chip" }, [m.callsign])))]));
     // planets fought
     const pl = Object.entries(st.planets || {}).sort((a, b) => b[1] - a[1]);
     if (pl.length) body.appendChild(panel("RM-06", t("room.planets"), {}, [el("div", { class: "chips" }, pl.map(([n, c]) => el("span", { class: "chip" }, ["📍 " + n + " ×" + c])))]));
@@ -617,7 +723,7 @@
     const save = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("room.mission.save")]);
     save.onclick = async () => { save.disabled = true;
       Object.assign(draft, { faction: fac.value, mission_id: mis.value, difficulty: +diff.value, mode: mode.value, lang: LANG });
-      try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { mission: draft }); toast(t("room.mission.saved")); paintRoom(body); } catch (e) { toast(e.message); save.disabled = false; } };
+      try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { mission: draft }); toast(ROOM.pushed ? t("room.mission.pushed", { n: ROOM.pushed }) : t("room.mission.saved")); paintRoom(body); } catch (e) { toast(e.message); save.disabled = false; } };
     const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
     f.appendChild(el("div", { class: "body" }, [lab("war.pick", planet), lab("mis.faction", fac), lab("mis.mission", mis), lab("mis.difficulty", diff), lab("mis.mode", mode),
       el("div", { class: "btnrow" }, [save, m ? (() => { const c = el("button", { class: "btn sm", type: "button" }, [t("room.mission.clear")]);
@@ -988,7 +1094,7 @@
         el("div", { class: "who" }, [el("div", { class: "big" }, [STATE.name || "Squad"]),
           el("div", { class: "code" }, [t("cmd.code") + ": ", (() => { const b = el("button", { type: "button", class: "codebtn", title: t("common.copy") }, [LID]);
             b.onclick = () => copy(LID, t("cmd.code.copied")); return b; })()])]),
-        el("div", { class: "acts" }, [role, inv, fm, feedbackBtn(), homeLink()]),
+        el("div", { class: "acts" }, [backLink(), role, inv, fm, feedbackBtn(), homeLink()]),
       ])]),
       el("div", { class: "uplink", "aria-hidden": "true" }, [
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
@@ -1007,7 +1113,7 @@
   function roomChip() {
     const r = STATE.room;
     const kids = [];
-    if (r) kids.push(el("a", { class: "roomchip", href: "/?room=" + r.id }, ["⚓ ", el("b", {}, [r.name]), el("span", {}, [" · " + r.ship])]));
+    if (r) kids.push(el("a", { class: "roomchip", href: "/?room=" + r.id + fromHere() }, ["⚓ ", el("b", {}, [r.name]), el("span", {}, [" · " + r.ship])]));
     if (isCreator()) {
       const b = el("button", { class: "btn sm", type: "button" }, [r ? "⇄ " + t("room.move") : "⚓ " + t("room.attach")]);
       b.onclick = () => roomPickDialog(r ? r.id : "");
@@ -2232,7 +2338,7 @@
       el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
-    const car = lkCarousel(LK.loadouts, { readonly: true }); if (car) body.appendChild(car);
+    const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
     try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
@@ -2343,7 +2449,7 @@
     ]));
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
     // up top: a carousel of saved loadouts, then the stats
-    app.appendChild(lkCarousel());
+    app.appendChild(lkCarousel(null, { editable: true }));
     app.appendChild(lkStats());
     // sub-tabs
     const tabs = [["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
@@ -2365,7 +2471,7 @@
     const L = list || LK.loadouts || [];
     if (!L.length && opts.readonly) return null;
     if (!L.length) {
-      const b = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]); b.onclick = () => buildKitDialog();
+      const b = el("button", { class: "btn primary sm", type: "button" }, ["＋ " + t("lk.new")]); b.onclick = () => buildKitDialog(null, opts.after);
       return panel("LKR-00", t("lk.tab.loadouts"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("lk.loadouts.none")]), el("div", { class: "btnrow", style: "margin:0" }, [b])]);
     }
     const track = el("div", { class: "lkcar", tabindex: "0", "aria-label": t("lk.tab.loadouts") });
@@ -2377,6 +2483,14 @@
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
       card.appendChild(locker(o.kit));
       if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
+      if (opts.editable) {
+        const after = opts.after || loadLocker;
+        const ed = el("button", { class: "btn sm", type: "button" }, [t("lk.edit")]); ed.onclick = () => buildKitDialog(o, after);
+        const del = el("button", { class: "btn sm red", type: "button" }, [t("lk.delete")]);
+        del.onclick = async () => { if (!confirm(t("lk.delete.confirm", { name: o.name }))) return;
+          try { await lpost("/api/locker/" + store.locker().id + "/loadouts/" + o.id + "/delete", {}); toast(t("lk.deleted")); await after(); } catch (e) { toast(e.message); } };
+        card.appendChild(el("div", { class: "btnrow lkacts" }, [ed, del]));
+      }
       track.appendChild(card);
     });
     const count = el("span", { class: "lkcount" }, ["1 / " + L.length]);
@@ -2385,7 +2499,7 @@
     const next = el("button", { class: "btn sm", type: "button", "aria-label": "›" }, ["›"]); next.onclick = () => step(1);
     track.addEventListener("scroll", () => { const w = ((track.firstElementChild || {}).offsetWidth || 300) + 12; count.textContent = (Math.round(track.scrollLeft / w) + 1) + " / " + L.length; }, { passive: true });
     track.addEventListener("keydown", e => { if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); });
-    const neu = opts.readonly ? null : el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); if (neu) neu.onclick = () => buildKitDialog();
+    const neu = opts.readonly ? null : el("button", { class: "btn sm", type: "button" }, ["＋ " + t("lk.new")]); if (neu) neu.onclick = () => buildKitDialog(null, opts.after);
     return panel("LKR-00", t("lk.tab.loadouts"), { status: String(L.length), statusKind: "info" }, [track,
       el("div", { class: "lkcarnav" }, [prev, count, next, el("span", { style: "flex:1" }), neu])]);
   }
@@ -2561,9 +2675,19 @@
   const rosVal = (d, k) => k === "medals" ? d.medals : k === "active" ? d.active : (d.rates || {})[k];
   const rosFmt = (d, k) => { const v = rosVal(d, k); if (v == null) return "—";
     return k === "accuracy" || k === "win_rate" ? (v * 100).toFixed(1) + "%" : k === "active" ? dt(v) : k === "medals" ? "🎖 " + v : String(v); };
+  // routes remember where you came from, so Back goes there (a war room, a war table, the roster)
+  const fromHere = () => "&from=" + encodeURIComponent(location.pathname + location.search.replace(/[?&]from=[^&]*/g, ""));
+  function backLink() {
+    const f = new URLSearchParams(location.search).get("from");
+    if (!f || !/^\/\?(room|l|roster|locker|tab)=?/.test(f)) return null;
+    const k = /\?room=/.test(f) ? "nav.back.room" : /\?l=/.test(f) ? "nav.back.table" : /\?locker/.test(f) ? "nav.back.locker" : /\?roster/.test(f) ? "nav.back.roster" : "nav.back";
+    return el("a", { class: "btn primary sm", href: f }, ["← " + t(k)]);
+  }
   function rosNav(back) {
     const nav = el("div", { class: "lknav" });
-    if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
+    const bl = back ? backLink() : null;
+    if (bl) nav.appendChild(bl);
+    else if (back) nav.appendChild(el("a", { class: "btn primary sm", href: "/?roster" }, ["← " + t("ros.title")]));
     nav.appendChild(el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")]));
     if (store.locker()) nav.appendChild(el("a", { class: "btn sm", href: "/?locker" }, ["🗄 " + t("lk.open")]));
     return nav;
@@ -2690,7 +2814,8 @@
     });
     return panel("LKR-04", t("lk.tab.loadouts"), {}, kids);
   }
-  function buildKitDialog() {
+  function buildKitDialog(existing, after) {   // existing: a saved loadout to edit; after: what to refresh when saved
+    after = after || loadLocker;
     const tabs = META.armory || [], by = {};
     tabs.forEach(tb => { by[tb.slot] = []; tb.groups.forEach(g => g.items.forEach(i => by[tb.slot].push(i.name))); });
     const ownedSet = LK.owned ? new Set(LK.owned) : null;
@@ -2706,18 +2831,26 @@
     mine.onchange = () => { onlyMine = mine.checked; slots.forEach(([k, slot]) => fill(S[k], slot)); strat.forEach(s => fill(s, "Stratagem")); };
     const name = el("input", { type: "text", maxlength: "40", placeholder: t("lk.name") });
     const note = el("textarea", { rows: "2", maxlength: "400", placeholder: t("lk.note.ph") });
-    const go = el("button", { type: "button", class: "btn primary" }, ["🗄 " + t("lk.save")]);
+    if (existing) {   // editing: start from the saved kit (whether or not it's in the owned list)
+      onlyMine = false; mine.checked = false; slots.forEach(([k, slot]) => fill(S[k], slot)); strat.forEach(s => fill(s, "Stratagem"));
+      name.value = existing.name || ""; note.value = existing.note || "";
+      slots.forEach(([k]) => { if (existing.kit[k]) S[k].value = existing.kit[k]; });
+      (existing.kit.stratagems || []).forEach((n, i) => { if (strat[i]) strat[i].value = n; });
+    }
+    const go = el("button", { type: "button", class: "btn primary" }, [t("lk.save")]);
     const no = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
-    const dlg = el("dialog", { class: "modal", "aria-label": t("lk.new") });
+    const dlg = el("dialog", { class: "modal", "aria-label": t(existing ? "lk.edit.kit" : "lk.new") });
     go.onclick = async () => {
-      const kit = {}; slots.forEach(([k]) => { if (S[k].value) kit[k] = S[k].value; }); kit.stratagems = strat.map(s => s.value).filter(Boolean);
+      const kit = existing && existing.kit.role ? { role: existing.kit.role } : {};
+      slots.forEach(([k]) => { if (S[k].value) kit[k] = S[k].value; }); kit.stratagems = strat.map(s => s.value).filter(Boolean);
       go.disabled = true;
-      try { await lpost("/api/locker/" + store.locker().id + "/loadouts", { name: name.value || t("lk.loadout"), note: note.value, kit: kit }); dlg.close(); toast(t("lk.saved")); await loadLocker(); }
+      const L = store.locker(), body = { name: name.value || t("lk.loadout"), note: note.value, kit: kit };
+      try { await lpost("/api/locker/" + L.id + "/loadouts" + (existing ? "/" + existing.id : ""), body); dlg.close(); toast(t(existing ? "lk.edited" : "lk.saved")); await after(); }
       catch (e) { toast(e.message); go.disabled = false; }
     };
     no.onclick = () => dlg.close();
     const field = (lab, ctl) => el("div", { class: "field" }, [el("span", { class: "label" }, [lab]), ctl]);
-    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("lk.new")])]),
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t(existing ? "lk.edit.kit" : "lk.new")])]),
       el("div", { class: "mbody" }, [field(t("lk.name"), name),
         el("label", { class: "lkmine" }, [mine, " " + t("lk.onlymine")])]
         .concat(slots.map(([k, , lab]) => field(t(lab), S[k])))
@@ -2752,7 +2885,8 @@
     g.fillStyle = rg; g.fillRect(0, 0, W, H);
     g.strokeStyle = "#ff9a3c"; g.lineWidth = 6; g.shadowColor = "#ff9a3c"; g.shadowBlur = 24;   // medal hex
     g.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; g.lineTo(300 + 150 * Math.cos(a), 315 + 150 * Math.sin(a)); } g.closePath(); g.stroke();
-    g.font = "700 120px 'Chakra Petch', sans-serif"; g.fillStyle = "#ff9a3c"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("★", 300, 322);
+    g.fillStyle = "#ff9a3c"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 26 : 62, a2 = -Math.PI / 2 + i * Math.PI / 5; g.lineTo(300 + r * Math.cos(a2), 322 + r * Math.sin(a2)); } g.closePath(); g.fill();   // the medal star, drawn
     g.shadowBlur = 0; g.textAlign = "left"; g.textBaseline = "alphabetic";
     const fit = (txt, font, max) => { let sz = font; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; while (g.measureText(txt).width > max && sz > 22) { sz -= 2; g.font = `700 ${sz}px 'Chakra Petch', sans-serif`; } };
     g.fillStyle = "#78ffaa"; g.font = "500 22px 'JetBrains Mono', monospace"; g.fillText(t("share.eyebrow").toUpperCase(), 500, 150);
@@ -2786,7 +2920,20 @@
     }));
   }
 
-  function verdictBlock(v, callsign) {
+  // an oath no scoreboard shows: the other divers at the table vouch for it
+  function endorseRow(v, subject) {
+    const me = myPlayer(), meR = meRec(), got = v.endorsers || [], need = v.needed || 1;
+    const kids = [el("span", {}, [got.length ? t("end.by", { names: got.join(", "), n: got.length, m: need }) : t("end.none", { m: need })])];
+    if (me && meR && subject && me.id !== subject.id && !(v.endorser_ids || []).includes(me.id)) {
+      const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch", { name: subject.callsign })]);
+      b.onclick = async () => { b.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
+        catch (e) { toast(e.message); b.disabled = false; } };
+      kids.push(b);
+    } else if (me && subject && me.id === subject.id) kids.push(el("span", { class: "hint", style: "margin:0" }, [t("end.ask")]));
+    return el("div", { class: "endorse" }, kids);
+  }
+  function verdictBlock(v, callsign, subject) {
     if (!v) return null;
     const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
     if (v.passed === true && v.medal) {
@@ -2796,10 +2943,11 @@
       return el("div", { class: "medal" }, [el("div", { class: "hex", "aria-hidden": "true" }, ["★"]), el("div", {}, [
         el("div", { class: "mn" }, [mname]), el("div", { class: "mid" }, [t("deb.medal", { id: v.medal.id })]),
         el("div", { class: "mw" }, [t("deb.kept", { name: name, reason: reason })]),
+        v.endorsed_by ? el("div", { class: "mid" }, [t("end.medal", { names: v.endorsed_by.join(", ") })]) : null,
         el("div", { class: "btnrow", style: "margin:8px 0 0" }, [shareBtn])])]);
     }
     if (v.passed === false) return el("div", { class: "broken" }, [el("div", { class: "bt" }, [t("deb.broken", { name: name })]), el("div", { class: "bw" }, [reason])]);
-    return el("div", { class: "unver" }, [t("deb.unver", { reason: reason })]);
+    return el("div", { class: "unver" }, [el("div", {}, [t("deb.unver", { reason: reason })]), subject ? endorseRow(v, subject) : null]);
   }
 
   // Squad scoreboard: confirm which column is which diver (prefilled from the names), then
@@ -2907,7 +3055,7 @@
         }
       }
       else {
-        (aar.verdicts || (aar.verdict ? [aar.verdict] : [])).forEach(v => { const vb = verdictBlock(v, p.callsign); if (vb) inner.push(vb); });
+        (aar.verdicts || (aar.verdict ? [aar.verdict] : [])).forEach(v => { const vb = verdictBlock(v, p.callsign, p); if (vb) inner.push(vb); });
         const r = aar.result || {};
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);

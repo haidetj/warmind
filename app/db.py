@@ -36,6 +36,13 @@ CREATE TABLE IF NOT EXISTS api_usage (
   cache_write INTEGER,
   cost_usd REAL
 );
+CREATE TABLE IF NOT EXISTS endorsement (
+  result_id TEXT,
+  oath TEXT,
+  endorser_id TEXT,
+  at REAL,
+  PRIMARY KEY (result_id, oath, endorser_id)
+);
 CREATE TABLE IF NOT EXISTS kv (
   k TEXT PRIMARY KEY,
   v TEXT,
@@ -456,6 +463,12 @@ def add_loadout(oid, lid, name, kit, note, source):
                   (oid, lid, name, json.dumps(kit), note, json.dumps(source) if source else None, time.time()))
 
 
+def update_loadout(lid, oid, name, kit, note):
+    with _lock, _conn() as c:
+        c.execute("UPDATE locker_loadout SET name=?, kit_json=?, note=? WHERE id=? AND locker_id=?",
+                  (name, json.dumps(kit), note, oid, lid))
+
+
 def delete_loadout(lid, oid):
     with _lock, _conn() as c:
         c.execute("DELETE FROM locker_loadout WHERE id=? AND locker_id=?", (oid, lid))
@@ -660,3 +673,30 @@ def locker_tables(locker_id, limit=40):
             "WHERE l.creator_locker=? OR p.locker_id=? ORDER BY l.updated_at DESC LIMIT ?",
             (locker_id, locker_id, locker_id, locker_id, limit)).fetchall()
     return [dict(r) for r in rows]
+
+
+def lobby_has_results(lobby_id) -> bool:
+    with _lock, _conn() as c:
+        return c.execute("SELECT 1 FROM result WHERE lobby_id=? LIMIT 1", (lobby_id,)).fetchone() is not None
+
+
+# ---------------------------------------------------------------- oath endorsements
+def add_endorsement(result_id, oath, endorser_id):
+    with _lock, _conn() as c:
+        c.execute("INSERT OR IGNORE INTO endorsement(result_id,oath,endorser_id,at) VALUES(?,?,?,?)",
+                  (result_id, oath, endorser_id, time.time()))
+
+
+def endorsements(result_id):
+    """{oath: [endorser player ids]}"""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT oath, endorser_id FROM endorsement WHERE result_id=? ORDER BY at", (result_id,)).fetchall()
+    out = {}
+    for r in rows:
+        out.setdefault(r["oath"], []).append(r["endorser_id"])
+    return out
+
+
+def set_result_verdicts(result_id, verdicts):
+    with _lock, _conn() as c:
+        c.execute("UPDATE result SET verdict_json=? WHERE id=?", (json.dumps(verdicts), result_id))
