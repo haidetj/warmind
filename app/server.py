@@ -1477,8 +1477,8 @@ async def update_career(lid: str, pid: str, request: Request, images: list[Uploa
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/result")
-async def submit_result(lid: str, pid: str, request: Request, image: UploadFile = File(...), lang: str = Form("en"),
-                        x_token: str = Header(None)):
+async def submit_result(lid: str, pid: str, request: Request, image: UploadFile = File(None),
+                        images: list[UploadFile] = File(default=[]), lang: str = Form("en"), x_token: str = Header(None)):
     p = _require_player_or_creator(lid, pid, x_token)
     lobby = db.get_lobby(lid)
     state = _resolve(lobby)
@@ -1488,7 +1488,9 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
     baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
     ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
-    data, mt = await image.read(), _media_type(image)
+    data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
+    if not data:
+        raise HTTPException(400, "no screenshot provided")
     try:
         _charge(request, lid, 2)  # scoreboard read + after-action review
         result = await run_in_threadpool(vision.read_result, data, mt)
@@ -1594,11 +1596,14 @@ def _require_member(lid, token):
 
 
 @app.post("/api/lobby/{lid}/results/squad")
-async def squad_results_read(lid: str, request: Request, image: UploadFile = File(...), x_token: str = Header(None)):
+async def squad_results_read(lid: str, request: Request, image: UploadFile = File(None),
+                             images: list[UploadFile] = File(default=[]), x_token: str = Header(None)):
     """Step 1: read a scoreboard that shows the whole squad; propose who is who."""
     _require_member(lid, x_token)
     players = db.list_players(lid)
-    data, mt = await image.read(), _media_type(image)
+    data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
+    if not data:
+        raise HTTPException(400, "no screenshot provided")
     try:
         _charge(request, lid, 1)
         rows = await run_in_threadpool(vision.read_squad_results, data, mt, [x["callsign"] for x in players])

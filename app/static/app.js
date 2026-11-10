@@ -3373,13 +3373,13 @@
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-      const up = fileBtn(primary ? "primary" : "sm", label, false);
+      const up = fileBtn(primary ? "primary" : "sm", label, true);   // 1-4 screenshots of the same mission
       up.querySelector("input").onchange = async ev => {
-        const f = ev.target.files[0]; if (!f || busy) return;
+        const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
         busy = true; lockControls([up], true);
         const stop = workTicker(status, lines("tick.review.", 5));
         try {
-          const fd = new FormData(); fd.append("image", f); fd.append("lang", LANG);
+          const fd = new FormData(); fs.forEach(f => fd.append("images", f)); fd.append("lang", LANG);
           const token = me && me.id === target.id ? meRec().token : store.creator(LID);
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
@@ -3393,13 +3393,13 @@
     }
     // whole squad from one scoreboard (any member), or just yourself
     if (me || isCreator()) {
-      const sq = fileBtn("primary", "▦ " + t("deb.squad"), false), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+      const sq = fileBtn("primary", "▦ " + t("deb.squad"), true), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
       sq.querySelector("input").onchange = async ev => {
-        const f = ev.target.files[0]; ev.target.value = ""; if (!f || busy) return;
+        const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
         busy = true; lockControls([sq], true);
         const stop = workTicker(sqStatus, lines("tick.review.", 5));
         try {
-          const fd = new FormData(); fd.append("image", f);
+          const fd = new FormData(); fs.forEach(f => fd.append("images", f));
           const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, me ? meRec().token : store.creator(LID));
           stop(); sqStatus.style.display = "none"; busy = false;
           squadConfirm(r, me ? meRec().token : store.creator(LID));
