@@ -256,6 +256,8 @@ def _resolve(lobby) -> dict:
             "go": bool(p.get("go")),
             "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
             "kit_choice": p.get("kit_choice"),   # the saved loadout this diver chose to fight with, if any
+            "kit_choice_name": next((o["name"] for o in db.list_loadouts(p["locker_id"]) if o["id"] == p.get("kit_choice")), None)
+            if p.get("kit_choice") and p.get("locker_id") else None,
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]), "lesson": res.get("lesson"),
@@ -272,10 +274,23 @@ def _resolve(lobby) -> dict:
         "readiness": readiness, "reroll": int(lobby.get("reroll") or 0), "created_at": lobby.get("created_at"),
         "room": _room_brief(lobby.get("room_id")),
         "status": _table_status(lobby, players_rows),
+        "ended_at": _ended_at(lobby, players_rows),   # the mission clock stops when the table folds or is done
     }
 
 
 SQUAD_MAX = 4  # a Helldivers 2 squad
+
+
+def _ended_at(lobby, players_rows):
+    """When the table's clock stopped: folded (when), or done (the last debrief); None while it runs."""
+    st = _table_status(lobby, players_rows)
+    if st == "folded":
+        f = lobby.get("folded")
+        return float(f) if isinstance(f, (int, float)) and f > 1 else lobby.get("updated_at")
+    if st == "done":
+        last = [r["created_at"] for p in players_rows for r in [db.latest_result(p["id"])] if r]
+        return max(last) if last else lobby.get("updated_at")
+    return None
 
 
 _KIT_SLOTS = ("primary", "secondary", "grenade", "armor", "booster", "stratagems")

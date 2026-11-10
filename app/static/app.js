@@ -247,7 +247,7 @@
   }
   // nixie tubes: each character in its own glowing glass cell
   const nixie = str => el("span", { class: "nixie", "aria-label": String(str) }, String(str).split("").map(c => el("span", { class: "nx" + (/[0-9A-Za-z]/.test(c) ? "" : " sep"), "aria-hidden": "true" }, [c])));
-  const metText = t0 => { const s = Math.max(0, Math.floor(Date.now() / 1000 - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+  const metText = (t0, t1) => { const s = Math.max(0, Math.floor((t1 || Date.now() / 1000) - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
     return (h > 99 ? Math.floor(h / 24) + "d" : String(h).padStart(2, "0")) + ":" + String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   let metTimer = null;
   // falling code behind the hero: slow, faint, stops when the hero leaves the page
@@ -1243,8 +1243,11 @@
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
         el("span", {}, ["SEC-" + LID.slice(0, 4).toUpperCase()]),
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
-        STATE.created_at ? (() => { const n = el("span", { class: "met", title: t("cmd.met") }, ["MET T+", nixie(metText(STATE.created_at))]);
-          clearInterval(metTimer); metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
+        STATE.created_at ? (() => { const end = STATE.ended_at;   // folded or done: the clock stops there
+          const n = el("span", { class: "met" + (end ? " stopped" : ""), title: end ? t(STATE.status === "folded" ? "cmd.met.folded" : "cmd.met.done") : t("cmd.met") },
+            [end ? "MET ■ " : "MET T+", nixie(metText(STATE.created_at, end))]);
+          clearInterval(metTimer);
+          if (!end) metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
       foldRow(), roomChip(), STATE.status === "folded" ? null : goStrip(),
@@ -2367,13 +2370,27 @@
   }
 
   // #41: fight with one of your saved loadouts at this table, or let WARMIND build the kit
-  function kitChoiceRow(p) {
-    const b = el("button", { class: "btn sm", type: "button" }, [p.kit_choice ? "🗄 " + t("kc.change") : "🗄 " + t("kc.use")]);
-    b.onclick = () => kitChoiceDialog(p);
-    const kids = [b];
-    if (p.kit_choice) { const x = el("button", { class: "btn sm", type: "button" }, [t("kc.clear")]);
-      x.onclick = () => setKitChoice(p, null); kids.push(x); }
-    return el("div", { class: "kcrow" }, [p.kit_choice ? el("span", { class: "tag amber" }, [t("kc.on")]) : null, ...kids]);
+  // your own card: one ⋮ menu for what you can do with this kit (fight with a saved loadout,
+  // always wear this armour, save it to the locker), and small chips saying what's on
+  const isWorn = a => (a.why || []).some(w => w.k === "why.worn");
+  function myKitChips(p, a) {
+    const chips = [];
+    if (p.kit_choice) chips.push(el("span", { class: "tag amber" }, ["🗄 " + (p.kit_choice_name ? t("kc.chip", { name: p.kit_choice_name }) : t("kc.on"))]));
+    if (isWorn(a)) chips.push(el("span", { class: "tag" }, ["📌 " + t("arm.wearing", { armor: a.armor })]));
+    return chips.length ? el("div", { class: "mychips" }, chips) : null;
+  }
+  function myKitMenu(p, a) {
+    const items = [];
+    if (p.locker) {
+      items.push([p.kit_choice ? "kc.change" : "kc.use", "", () => kitChoiceDialog(p)]);
+      if (p.kit_choice) items.push(["kc.clear", "", () => setKitChoice(p, null)]);
+    }
+    const worn = isWorn(a);
+    items.push([worn ? t("arm.release.menu") : t("arm.keep", { armor: a.armor }), "", async () => {
+      try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
+        toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); } }]);
+    items.push(["lk.save", "", () => saveKitDialog(a)]);
+    return kebab(items);
   }
   async function setKitChoice(p, oid) {
     if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
@@ -2407,15 +2424,10 @@
       el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", t("card.style", { style: styleLabel(p.play_style) }),
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
       a && a.compass ? el("div", { class: "cmini", title: t("cmp.title") }, [compassSvg([Object.assign({ color: p.accent }, a.compass)], 44, false), el("small", {}, [compassWord(a.compass)])]) : null,
-      a && mine && store.locker() ? (() => {   // "I want to wear my armour": keep this set from now on, or let WARMIND pick again
-        const worn = (a.why || []).some(w => w.k === "why.worn");
-        const b = el("button", { class: "btn sm", type: "button" }, [worn ? "📌 " + t("arm.wearing", { armor: a.armor }) + " · " + t("arm.release") : "📌 " + t("arm.keep", { armor: a.armor })]);
-        b.onclick = async () => { b.disabled = true; try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
-          toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); b.disabled = false; } };
-        return el("div", { class: "wornrow" }, [b]); })() : null,
+      a && mine && store.locker() ? myKitChips(p, a) : null,
     ]));
+    if (a && mine && store.locker()) { card.querySelector(".hd").classList.add("hasmenu"); card.querySelector(".hd").appendChild(myKitMenu(p, a)); }
     if (!a) return card;
-    if (mine && p.locker && store.locker()) card.appendChild(kitChoiceRow(p));
     if (mine && p.want_role && p.want_role !== "any") {   // the role you asked for: got it, or who has it
       const wn = roleName(p.want_role);
       if (a.role === wn) card.appendChild(el("div", { class: "wantrole ok" }, ["✓ " + t("me.role.got", { role: wn })]));
@@ -2451,11 +2463,7 @@
     } else if (a.thin && a.thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: a.thin.join(", ") })]));
     card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
       (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
-    if (mine && store.locker()) {   // keep this kit for reference
-      const sv = el("button", { class: "btn sm", type: "button" }, ["🗄 " + t("lk.save")]);
-      sv.onclick = () => saveKitDialog(a);
-      card.appendChild(el("div", { class: "btnrow" }, [sv]));
-    }
+
     return card;
   }
 
@@ -2715,7 +2723,7 @@
     btn.onclick = e => { e.stopPropagation(); if (wrap.classList.contains("open")) return close();
       wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
       document.addEventListener("click", outside, true); document.addEventListener("keydown", esc); const f = menu.querySelector("button"); if (f) f.focus(); };
-    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [t(k)]);
+    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [has(k) ? t(k) : k]);
       b.onclick = () => { close(); fn(); }; menu.appendChild(b); });
     return wrap;
   }
