@@ -22,8 +22,10 @@ from starlette.middleware.gzip import GZipMiddleware
 import pathlib
 
 import budget
+import cards
 import costs
 import db
+import discord_app
 import vision
 import war
 from warmind import compass, coverage, kitrules, loader, oaths, passives, stats
@@ -485,6 +487,7 @@ def meta():
             "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "passive_throwables": passives.throwables(),
+            "discord": {"install": discord_app.install_url()},
             "vision": vision.status()}
 
 
@@ -1354,10 +1357,233 @@ def leave(lid: str, pid: str, x_token: str = Header(None)):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------- picture cards + link previews
+# A WARMIND link pasted in Discord (or anything that reads Open Graph tags) unfurls into a
+# picture card: the table's squad and Go / No-Go, the room's stats and orders, a diver's rates.
+def _public_base(request: Request | None = None) -> str:
+    base = os.environ.get("WARMIND_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL")
+    if not base and request is not None:
+        base = str(request.base_url)
+    return (base or "https://warmind.onrender.com").rstrip("/")
+
+
+def _style_label(key):
+    from warmind import roles
+    ps = roles.PLAY_STYLES.get(key or "")
+    return ps.label if ps else None
+
+
+def _table_card(lid, base):
+    lobby = db.get_lobby(str(lid)[:40])
+    if not lobby:
+        return None
+    players = db.list_players(lobby["id"])
+    got = db.lobby_debriefed(lobby["id"])
+    mission = _mission_from(lobby) or {}
+    room = db.get_room(lobby["room_id"]) if lobby.get("room_id") else None
+    divers = []
+    for p in players:
+        medal = None
+        if p["id"] in got:
+            r = db.latest_result(p["id"]) or {}
+            medal = next((v["medal"].get("name") for v in _verdicts_of(r.get("verdict_json")) if v and v.get("medal")), None)
+        divers.append({"callsign": p.get("callsign"), "style": _style_label(p.get("play_style")), "go": bool(p.get("go")),
+                       "debriefed": p["id"] in got, "medal": medal})
+    return {"kind": "table", "name": lobby["name"], "status": _table_status(lobby, players),
+            "mission": _mission_name(lobby.get("mission_json")), "planet": mission.get("planet_name"),
+            "room": room["name"] if room else None, "code": lobby["id"], "url": f"{base}/?l={lobby['id']}",
+            "squad_size": lobby.get("squad_size"), "divers": divers}
+
+
+def _room_card(rid, base):
+    try:
+        r = _room_out(str(rid)[:40])
+    except HTTPException:
+        return None
+    titles = {"drops": "Drops", "medals": "Medals", "oaths": "Oaths kept", "kills": "Kills", "d100": "D100 drops",
+              "planet": "Drops on {planet}", "difficulty": "Drops at D{min}+"}
+    orders = []
+    for o in r["orders"]:
+        title = o.get("title") or titles.get(o["kind"], o["kind"]).format(**{"planet": "", "min": 10, **(o.get("params") or {})})
+        orders.append({"title": title, "progress": o["progress"], "target": o["target"], "done": bool(o["done_at"])})
+    return {"kind": "room", "name": r["name"], "ship": r["ship"], "mission": r["mission_name"],
+            "planet": (r["mission"] or {}).get("planet_name"), "stats": r["stats"], "orders": orders,
+            "crew": len(r["members"]), "ribbons": len(r["ribbons"]), "url": f"{base}/?room={r['id']}"}
+
+
+def _diver_card(lid, base):
+    lk = db.get_locker(str(lid)[:40])
+    if not lk or lk.get("public") == 0 or not lk.get("callsign"):
+        return None
+    _, rates = _public_rates(lk)
+    _, medals = _record_of(lk["id"])
+    return {"kind": "diver", "callsign": lk["callsign"], "style": _style_label(lk.get("play_style")), "rates": rates,
+            "medals": [m["medal"].get("name") for m in medals if m.get("medal")], "n_medals": len(medals),
+            "url": f"{base}/?roster={lk['id']}"}
+
+
+_CARD_DATA = {"table": _table_card, "room": _room_card, "diver": _diver_card}
+_card_cache: dict = {}
+
+
+def _card_version(data) -> str:
+    return hashlib.sha1(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()[:10]
+
+
+def card_png(kind, cid, base):
+    """(png bytes, data) for a card, or (None, None). Rendered once per distinct content."""
+    fn = _CARD_DATA.get(kind)
+    data = fn(cid, base) if fn else None
+    if not data:
+        return None, None
+    key = (kind, _card_version(data))
+    png = _card_cache.get(key)
+    if png is None:
+        png = getattr(cards, kind)(data)
+        if len(_card_cache) > 200:
+            _card_cache.clear()
+        _card_cache[key] = png
+    return png, data
+
+
+@app.get("/card/{kind}/{cid}.png")
+def card(kind: str, cid: str, request: Request):
+    from fastapi.responses import Response
+    png, _ = card_png(kind, cid, _public_base(request))
+    if not png:
+        raise HTTPException(404, "no such card")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=60"})
+
+
+def _og_for(params, base):
+    """(title, description, card kind, id) for a shared link, or None."""
+    for key, kind in (("l", "table"), ("room", "room"), ("roster", "diver")):
+        cid = params.get(key)
+        if not cid or cid in ("1", ""):
+            continue
+        data = _CARD_DATA[kind](cid, base)
+        if not data:
+            return None
+        if kind == "table":
+            m = data["mission"]
+            desc = " · ".join(x for x in [(m or {}).get("name"), data.get("planet"),
+                                          f"{len(data['divers'])}/{data.get('squad_size') or 4} divers",
+                                          f"{sum(1 for d in data['divers'] if d['go'])} GO", data["status"]] if x)
+            return f"War table: {data['name']}", desc + f". Join with code {data['code']}.", kind, cid, data
+        if kind == "room":
+            s = data["stats"]
+            return (f"War room: {data['name']}", f"{data['ship']} · {s.get('nights', 0)} nights · {s.get('drops', 0)} drops · "
+                    f"{s.get('medals', 0)} medals. Tonight: {(data['mission'] or {}).get('name') or 'no mission set'}.", kind, cid, data)
+        r = data["rates"] or {}
+        bits = [f"{r['accuracy'] * 100:.0f}% accuracy" if r.get("accuracy") else None,
+                f"K/D {r['kd']}" if r.get("kd") else None, f"{data['n_medals']} medals"]
+        return f"{data['callsign']} · WARMIND diver", " · ".join(b for b in bits if b) + ".", kind, cid, data
+    return None
+
+
+class _DiscordCards:
+    """What the Discord app needs from the server: cards, pickers, the front."""
+    def __init__(self, base):
+        self.base = base
+
+    def card(self, kind, cid, fresh=False):
+        fn = _CARD_DATA.get(kind)
+        data = fn(cid, self.base) if fn else None
+        og = _og_for({"table": {"l": cid}, "room": {"room": cid}, "diver": {"roster": cid}}[kind], self.base) if data else None
+        if not og:
+            return None
+        title, desc, _, _, data = og
+        img = f"{self.base}/card/{kind}/{cid}.png?v={_card_version(data)}" + (f"&t={int(time.time())}" if fresh else "")
+        return title, data["url"], desc, img
+
+    def pick(self, sub, q):
+        q = q.strip()[:40]
+        if sub == "table":
+            out = []
+            for l in db.recent_lobbies(time.time() - 3 * 86400, q):
+                m = _mission_name(l.get("mission_json")) or {}
+                n = len(db.list_players(l["id"]))
+                label = " · ".join(x for x in [l["name"], m.get("name"), f"{n} diver{'s' if n != 1 else ''}"] if x)
+                out.append({"name": label[:100], "value": l["id"]})
+            return out
+        if sub == "room":
+            return [{"name": f"{r['name']} · {r['ship']}"[:100], "value": r["id"]} for r in db.find_rooms(q)]
+        if sub == "diver":
+            seen = {}
+            for r in db.find_public_lockers(q):
+                seen.setdefault(r["callsign"].lower(), {"name": r["callsign"][:100], "value": r["callsign"][:100]})
+            return list(seen.values())
+        return []
+
+    def diver_id(self, callsign):
+        for r in db.find_public_lockers(callsign.strip()[:40], limit=50):
+            if r["callsign"].lower() == callsign.strip().lower():
+                return r["id"]
+        return None
+
+    def front(self):
+        w = war.snapshot()
+        lines = []
+        for o in (w.get("orders") or [])[:1]:
+            lines.append(f"**Major Order: {o.get('title')}**")
+            if o.get("briefing"):
+                lines.append(o["briefing"][:300])
+            for t in o.get("tasks") or []:
+                if t.get("pct") is not None:
+                    lines.append(f"- {t.get('kind', '').capitalize()} {t.get('faction') or ''}: {t['pct']}%")
+                elif t.get("planet"):
+                    lines.append(f"- {'Done' if t.get('done') else 'Liberate'} {t['planet']}")
+        planets = sorted(w.get("planets") or [], key=lambda p: -(p.get("players") or 0))[:5]
+        if planets:
+            lines.append("\n**Busiest planets**")
+            for p in planets:
+                lines.append(f"- {p['name']} ({(p.get('enemy') or '').capitalize()}) · {p.get('players') or 0:,} divers · "
+                             f"{p.get('progress') or 0}%{' · Major Order' if p.get('mo') else ''}")
+        if not lines:
+            lines = ["The war feed is quiet right now."]
+        return "The front", f"{self.base}/?tab=front", "\n".join(lines)
+
+
+@app.post("/api/discord/interactions")
+async def discord_interactions(request: Request):
+    body = await request.body()
+    if not discord_app.verify(request.headers.get("x-signature-ed25519", ""), request.headers.get("x-signature-timestamp", ""), body):
+        raise HTTPException(401, "invalid request signature")
+    try:
+        payload = json.loads(body)
+    except Exception:
+        raise HTTPException(400, "bad json")
+    return JSONResponse(discord_app.handle(payload, _DiscordCards(_public_base(request))))
+
+
+discord_app.start()   # registers /warmind when DISCORD_APP_ID + DISCORD_BOT_TOKEN are set
+
+
+def _esc(s):
+    return (str(s).replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
 # ---------------------------------------------------------------- static frontend
 @app.get("/", response_class=HTMLResponse)
-def index():
-    return (HERE / "static" / "index.html").read_text()
+def index(request: Request):
+    html = (HERE / "static" / "index.html").read_text()
+    base = _public_base(request)
+    title, desc, img = "WARMIND", "The squad coach for Helldivers 2: loadouts built for your mission, gear and stats.", None
+    try:
+        og = _og_for(request.query_params, base)
+    except Exception:
+        og = None
+    if og:
+        title, desc, kind, cid, data = og
+        img = f"{base}/card/{kind}/{cid}.png?v={_card_version(data)}"
+    tags = [f'<meta property="og:site_name" content="WARMIND">', f'<meta property="og:type" content="website">',
+            f'<meta property="og:title" content="{_esc(title)}">', f'<meta property="og:description" content="{_esc(desc)}">',
+            f'<meta name="description" content="{_esc(desc)}">']
+    if img:
+        tags += [f'<meta property="og:image" content="{_esc(img)}">', '<meta property="og:image:width" content="1200">',
+                 '<meta property="og:image:height" content="630">', '<meta name="twitter:card" content="summary_large_image">',
+                 f'<meta name="twitter:image" content="{_esc(img)}">']
+    return html.replace('<meta name="theme-color"', "\n".join(tags) + '\n<meta name="theme-color"', 1)
 
 
 @app.get("/app.js")
@@ -1404,7 +1630,7 @@ def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
             "vision": vision.status(), "budget": budget.status(), "war": war.status(),
             "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST},
-            "costs": _cost_brief()}
+            "costs": _cost_brief(), "discord": discord_app.status()}
 
 
 def _cost_brief():

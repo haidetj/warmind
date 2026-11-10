@@ -711,6 +711,15 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .gatehero .hero-body{padding:22px 18px} .welcome .pinset{flex:1 1 100%;margin-top:10px} #gate-pin{letter-spacing:6px;font-family:var(--mono)}
   .endorse{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:13.5px;color:var(--ink-2)}
   .lkacts{margin:10px 0 0}
+  .lkslide .hd{position:relative;padding-right:46px}
+  .kwrap{position:absolute;top:0;right:0;z-index:4}
+  .kebab{width:38px;height:38px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);color:var(--ink-2);font-size:20px;line-height:1;cursor:pointer;padding:0}
+  .kebab:hover,.kwrap.open .kebab{border-color:var(--line-3);color:var(--cyan)}
+  .kmenu{display:none;position:absolute;right:0;top:42px;min-width:190px;background:var(--panel-2);border:1px solid var(--line-2);box-shadow:0 10px 30px rgba(0,0,0,.6);padding:4px}
+  .kwrap.open .kmenu{display:block}
+  .kitem{display:block;width:100%;text-align:left;padding:11px 12px;background:none;border:0;color:var(--ink);font:500 14px var(--mono);cursor:pointer}
+  .kitem:hover,.kitem:focus-visible{background:rgba(120,255,170,.08);outline:none}
+  .kitem.red{color:var(--red)}
   /* line icons (they replace every emoji): follow the text colour and size */
   .ico{display:inline-flex;width:1.1em;height:1.1em;vertical-align:-.2em;flex:none}
   .ico svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;overflow:visible}

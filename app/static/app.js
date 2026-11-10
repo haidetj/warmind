@@ -672,7 +672,7 @@
     // the plaque
     const st = R0.stats;
     const statCell = (k, v) => el("div", { class: "rstat" }, [nixie(String(v)), el("small", {}, [t(k)])]);
-    const share = el("button", { class: "btn sm", type: "button" }, ["⧉ " + t("room.copy")]); share.onclick = () => copy(location.origin + "/?room=" + R0.id, t("common.copied"));
+    const share = el("button", { class: "btn sm", type: "button" }, ["⧉ " + t("room.copy")]); share.onclick = () => copy(location.origin + "/?room=" + R0.id, t("dc.copied"));
     let rename = null;
     if (founder) { rename = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("room.rename")]);
       rename.onclick = async () => { const n = prompt(t("room.name"), R0.name); if (n == null) return; const sh = prompt(t("room.ship"), R0.ship); if (sh == null) return;
@@ -1124,7 +1124,7 @@
   function commandPanel(ph) {
     const link = location.origin + "/?l=" + LID;
     const inv = el("button", { class: "btn primary", type: "button" }, [t("cmd.invite")]);
-    inv.onclick = () => copy(link, t("common.copied"));
+    inv.onclick = () => copy(link, t("dc.copied"));
     const role = isCreator() ? tag("amber", t("common.creator")) : myPlayer() ? tag("cyan", t("common.diver")) : null;
     const fm = el("button", { class: "btn sm fmbtn", type: "button" }, ["▤ " + t("gl.short")]);
     fm.onclick = () => guardGear(() => setTab(5, true));
@@ -2410,7 +2410,21 @@
     const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
+    body.appendChild(discordPanel(L));
     try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
+  }
+
+  // WARMIND on Discord: links unfurl into live cards anywhere; the app adds /warmind to your own
+  // Discord account (no server admin needed)
+  function discordPanel(L) {
+    const inst = (META.discord || {}).install;
+    const card = el("button", { class: "btn sm", type: "button" }, ["🔗 " + t("dc.mycard")]);
+    card.onclick = () => LK && LK.public === false ? toast(t("dc.private")) : copy(location.origin + "/?roster=" + L.id, t("dc.copied"));
+    return panel("DC-01", t("dc.title"), {}, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("dc.hint")]),
+      inst ? el("div", { class: "hint", style: "margin:0 0 10px" }, [t("dc.add.hint")]) : null,
+      el("div", { class: "btnrow", style: "margin:0" }, [inst ? el("a", { class: "btn sm primary", href: inst, target: "_blank", rel: "noopener" }, [t("dc.add")]) : null, card]),
+    ]);
   }
 
   function pinSetter(L) {
@@ -2535,6 +2549,81 @@
     show(tabs.some(x => x[0] === lkTab) ? lkTab : "record");
     window.scrollTo(0, y);
   }
+  // a ⋮ button with a small menu; closes on pick, outside tap or Escape
+  function kebab(items) {
+    const menu = el("div", { class: "kmenu", role: "menu" });
+    const btn = el("button", { class: "kebab", type: "button", "aria-label": t("common.more"), "aria-haspopup": "menu", "aria-expanded": "false" }, ["⋮"]);
+    const wrap = el("div", { class: "kwrap" }, [btn, menu]);
+    const close = () => { wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); document.removeEventListener("click", outside, true); document.removeEventListener("keydown", esc); };
+    const outside = e => { if (!wrap.contains(e.target)) close(); };
+    const esc = e => { if (e.key === "Escape") { close(); btn.focus(); } };
+    btn.onclick = e => { e.stopPropagation(); if (wrap.classList.contains("open")) return close();
+      wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", outside, true); document.addEventListener("keydown", esc); const f = menu.querySelector("button"); if (f) f.focus(); };
+    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [t(k)]);
+      b.onclick = () => { close(); fn(); }; menu.appendChild(b); });
+    return wrap;
+  }
+
+  // a saved loadout as a 1200x675 picture (armour, weapons, grenades carried, booster, stratagems),
+  // shared through the phone's share sheet (Discord, Messages…) or downloaded
+  const imgOf = src => new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  async function shareLoadoutPng(o, callsign) {
+    const k = o.kit || {}, P = META.pics || {};
+    try { await document.fonts.ready; } catch (e) {}
+    const W = 1200, H = 675, c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    const C = { bg: "#040604", panel: "#0a110b", line: "rgba(120,255,170,.22)", line2: "rgba(120,255,170,.45)", ink: "#dff5df", ink2: "#a5c3a6", muted: "#6e8c70", green: "#78ffaa", amber: "#ff9a3c" };
+    const font = (w, px, fam) => (g.font = `${w} ${px}px ${fam === "h" ? "'Chakra Petch', sans-serif" : "'JetBrains Mono', monospace"}`);
+    const fitText = (txt, x, y, max) => { txt = String(txt || ""); if (g.measureText(txt).width <= max) return g.fillText(txt, x, y);
+      while (txt && g.measureText(txt + "…").width > max) txt = txt.slice(0, -1); g.fillText(txt + "…", x, y); };
+    const box = (x, y, w, h) => { g.fillStyle = C.panel; g.fillRect(x, y, w, h); g.strokeStyle = C.line; g.lineWidth = 1.5; g.strokeRect(x + .5, y + .5, w - 1, h - 1); };
+    const contain = (im, x, y, w, h) => { if (!im) return; const r = Math.min(w / (im.naturalWidth || w), h / (im.naturalHeight || h)); const iw = (im.naturalWidth || w) * r, ih = (im.naturalHeight || h) * r;
+      g.drawImage(im, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); };
+    g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "rgba(120,255,170,.035)"; for (let y = 0; y < H; y += 4) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    g.strokeStyle = C.line2; g.lineWidth = 2; g.beginPath(); g.moveTo(46, 24); g.lineTo(W - 24, 24); g.lineTo(W - 24, H - 46); g.lineTo(W - 46, H - 24); g.lineTo(24, H - 24); g.lineTo(24, 46); g.closePath(); g.stroke();
+    g.fillStyle = C.green; font(800, 22, "m"); g.fillText("WARMIND", 56, 66);
+    g.textAlign = "right"; font(700, 20, "m"); g.fillText(t("lk.png.kicker").toUpperCase(), W - 56, 66); g.textAlign = "left";
+    g.fillStyle = C.ink; font(700, 48, "h"); fitText(o.name || k.role || "Loadout", 56, 124, W - 112);
+    const src = o.source || {};
+    g.fillStyle = C.amber; font(700, 22, "m"); const nm = String(o.name || "").toLowerCase();
+    fitText([k.role, callsign, src.mission, src.mode ? t("mode." + src.mode) : ""].filter(x => x && !nm.includes(String(x).toLowerCase())).join(" · "), 56, 160, W - 112);
+    const pics = await Promise.all([k.armor, k.primary, k.secondary, k.grenade, k.booster].map(n => imgOf((P[n] || {}).img || (P[n] || {}).icon)));
+    const sicons = await Promise.all((k.stratagems || []).map(n => imgOf((P[n] || {}).icon || (P[n] || {}).img)));
+    // armour
+    box(56, 186, 300, 404); contain(pics[0], 76, 206, 260, 300);
+    g.fillStyle = C.ink; font(700, 20, "m"); fitText(k.armor || "—", 72, 540, 270);
+    g.fillStyle = C.amber; font(500, 16, "m"); fitText([has("w." + k.armor_weight) ? t("w." + k.armor_weight) : k.armor_weight, k.armor_passive].filter(Boolean).join(" · "), 72, 566, 270);
+    // weapons, grenade, booster
+    const tiles = [["card.primary", k.primary, statLine(itemStats(k.primary)), pics[1]], ["card.secondary", k.secondary, statLine(itemStats(k.secondary)), pics[2]],
+                   ["card.grenade", k.grenade, nadeLine(k), pics[3]], ["card.booster", k.booster, "", pics[4]]];
+    tiles.forEach(([lab, name, st, im], i) => {
+      const x = 376 + (i % 2) * 390, y = 186 + Math.floor(i / 2) * 148, w = 378, h = 136;
+      box(x, y, w, h); contain(im, x + 12, y + 12, 140, h - 24);
+      g.fillStyle = C.muted; font(700, 14, "m"); g.fillText(t(lab).toUpperCase(), x + 166, y + 30);
+      g.fillStyle = C.ink; font(700, 20, "m"); fitText(name || "—", x + 166, y + 64, w - 180);
+      if (st) { g.fillStyle = C.ink2; font(400, 14, "m"); fitText(st, x + 166, y + 92, w - 180); }
+    });
+    // stratagems
+    (k.stratagems || []).slice(0, 4).forEach((n, i) => {
+      const x = 376 + i * 195, y = 482, w = 183, h = 108;
+      box(x, y, w, h); contain(sicons[i], x + 10, y + 14, 64, 64);
+      g.fillStyle = C.ink; font(600, 15, "m");
+      const words = String(n).split(" "), lines = [""]; words.forEach(wd => { const cur = lines[lines.length - 1]; if (g.measureText((cur + " " + wd).trim()).width > w - 92 && cur) lines.push(wd); else lines[lines.length - 1] = (cur + " " + wd).trim(); });
+      lines.slice(0, 3).forEach((ln, j) => fitText(ln, x + 84, y + 36 + j * 20, w - 92));
+    });
+    g.fillStyle = C.muted; font(400, 16, "m"); g.fillText(location.host, 56, H - 48);
+    const blob = await new Promise(r => c.toBlob(r, "image/png"));
+    if (!blob) { toast(t("lk.png.fail")); return; }
+    const file = new File([blob], "warmind-loadout-" + String(o.name || "kit").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) + ".png", { type: "image/png" });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: o.name || "WARMIND" }); return; }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    const a = el("a", { href: URL.createObjectURL(blob), download: file.name }); document.body.appendChild(a); a.click(); a.remove();
+    toast(t("lk.png.saved"));
+  }
+
   function lkCarousel(list, opts) {
     opts = opts || {};
     const L = list || LK.loadouts || [];
@@ -2552,14 +2641,14 @@
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
       card.appendChild(locker(o.kit));
       if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
-      if (opts.editable) {
-        const after = opts.after || loadLocker;
-        const ed = el("button", { class: "btn sm", type: "button" }, [t("lk.edit")]); ed.onclick = () => buildKitDialog(o, after);
-        const del = el("button", { class: "btn sm red", type: "button" }, [t("lk.delete")]);
-        del.onclick = async () => { if (!confirm(t("lk.delete.confirm", { name: o.name }))) return;
-          try { await lpost("/api/locker/" + store.locker().id + "/loadouts/" + o.id + "/delete", {}); toast(t("lk.deleted")); await after(); } catch (e) { toast(e.message); } };
-        card.appendChild(el("div", { class: "btnrow lkacts" }, [ed, del]));
-      }
+      // ⋮ menu: Edit / Share as PNG / Delete (share only on someone else's profile)
+      const items = [];
+      const after = opts.after || loadLocker;
+      if (opts.editable) items.push(["lk.edit", "", () => buildKitDialog(o, after)]);
+      items.push(["lk.sharepng", "", () => shareLoadoutPng(o, opts.callsign || (LK && LK.callsign) || "")]);
+      if (opts.editable) items.push(["lk.delete", "red", async () => { if (!confirm(t("lk.delete.confirm", { name: o.name }))) return;
+        try { await lpost("/api/locker/" + store.locker().id + "/loadouts/" + o.id + "/delete", {}); toast(t("lk.deleted")); await after(); } catch (e) { toast(e.message); } }]);
+      card.querySelector(".hd").appendChild(kebab(items));
       track.appendChild(card);
     });
     const count = el("span", { class: "lkcount" }, ["1 / " + L.length]);
@@ -2796,7 +2885,7 @@
     app.appendChild(panel("ROS-02", t("ros.profile"), { status: d.medals.length ? "🎖 " + d.medals.length : "", statusKind: "warn", tone: "amber" }, [
       el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [d.callsign]),
         el("div", { class: "hint", style: "margin:4px 0 0" }, [d.play_style ? t("lk.style", { style: styleLabel(d.play_style) }) : t("me.noread")])])])]));
-    const car = lkCarousel(d.loadouts, { readonly: true }); if (car) app.appendChild(car);
+    const car = lkCarousel(d.loadouts, { readonly: true, callsign: d.callsign }); if (car) app.appendChild(car);
     const kids = [];
     if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
       el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));

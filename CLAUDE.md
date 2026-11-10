@@ -67,3 +67,17 @@ result, review, mission, squad). With an Admin API key (sk-ant-admin..., in `ANT
 a background thread polls `GET /v1/organizations/cost_report` every 30 min (whole org, daily
 USD) into `kv.cost_report`. `/api/costs` serves both; `/?costs` shows them (polls every 60s);
 `/health` → `costs` has a one-line summary. Hosting has no billing API: `WARMIND_HOSTING_USD_MONTH`.
+
+## Discord (`app/discord_app.py`, `app/cards.py`)
+No server admin needed, works across every server and channel:
+- Link previews: `/` injects Open Graph tags for `?l=`, `?room=`, `?roster=` links; the picture is
+  `/card/{table|room|diver}/{id}.png` (Pillow, JetBrains Mono from `app/fonts`, `?v=` = content hash so
+  Discord re-fetches when the card changes). Any pasted WARMIND link unfurls into a live card.
+- `/warmind` (table / room / diver / front): a user-installable Discord app. Each diver adds it to their
+  own account once (Profile → "Add WARMIND to my Discord", `integration_type=1`), then uses it in any
+  server that allows external apps. Pickers autocomplete recent tables, rooms and callsigns; cards
+  carry "Open in WARMIND" and "Refresh". Interactions hit `POST /api/discord/interactions`
+  (Ed25519-verified). Env: `DISCORD_APP_ID`, `DISCORD_PUBLIC_KEY` (required), `DISCORD_BOT_TOKEN`
+  (registers the command at startup). `/health` → `discord` shows registration status.
+- Saved loadouts: the ⋮ menu has Edit / Share as PNG / Delete; the PNG is drawn client-side
+  (`shareLoadoutPng`) and goes to the phone's share sheet, else downloads.

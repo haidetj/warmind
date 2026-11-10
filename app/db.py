@@ -725,3 +725,29 @@ def lobby_debriefed(lobby_id) -> set:
 def remove_room_member(rid, locker_id):
     with _lock, _conn() as c:
         c.execute("DELETE FROM room_member WHERE room_id=? AND locker_id=?", (rid, locker_id))
+
+
+# ---------------------------------------------------------------- Discord pickers
+def recent_lobbies(since, q="", limit=25):
+    """War tables touched since `since`, newest first, optionally matching a name / code."""
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM lobby WHERE updated_at>=? AND (name LIKE ? OR id LIKE ?) AND COALESCE(folded,0)=0 "
+                         "ORDER BY updated_at DESC LIMIT ?", (since, like, like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def find_rooms(q="", limit=25):
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM room WHERE name LIKE ? OR id LIKE ? ORDER BY updated_at DESC LIMIT ?",
+                         (like, like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def find_public_lockers(q="", limit=25):
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT id, callsign FROM locker WHERE callsign IS NOT NULL AND COALESCE(public,1)!=0 AND callsign LIKE ? "
+                         "ORDER BY updated_at DESC LIMIT ?", (like, limit)).fetchall()
+    return [dict(r) for r in rows]

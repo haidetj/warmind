@@ -25,6 +25,13 @@ services:
       # optional: your Render plan's monthly price, added to the projected month on /?costs
       - key: WARMIND_HOSTING_USD_MONTH
         sync: false
+      # optional: WARMIND on Discord (/warmind, user-installable; see CLAUDE.md)
+      - key: DISCORD_APP_ID
+        sync: false
+      - key: DISCORD_PUBLIC_KEY
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
     disk:
       name: warmind-data
       mountPath: /data
