@@ -62,19 +62,11 @@ def diver_allows(cand, picks, role_name: str, commando: bool = False) -> bool:
 
 
 def squad_excludes(cand, squad_names: set, session) -> bool:
-    """True if a squadmate already brings this and stacking it is redundancy. The squad
-    shares 16 stratagem slots; only the researched stacks are allowed: Shield Generator
-    Relays against Automatons, sentries when the mission is a hold, EAT-17 into heavies."""
-    if cand.name not in squad_names:
-        return False
-    vec = session._pressure.vector
-    if cand.name == SHIELD_RELAY and session.faction == "automatons":
-        return False
-    if cand.category == "sentry" and vec.get("sentry", 0) >= 1.0:
-        return False
-    if cand.name == STACKABLE_EAT and vec.get("heavy_pen", 0) >= 1.0:
-        return False
-    return True
+    """True if a squadmate already brings this stratagem. The squad shares 16 slots and no
+    stratagem is brought twice (the squad asked for it: stacks of the same sentry, relay or
+    EAT read as a mistake). Only a diver who owns nothing else legal ends up with a double,
+    through the engine's last-resort fill."""
+    return cand.name in squad_names
 
 
 def main_support(kit):

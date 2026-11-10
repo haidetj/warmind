@@ -402,7 +402,7 @@ def _session_of(mission, lobby) -> Session:
         stealth=bool(mission.get("stealth", False)),
         roles=dict(mission.get("roles") or {}),
         free_stratagems=list(mission.get("free_stratagems") or []),
-        dss_actions=list(mission.get("dss_actions") or []),
+        dss_actions=war.mission_dss(mission.get("dss_actions")),   # missions saved before the filter too
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -887,7 +887,7 @@ def _clean_mission(raw) -> dict:
     strat_names = {s["name"] for s in loader.items().get("stratagems", [])}
     m["free_stratagems"] = [x for x in (m.get("free_stratagems") or []) if x in strat_names][:2]   # Weapons Experimentation
     m["dss_actions"] = [{"name": str(x.get("name") or "")[:60], "desc": str(x.get("desc") or "")[:300]}
-                        for x in (m.get("dss_actions") or []) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
+                        for x in war.mission_dss(m.get("dss_actions")) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     try:

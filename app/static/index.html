@@ -736,6 +736,19 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .fbthumb{position:relative;width:64px;height:64px;padding:0;border:1px solid var(--line-2);background:var(--panel-2);cursor:pointer;overflow:hidden}
   .fbthumb img{width:100%;height:100%;object-fit:cover;display:block}
   .fbthumb span{position:absolute;top:0;right:0;background:rgba(0,0,0,.75);color:var(--ink);font-size:12px;line-height:1;padding:3px 5px}
+  .appnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;
+    padding:4px 4px calc(4px + env(safe-area-inset-bottom));background:rgba(3,6,3,.94);backdrop-filter:blur(6px);
+    border-top:1px solid var(--line-2);box-shadow:0 -6px 18px rgba(0,0,0,.5)}
+  .appnav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:50px;padding:4px 2px;
+    color:var(--muted);text-decoration:none;border:1px solid transparent;min-width:0}
+  .appnav a .ic{font-size:16px;line-height:1} .appnav a .ic .ico{width:18px;height:18px}
+  .appnav a b{font-family:var(--head);font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;line-height:1.15;text-align:center}
+  .appnav a small{font-family:var(--mono);font-size:9.5px;color:var(--faint);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .appnav a[aria-current="page"]{color:var(--cyan);border-color:var(--line-2);background:rgba(120,255,170,.08);box-shadow:inset 0 2px 0 var(--cyan)}
+  .appnav a[aria-current="page"] small{color:var(--ink-2)}
+  body.hasnav{padding-bottom:calc(66px + env(safe-area-inset-bottom))}
+  body.hasnav .toast{bottom:calc(78px + env(safe-area-inset-bottom))}
+  body.hasnav .gearfoot{bottom:calc(66px + env(safe-area-inset-bottom))}
   .mychips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
   .mychips .tag{white-space:normal;text-align:left}
   .kcpick{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;min-height:auto;padding:10px 12px;text-transform:none;letter-spacing:0}

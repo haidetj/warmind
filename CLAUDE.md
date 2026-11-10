@@ -76,6 +76,10 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   profile's gear. Swaps sit on top of the squad's pinned picks in `_with_saved_kits`; a refilled slot never takes a
   squadmate's stratagem, so nobody else's kit moves. Cleared on a new mission or reroll; "Undo my swaps" in the ⋮ menu.
 - Pinning armour (`prefs.armor_set`) is left out of `mind.brief_key`: it swaps that diver's armour only, no rebuild.
+- No stratagem twice in a squad (`kitrules.squad_excludes`, and the planner is told); only a diver who owns nothing
+  else legal ends up with a double. Democracy Space Station actions that don't act on a mission (`war.DSS_NOT_MISSION`:
+  Operational Support, Exosuit Reserves) are dropped from missions and the briefing.
+- App nav (`appNav`): fixed at the bottom of every page: Profile, your current / last table, War tables, War rooms, Roster.
 - Debrief uploads (yours, or the whole squad's scoreboard) take 1–4 screenshots of the same mission (`images`), read together.
 - Endorse-only oaths (Side Sweep, Sample Run…) can still be ruled out by the scoreboard: each lists `dq` rules in
   `oaths.OATHS` (a field at or under a max, or objectives left undone), checked by `oaths.disqualified` whenever that

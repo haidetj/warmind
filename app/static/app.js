@@ -396,6 +396,7 @@
     // you are your callsign: home, war tables and the locker need it; roster, rooms and costs are open to look at
     if (!store.locker() && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE) return renderGate();
     if (store.locker()) await syncTables();
+    appNav();
     if (LOCKER_PAGE) return renderLocker();
     if (ROSTER_PAGE) return renderRoster();
     if (ROOM_ID) return renderRoom();
@@ -404,6 +405,42 @@
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
   })().catch(e => { app.innerHTML = ""; app.appendChild(el("div", { class: "alert red" }, [el("b", {}, ["ERR"]), t("err.start", { msg: e.message })])); });
+
+  // ======================================================================= app nav
+  // always at the bottom of every page: your profile, the table you're on (or were last on),
+  // war tables, war rooms, the roster. On home it switches tabs in place.
+  let homeShow = null;   // set by renderHome: switch a home tab without reloading
+  function navHere() {
+    if (LID) return "table";
+    if (LOCKER_PAGE) return "me";
+    if (ROSTER_PAGE) return "roster";
+    if (ROOM_ID) return "rooms";
+    if (COSTS_PAGE) return "";
+    return new URLSearchParams(location.search).get("tab") || "me";
+  }
+  function appNav() {
+    let old = document.querySelector(".appnav"); if (old) old.remove();
+    let last = null; try { last = JSON.parse(localStorage.getItem("wm_last_lobby") || "null"); } catch (e) {}
+    const tableId = LID || (last && last.id), tableName = LID ? (STATE && STATE.name) || (last && last.name) : last && last.name;
+    const here = navHere();
+    const items = [
+      ["me", "◉", t("ht.me"), "/"],
+      ["table", "⚔", t("nav.table"), tableId ? "/?l=" + tableId : "/?tab=tables", tableId ? tableName || "" : t("nav.table.none")],
+      ["tables", "▦", t("ht.tables"), "/?tab=tables"],
+      ["rooms", "⚓", t("ht.rooms"), "/?tab=rooms"],
+      ["roster", "☰", t("ros.title"), "/?tab=roster"],
+    ];
+    const nav = el("nav", { class: "appnav", "aria-label": t("nav.label") }, items.map(([k, ic, label, href, sub]) => {
+      const a = el("a", { href: href, class: "an-" + k, "aria-current": k === here ? "page" : null }, [
+        el("span", { class: "ic", "aria-hidden": "true" }, [ic]), el("b", {}, [label]), sub != null ? el("small", {}, [sub]) : null]);
+      a.onclick = e => {   // on home, the home tabs switch in place
+        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["me", "tables", "rooms", "roster"].includes(k)) {
+          e.preventDefault(); homeShow(k); window.scrollTo(0, 0); markNav(k); }
+      };
+      return a; }));
+    document.body.appendChild(nav); document.body.classList.add("hasnav");
+  }
+  function markNav(k) { document.querySelectorAll(".appnav a").forEach(a => a.setAttribute("aria-current", a.classList.contains("an-" + k) ? "page" : "false")); }
 
   // ======================================================================= who you are
   // the profile's war tables (made or joined) come back to any device it signs in on
@@ -528,11 +565,13 @@
     });
     let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
+      markNav(k);
       try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
       Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
       if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
     app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
+    homeShow = show;
 
     // --- Welcome
     const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
@@ -1129,6 +1168,7 @@
   function renderLive() {
     maybeLinkLocker();
     try { if (LID) localStorage.setItem("wm_last_lobby", JSON.stringify({ id: LID, name: STATE.name || "" })); } catch (e) {}
+    const navT = document.querySelector(".appnav .an-table small"); if (navT && STATE && navT.textContent !== (STATE.name || "")) navT.textContent = STATE.name || "";
     if (!liveRoot) return render();
     const y = window.scrollY;
     const ph = phases();
