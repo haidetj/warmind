@@ -2344,6 +2344,7 @@
   function whyLine(w) {
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
+    if (w.k === "why.saved") return t("why.saved", { name: p.name || "" });
     if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
@@ -2365,6 +2366,38 @@
     ]);
   }
 
+  // #41: fight with one of your saved loadouts at this table, or let WARMIND build the kit
+  function kitChoiceRow(p) {
+    const b = el("button", { class: "btn sm", type: "button" }, [p.kit_choice ? "🗄 " + t("kc.change") : "🗄 " + t("kc.use")]);
+    b.onclick = () => kitChoiceDialog(p);
+    const kids = [b];
+    if (p.kit_choice) { const x = el("button", { class: "btn sm", type: "button" }, [t("kc.clear")]);
+      x.onclick = () => setKitChoice(p, null); kids.push(x); }
+    return el("div", { class: "kcrow" }, [p.kit_choice ? el("span", { class: "tag amber" }, [t("kc.on")]) : null, ...kids]);
+  }
+  async function setKitChoice(p, oid) {
+    if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
+    try { STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/kit", { loadout_id: oid }, meRec().token); lastSig = JSON.stringify(STATE); renderLive();
+      toast(oid ? t("kc.set") : t("kc.cleared")); } catch (e) { toast(e.message); }
+  }
+  async function kitChoiceDialog(p) {
+    const L = store.locker(); let lk; try { lk = await lget("/api/locker/" + L.id); } catch (e) { toast(e.message); return; }
+    const dlg = el("dialog", { class: "modal", "aria-label": t("kc.use") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const list = el("div", { class: "stack", style: "gap:8px" });
+    if (!lk.loadouts.length) list.appendChild(el("div", { class: "hint" }, [t("kc.none")]));
+    lk.loadouts.forEach(o => { const k = o.kit || {}, rec = o.record;
+      const b = el("button", { type: "button", class: "btn kcpick" + (o.id === p.kit_choice ? " primary" : "") }, [
+        el("b", {}, [o.name]), el("small", {}, [[k.primary, k.secondary, k.grenade].filter(Boolean).join(" · ")]),
+        el("small", {}, [(k.stratagems || []).join(" · ")]), rec ? el("small", { class: "rec" }, [loadoutRecordLine(rec)]) : null]);
+      b.onclick = () => { dlg.close(); setKitChoice(p, o.id); }; list.appendChild(b); });
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("kc.use")]), x]), el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("kc.hint")]), list]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  const loadoutRecordLine = r => t("kc.rec", { n: r.drops, k: r.kills != null ? nf(r.kills) : "—", d: r.deaths != null ? nf(r.deaths) : "—" }) + (r.medals ? " · 🎖 " + r.medals : "");
+
   function diverCard(p, mine, provisional) {
     const a = p.assignment;
     const card = el("article", { class: "dcard" + (mine ? " me" : "") }); card.style.setProperty("--acc", p.accent);
@@ -2382,6 +2415,7 @@
         return el("div", { class: "wornrow" }, [b]); })() : null,
     ]));
     if (!a) return card;
+    if (mine && p.locker && store.locker()) card.appendChild(kitChoiceRow(p));
     if (mine && p.want_role && p.want_role !== "any") {   // the role you asked for: got it, or who has it
       const wn = roleName(p.want_role);
       if (a.role === wn) card.appendChild(el("div", { class: "wantrole ok" }, ["✓ " + t("me.role.got", { role: wn })]));
@@ -2762,6 +2796,7 @@
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
       card.appendChild(locker(o.kit));
       if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
+      card.appendChild(el("div", { class: "lkrecline" }, [o.record ? "⚔ " + loadoutRecordLine(o.record) : t("kc.norec")]));
       // ⋮ menu: Edit / Share as PNG / Delete (share only on someone else's profile)
       const items = [];
       const after = opts.after || loadLocker;
@@ -3059,6 +3094,7 @@
       kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]),
         el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
           r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
+          r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null,
           r.lobby_id ? el("a", { class: "btn sm", href: "/?l=" + r.lobby_id }, [t("lk.r.open")]) : null])]));
     });
     return panel("LKR-03", t("lk.tab.record"), {}, kids);
@@ -3298,8 +3334,8 @@
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
           const vs = rr.verdicts || (rr.verdict ? [rr.verdict] : []), won = vs.filter(v => v.passed === true && v.medal);
-          toast(won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
-            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar"));
+          toast((rr.replaced ? t("deb.replaced") + " " : "") + (won.length ? t("toast.medal", { name: won.map(v => v.medal.d100 ? t("medal.d100", { name: t("oath." + v.oath + ".medal") }) : t("oath." + v.oath + ".medal")).join(" + ") })
+            : vs.some(v => v.passed === false) ? t("toast.broken") : t("toast.aar")));
         } catch (e) { stop(); setStatus(status, "err", t("deb.failed", { msg: e.message })); }
         finally { stop(); lockControls([up], false); busy = false; }
       };
@@ -3345,7 +3381,10 @@
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
         if (chips.length) inner.push(el("div", { class: "scoreline", title: t("deb.score") }, chips.map(([k, v]) => el("span", {}, [t(k), el("b", {}, [String(v)])]))));
+        if (r.mission_name) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.read.mission", { m: r.mission_name + (r.planet ? " · " + r.planet : "") })]));
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
+        if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));
+        if (r.loadout) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.withkit", { name: r.loadout })]));
       }
       const row = el("div", { class: "hrow" }, [el("div", { class: "stripe" }), el("div", { class: "in" }, inner)]);
       row.style.setProperty("--acc", p.accent);

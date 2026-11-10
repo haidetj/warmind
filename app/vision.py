@@ -9,6 +9,7 @@ seed snapshots so a local demo looks like real intake.
 from __future__ import annotations
 
 import base64
+import re
 import io
 import json
 import os
@@ -67,7 +68,9 @@ RESULT_PROMPT = (
     "This is a Helldivers 2 end-of-mission screen (a player scoreboard and/or the mission "
     "summary). Return ONE JSON object, no prose, with these fields where visible (omit any you "
     "cannot read): " + ", ".join(RESULT_FIELDS) + ". objectives_completed / objectives_total "
-    "count main + optional objectives only if the screen lists them. Return only the JSON object."
+    "count main + optional objectives only if the screen lists them. Also mission_name (the mission "
+    "title as shown, e.g. \"Eradicate Automaton Forces\") and planet if the screen names them. "
+    "Return only the JSON object."
 )
 
 
@@ -104,7 +107,7 @@ def _normalize(images):
     return out
 
 
-def _call(images, prompt: str, max_tokens: int = 1024, kind: str = "vision") -> str:
+def _call(images, prompt: str, max_tokens: int = 1024, kind: str = "vision", with_stop: bool = False):
     """One vision message over one or more images. `images` is a list of
     (bytes, media_type). Returns the model's text. Raises on transport/HTTP error."""
     headers = {
@@ -126,7 +129,27 @@ def _call(images, prompt: str, max_tokens: int = 1024, kind: str = "vision") -> 
         data = r.json()
     import costs   # what this call cost, at list price (late import: costs imports db)
     costs.record(kind, data.get("model") or MODEL, data.get("usage"))
-    return "".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
+    text = "".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
+    return (text, data.get("stop_reason")) if with_stop else text
+
+
+_SENT_END = re.compile(r"[.!?。！？…](?:[\"'”’»)\]]*)")
+
+
+def _whole_sentences(text: str) -> str:
+    """Text cut off by the token limit, trimmed back to its last complete sentence."""
+    ends = [m.end() for m in _SENT_END.finditer(text)]
+    return text[:ends[-1]].rstrip() if ends and ends[-1] > len(text) * 0.4 else text.rstrip() + "…"
+
+
+def split_lesson(text: str):
+    """(review, lesson): the review's last line 'LESSON: …' is the kit lesson for next time."""
+    m = re.search(r"(?im)^\s*\**\s*LESSON\s*\**\s*[:：]\s*(.+?)\s*$", text or "")
+    if not m:
+        return (text or "").strip(), None
+    lesson = m.group(1).strip().strip("*").strip()
+    review = (text[:m.start()] + text[m.end():]).strip()
+    return review, (None if lesson.lower().rstrip(".") in ("none", "n/a", "-", "") else lesson[:240])
 
 
 def _extract_json(text: str) -> dict:
@@ -237,7 +260,8 @@ SQUAD_PROMPT = (
     "no prose: {\"players\": [{\"name\": <the player's name exactly as shown>, <fields>}]} with one entry "
     "per player in the order shown, and these fields where visible (omit any you cannot read): "
     + ", ".join(RESULT_FIELDS) + ". objectives_completed / objectives_total only if the screen lists "
-    "them (they apply to every player). {hint}Return only the JSON object."
+    "them (they apply to every player). If the screen names the mission or planet, add top-level "
+    "\"mission_name\" and \"planet\". {hint}Return only the JSON object."
 )
 
 
@@ -254,7 +278,8 @@ def read_squad_results(image_bytes: bytes, media_type: str, expected: list | Non
     hint = ("The squad's callsigns in WARMIND are: " + ", ".join(expected) + " (in-game names may differ). ") if expected else ""
     data = _extract_json(_call([(image_bytes, media_type)], SQUAD_PROMPT.replace("{hint}", hint), kind="squad"))
     rows = data.get("players") if isinstance(data, dict) else data
-    return [r for r in (rows or []) if isinstance(r, dict) and r.get("name")][:8]
+    top = {k: data.get(k) for k in ("mission_name", "planet") if isinstance(data, dict) and data.get(k)}
+    return [dict(top, **r) for r in (rows or []) if isinstance(r, dict) and r.get("name")][:8]
 
 
 def _as_list(verdicts) -> list:
@@ -311,7 +336,8 @@ def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
     Written in the diver's chosen language; official item/stratagem names stay English."""
     if MOCK:
         return (_mock_oath_line(verdict) + "Mock review. Accuracy held above the career baseline and "
-                "the discipline rule was kept (zero accidentals). The role's signature metric moved the right way.")
+                "the discipline rule was kept (zero accidentals). The role's signature metric moved the right way."), \
+            "Mock lesson: bring a backpack support weapon for the heavies."
     language = LANG_NAMES.get(lang, "English")
     prompt = (
         f"Write your entire reply in {language}. Keep official Helldivers 2 item, stratagem and "
@@ -330,9 +356,18 @@ def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
         f"This mission's result: {json.dumps(result)}\n\n"
         "Did the role's signature metric move toward its target? Did the discipline rule hold? "
         "If the result was poor, check whether a thin capability with no deep partner caused it — "
-        "that is a design error to own, not a player error. Return only the review text."
+        "that is a design error to own, not a player error.\n\n"
+        + (f"Lessons WARMIND took from this diver's earlier debriefs: {json.dumps(context['lessons'])}. "
+           "Say in a few words whether this mission bore them out.\n\n" if context.get("lessons") else "")
+        + f"Then, on its own final line, write `LESSON: ` and one short sentence in {language}: the one change to "
+        "this diver's KIT (an item, stratagem, armour or role to swap in or out) that WARMIND should carry into "
+        "the next loadout, or `LESSON: none` if the kit worked. Return only the review and that line."
     )
-    return _call([(image_bytes, media_type)], prompt, max_tokens=500, kind="review").strip()
+    text, stop = _call([(image_bytes, media_type)], prompt, max_tokens=1400, kind="review", with_stop=True)
+    review, lesson = split_lesson(text)
+    if stop == "max_tokens":   # never leave a review cut off mid-sentence
+        review = _whole_sentences(review)
+    return review.strip(), lesson
 
 
 def status() -> dict:

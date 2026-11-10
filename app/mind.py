@@ -241,7 +241,9 @@ How to answer:
 - Use ONLY item names that appear in that diver's own lists, copied exactly. Never invent gear.
 - saved_loadouts are kits a diver kept for reference: lean towards their picks when they fit the mission \
 and mode (in Challenge / D100, use them to see the comfort zone to push off).
-- Keep each diver's engine_plan role when role_locked is true (the squad leader chose it).
+- last_debriefs_said are kit lessons from that diver's own recent debriefs (newest first): act on them \
+unless this mission or mode clearly calls for otherwise, and say so in that diver's why when you do.
+- Keep each diver's engine_plan role when role_locked is true (the squad leader chose it, or the diver asked for it).
 - free_stratagems_for_everyone (Weapons Experimentation) are handed to every diver outside their four slots: \
 never spend a slot on one; plan around it.
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
@@ -312,6 +314,7 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         # what the diver told WARMIND they like (vibe, focus, armour). Honour it in Optimize / Fun /
         # Improvement as long as the mission is still answered; Challenge and D100 push past it.
         "told_us": pl.prefs or None,
+        "last_debriefs_said": getattr(pl, "lessons", None) or None,   # #40: what earlier debriefs taught WARMIND
         # armour the diver chose to wear: it is fixed (the engine keeps it); build the kit around its passive
         "wears": (pl.prefs or {}).get("armor_set"),
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,

@@ -64,6 +64,16 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - A diver can ask for a role (`prefs.role`: HARDPOINT, HAMMER, …) and set their play style on the Profile tab or
   at the war table; both live on the locker and follow them (`_with_wants` adds role requests to the creator's
   swaps: the creator's call wins, then first to ask). A Profile play style reaches unbriefed seats only.
+- Debriefs (`vision.write_aar`): the review ends with a `LESSON:` line (one kit change for next time), split off
+  into `result.lesson`; a review cut by the token limit is trimmed to its last whole sentence. A diver's latest
+  lessons (`db.locker_lessons`) go to the planner as `last_debriefs_said` and back into the next review.
+- Saved loadouts at the table (`player.kit_choice`, `POST /api/lobby/{lid}/player/{pid}/kit`): the diver fights with
+  one of their locker kits; `_with_saved_kits` sends it through the engine as an override (owned / legal / kit rules,
+  role kept, the rest of the squad unchanged). Results carry `loadout_id`; `_with_records` gives each saved kit
+  its record (drops, kills and deaths per drop, medals).
+- Re-uploads (`_same_drop`): the screenshot's mission name (read with the numbers) decides; without names the
+  table's mission at upload time does, and identical numbers are always the same scoreboard. Same drop = replaced
+  (endorsements too); a different mission is a new drop.
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
