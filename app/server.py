@@ -8,6 +8,7 @@ the deterministic resolver you can run offline.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import re
@@ -441,6 +442,52 @@ def _with_endorsements(res, players_rows):
     return out
 
 
+_FIXABLE = ("kills", "deaths", "accuracy_pct", "accidentals", "friendly_fire_dmg", "samples_extracted",
+            "times_reinforcing", "stims_used", "objectives_completed", "objectives_total")
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/result/fix")
+def fix_result(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """The screenshot read a number wrong (deaths, kills…): the diver (or the table's creator)
+    corrects it. The oaths are re-judged from the corrected numbers; an oath the table already
+    endorsed stays endorsed; the fields fixed by hand are recorded and shown to everyone."""
+    _require_player_or_creator(lid, pid, x_token)
+    res = db.latest_result(pid)
+    if not res or res["lobby_id"] != lid:
+        raise HTTPException(400, "no debrief to fix yet")
+    result = json.loads(res["result_json"]) if res.get("result_json") else {}
+    fixed = set(result.get("corrected") or [])
+    for k, v in (payload.get("fields") or {}).items():
+        if k not in _FIXABLE:
+            continue
+        if v in (None, ""):
+            result.pop(k, None)
+        else:
+            try:
+                n = float(v)
+            except (TypeError, ValueError):
+                raise HTTPException(400, f"{k} must be a number")
+            if n < 0 or (k == "accuracy_pct" and n > 100) or n > 1_000_000:
+                raise HTTPException(400, f"{k} is out of range")
+            result[k] = n if k == "accuracy_pct" else int(n)
+        fixed.add(k)
+    result["corrected"] = sorted(fixed)
+    mission = _mission_from(db.get_lobby(lid)) or {}
+    old = {v["oath"]: v for v in _verdicts_of(res.get("verdict_json")) if v}
+    verdicts = []
+    for key in _oaths_of(mission):
+        v = oaths.evaluate(key, result)
+        if not v:
+            continue
+        if v.get("passed") is None and (old.get(key) or {}).get("endorsed_by"):
+            v = old[key]   # the table already vouched for it
+        else:
+            v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=result, mode=mission.get("mode"))
+        verdicts.append(v)
+    db.fix_result(res["id"], result, verdicts or None)
+    return _resolve(db.get_lobby(lid))
+
+
 @app.post("/api/lobby/{lid}/player/{pid}/endorse")
 def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     """Another diver at the table vouches that `pid` kept an oath no scoreboard shows.
@@ -640,10 +687,60 @@ def feedback(payload: dict, request: Request):
     return {"ok": True, "id": fid}
 
 
+FEEDBACK_IMAGES = 3
+
+
+def _shrink_screenshot(data: bytes) -> bytes:
+    """A feedback screenshot, at most 1600 px and re-encoded as JPEG (which also drops
+    EXIF, such as where a phone photo was taken)."""
+    from PIL import Image, ImageOps
+    im = Image.open(io.BytesIO(data))
+    im = ImageOps.exif_transpose(im).convert("RGB")
+    im.thumbnail((1600, 1600))
+    out = io.BytesIO()
+    im.save(out, "JPEG", quality=82, optimize=True)
+    return out.getvalue()
+
+
+@app.post("/api/feedback/{fid}/images")
+async def feedback_images(fid: str, request: Request, images: list[UploadFile] = File(default=[])):
+    """Screenshots for a feedback note, sent right after it (public, like the note)."""
+    fb = db.get_feedback(fid[:20])
+    if not fb or time.time() - (fb["created_at"] or 0) > 900:
+        raise HTTPException(404, "no such feedback (or it's too late to add pictures)")
+    have = db.feedback_image_counts([fb["id"]]).get(fb["id"], 0)
+    n = have
+    for up in (images or [])[:FEEDBACK_IMAGES - have]:
+        data = await up.read()
+        if not data or len(data) > 15_000_000:
+            continue
+        try:
+            jpg = await run_in_threadpool(_shrink_screenshot, data)
+        except Exception:
+            raise HTTPException(400, "that file isn't a picture")
+        db.add_feedback_image(fb["id"], n, jpg)
+        n += 1
+    return {"ok": True, "images": n}
+
+
+@app.get("/api/feedback/{fid}/image/{n}.jpg")
+def feedback_image(fid: str, n: int):
+    from fastapi.responses import Response
+    data = db.feedback_image(fid[:20], n)
+    if not data:
+        raise HTTPException(404, "no such picture")
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=604800"})
+
+
 @app.get("/api/feedback/export")
-def feedback_export(after: float = 0.0):
+def feedback_export(request: Request, after: float = 0.0):
     """Feedback for the daily GitHub sync (public by design: it's published as issues)."""
-    return {"items": db.list_feedback(after)}
+    items = db.list_feedback(after)
+    base = _public_base(request)
+    counts = db.feedback_image_counts([i["id"] for i in items])
+    for i in items:
+        i["images"] = [f"{base}/api/feedback/{i['id']}/image/{k}.jpg" for k in range(counts.get(i["id"], 0))]
+    return {"items": items}
 
 
 # ---------------------------------------------------------------- lobby lifecycle

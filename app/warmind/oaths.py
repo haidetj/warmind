@@ -24,10 +24,15 @@ OATHS = {
     "full_clear":  {"name": "Full Clear",      "rule": "Every objective on the map completed.",
                     "medal": "Liberator's Laurel"},
     # no scoreboard shows these: the war table endorses them
+    # `dq`: scoreboard numbers that rule the oath out before anyone endorses it (each applies
+    # only when the screenshot shows that number): {"field", "max"} fails when field <= max;
+    # {"objectives": "all"} fails when objectives_completed < objectives_total
     "all_sides":   {"name": "Side Sweep",      "rule": "Every side objective on the map done.",
-                    "medal": "Field Commendation", "endorse": True},
+                    "medal": "Field Commendation", "endorse": True,
+                    "dq": [{"objectives": "all"}]},
     "all_samples": {"name": "Sample Run",      "rule": "Extract with every sample type the map holds.",
-                    "medal": "Science Corps Ribbon", "endorse": True},
+                    "medal": "Science Corps Ribbon", "endorse": True,
+                    "dq": [{"field": "samples_extracted", "max": 0, "key": "v.nosamples", "text": "No samples extracted."}]},
 }
 
 
@@ -47,6 +52,21 @@ def _num(r: dict, k: str):
     return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
+def disqualified(oath: str, result: dict):
+    """(reason, reason_key, params) if the scoreboard's numbers rule this endorse-only oath
+    out, else None. Numbers the screenshot doesn't show never disqualify."""
+    for rule in OATHS.get(oath, {}).get("dq", []):
+        if rule.get("objectives"):
+            c, t = _num(result, "objectives_completed"), _num(result, "objectives_total")
+            if c is not None and t is not None and t > 0 and c < t:
+                return f"{int(c)}/{int(t)} objectives.", "v.obj", {"c": int(c), "t": int(t)}
+        elif rule.get("field"):
+            v = _num(result, rule["field"])
+            if v is not None and v <= rule.get("max", 0):
+                return rule.get("text", f"{rule['field']}: {v:g}."), rule.get("key", ""), {"n": int(v)}
+    return None
+
+
 def evaluate(oath: str | None, result: dict) -> dict | None:
     """Verdict for one diver's scoreboard: passed True / False / None (unverifiable)."""
     if not oath or oath not in OATHS:
@@ -55,6 +75,9 @@ def evaluate(oath: str | None, result: dict) -> dict | None:
     passed, reason, rk, rp = None, "", "", {}   # rk/rp: translation key + params for the reason
     if o.get("endorse"):
         reason, rk = "No scoreboard shows this: the war table endorses it.", "v.endorse_only"
+        dq = disqualified(oath, result)   # ...but the numbers can still rule it out
+        if dq:
+            passed, (reason, rk, rp) = False, dq
     elif oath == "no_deaths":
         d = _num(result, "deaths")
         if d is None:

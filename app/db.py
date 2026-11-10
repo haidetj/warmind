@@ -138,6 +138,12 @@ CREATE TABLE IF NOT EXISTS callsign_stats (
   style_note TEXT,
   updated_at REAL
 );
+CREATE TABLE IF NOT EXISTS feedback_image (
+  feedback_id TEXT,
+  n INTEGER,
+  data BLOB,
+  PRIMARY KEY (feedback_id, n)
+);
 CREATE TABLE IF NOT EXISTS feedback (
   id TEXT PRIMARY KEY,
   created_at REAL,
@@ -454,6 +460,32 @@ def add_feedback(fid, name, kind, text, lobby_id, page, lang):
                   (fid, time.time(), name, kind, text, lobby_id, page, lang))
 
 
+def add_feedback_image(fid, n, data: bytes):
+    with _lock, _conn() as c:
+        c.execute("INSERT OR REPLACE INTO feedback_image(feedback_id,n,data) VALUES(?,?,?)", (fid, n, data))
+
+
+def feedback_image(fid, n):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT data FROM feedback_image WHERE feedback_id=? AND n=?", (fid, n)).fetchone()
+    return bytes(r["data"]) if r else None
+
+
+def feedback_image_counts(fids) -> dict:
+    if not fids:
+        return {}
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT feedback_id, COUNT(*) AS n FROM feedback_image WHERE feedback_id IN (%s) GROUP BY feedback_id"
+                         % ",".join("?" * len(fids)), list(fids)).fetchall()
+    return {r["feedback_id"]: r["n"] for r in rows}
+
+
+def get_feedback(fid):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM feedback WHERE id=?", (fid,)).fetchone()
+    return dict(r) if r else None
+
+
 def list_feedback(after: float = 0.0, limit: int = 200) -> list:
     with _lock, _conn() as c:
         rows = c.execute("SELECT * FROM feedback WHERE created_at > ? ORDER BY created_at LIMIT ?",
@@ -766,6 +798,12 @@ def endorsements(result_id):
     for r in rows:
         out.setdefault(r["oath"], []).append(r["endorser_id"])
     return out
+
+
+def fix_result(result_id, result: dict, verdicts):
+    with _lock, _conn() as c:
+        c.execute("UPDATE result SET result_json=?, verdict_json=? WHERE id=?",
+                  (json.dumps(result), json.dumps(verdicts) if verdicts else None, result_id))
 
 
 def set_result_verdicts(result_id, verdicts):

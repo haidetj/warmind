@@ -1188,6 +1188,16 @@
       kinds.appendChild(b);
     });
     const text = el("textarea", { rows: "5", maxlength: "2000", placeholder: t("fb.text.ph") });
+    // up to 3 screenshots (public with the note): shown as thumbnails, tap one to drop it
+    let shots = [];
+    const thumbs = el("div", { class: "fbthumbs" });
+    const pickBtn = fileBtn("sm", "🖼 " + t("fb.shots"), true);
+    const paintShots = () => { thumbs.innerHTML = "";
+      shots.forEach((f, i) => { const u = URL.createObjectURL(f);
+        const th = el("button", { type: "button", class: "fbthumb", "aria-label": t("fb.shot.remove") }, [el("img", { src: u, alt: "" }), el("span", {}, ["×"])]);
+        th.onclick = () => { shots.splice(i, 1); paintShots(); }; thumbs.appendChild(th); });
+      pickBtn.style.display = shots.length >= 3 ? "none" : ""; };
+    pickBtn.querySelector("input").onchange = ev => { shots = shots.concat(Array.from(ev.target.files || []).filter(f => /^image\//.test(f.type))).slice(0, 3); ev.target.value = ""; paintShots(); };
     const send = el("button", { type: "button", class: "btn primary" }, ["➤ " + t("fb.send")]);
     const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
     const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fb.title") });
@@ -1196,8 +1206,12 @@
       send.disabled = true;
       try {
         try { localStorage.setItem("wm_fb_name", name.value.trim()); } catch (e) {}
-        await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
+        const r = await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
           page: LID ? "tab" + (curTab || "") : "home", lang: LANG });
+        if (shots.length && r && r.id) {
+          const fd = new FormData(); shots.forEach(f => fd.append("images", f));
+          try { await fdpost("/api/feedback/" + r.id + "/images", fd); } catch (e) { toast(t("fb.shots.fail")); }
+        }
         dlg.close(); toast(t("fb.thanks"));
       } catch (e) { toast(e.message); send.disabled = false; }
     };
@@ -1208,7 +1222,9 @@
         el("span", { class: "label" }, [t("fb.name")]), name,
         el("span", { class: "label" }, [t("fb.kind")]), kinds,
         el("span", { class: "label" }, [t("fb.text")]), text,
+        el("div", { class: "fbshots" }, [thumbs, pickBtn]),
         el("div", { class: "hint", style: "margin:0" }, [t("fb.public")]),
+        el("div", { class: "hint", style: "margin:0" }, [t("fb.shots.public")]),
       ]),
       el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [send, cancel])]));
     dlg.addEventListener("close", () => dlg.remove());
@@ -3292,11 +3308,36 @@
   }
 
   // an oath no scoreboard shows: the other divers at the table vouch for it
+  // the screenshot read a number wrong: fix it, and the oaths are judged again
+  const FIX_LAB = { kills: "sb.kills", deaths: "sb.deaths", accuracy_pct: "sb.accuracy", accidentals: "sb.accidentals",
+    friendly_fire_dmg: "fix.ff", samples_extracted: "sb.samples", times_reinforcing: "sb.reinforces", stims_used: "fix.stims",
+    objectives_completed: "fix.objc", objectives_total: "fix.objt" };
+  function fixDialog(p, r) {
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fix.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const ins = {};
+    const rows = Object.keys(FIX_LAB).map(k => { const i = el("input", { type: "number", inputmode: "decimal", min: "0", step: k === "accuracy_pct" ? "0.1" : "1" });
+      if (r[k] != null) i.value = r[k]; ins[k] = i;
+      return el("div", { class: "field fixf" }, [el("span", { class: "label" }, [has(FIX_LAB[k]) ? t(FIX_LAB[k]) : k]), i]); });
+    const sv = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("fix.save")]);
+    sv.onclick = async () => { const fields = {};
+      Object.entries(ins).forEach(([k, i]) => { const v = i.value.trim(), was = r[k] != null ? String(r[k]) : ""; if (v !== was) fields[k] = v === "" ? null : v; });
+      if (!Object.keys(fields).length) { dlg.close(); return; }
+      sv.disabled = true;
+      try { const token = (myPlayer() || {}).id === p.id ? meRec().token : store.creator(LID);
+        STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/result/fix", { fields }, token); lastSig = JSON.stringify(STATE); dlg.close(); renderLive(); toast(t("fix.saved")); }
+      catch (e) { toast(e.message); sv.disabled = false; } };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("fix.title") + " · " + p.callsign]), x]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("fix.hint")]), el("div", { class: "fixgrid" }, rows), el("div", { class: "btnrow" }, [sv])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
   function endorseRow(v, subject) {
     const me = myPlayer(), meR = meRec(), got = v.endorsers || [], need = v.needed || 1;
     const kids = [el("span", {}, [got.length ? t("end.by", { names: got.join(", "), n: got.length, m: need }) : t("end.none", { m: need })])];
     if (me && meR && subject && me.id !== subject.id && !(v.endorser_ids || []).includes(me.id)) {
-      const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch", { name: subject.callsign })]);
+      const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch.oath", { oath: t("oath." + v.oath + ".name"), name: subject.callsign })]);
       b.onclick = async () => { b.disabled = true;
         try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
         catch (e) { toast(e.message); b.disabled = false; } };
@@ -3318,7 +3359,8 @@
         el("div", { class: "btnrow", style: "margin:8px 0 0" }, [shareBtn])])]);
     }
     if (v.passed === false) return el("div", { class: "broken" }, [el("div", { class: "bt" }, [t("deb.broken", { name: name })]), el("div", { class: "bw" }, [reason])]);
-    return el("div", { class: "unver" }, [el("div", {}, [t("deb.unver", { reason: reason })]), subject ? endorseRow(v, subject) : null]);
+    return el("div", { class: "unver" }, [el("div", { class: "oathname" }, [name, el("small", {}, [" · " + t("oath." + v.oath + ".rule")])]),
+      el("div", {}, [t("deb.unver", { reason: reason })]), subject ? endorseRow(v, subject) : null]);
   }
 
   // Squad scoreboard: confirm which column is which diver (prefilled from the names), then
@@ -3431,6 +3473,9 @@
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
         if (chips.length) inner.push(el("div", { class: "scoreline", title: t("deb.score") }, chips.map(([k, v]) => el("span", {}, [t(k), el("b", {}, [String(v)])]))));
+        if ((r.corrected || []).length) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, ["✎ " + t("fix.marked", { list: r.corrected.map(k => has(FIX_LAB[k] || "") ? t(FIX_LAB[k]) : k).join(", ") })]));
+        if ((me && me.id === p.id) || isCreator()) { const fb = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("fix.btn")]);
+          fb.onclick = () => fixDialog(p, r); inner.push(el("div", { class: "btnrow", style: "margin:6px 0 0" }, [fb])); }
         if (r.mission_name) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.read.mission", { m: r.mission_name + (r.planet ? " · " + r.planet : "") })]));
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
         if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));
