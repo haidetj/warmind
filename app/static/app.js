@@ -144,6 +144,26 @@
     return t(ph.k, p);
   }
   const styleLabel = k => (has("ps." + k + ".label") ? t("ps." + k + ".label") : k);
+  // roles a diver can ask for (HARDPOINT, HAMMER, …): name + what it does for the squad
+  const roleName = k => ((META.roles || []).find(r => r.key === k) || {}).name || k;
+  const roleBlurb = r => { const key = "role." + r.name.replace(/ /g, "_") + ".blurb"; return has(key) ? t(key) : r.blurb; };
+  function roleSelect(cur, onPick) {
+    const sel = el("select", { "aria-label": t("me.role") }, [el("option", { value: "any" }, [t("me.role.any")]),
+      ...(META.roles || []).map(r => el("option", { value: r.key }, [r.name]))]);
+    sel.value = cur || "any";
+    const hint = el("div", { class: "hint", style: "margin:6px 0 0" });
+    const paint = () => { const r = (META.roles || []).find(x => x.key === sel.value); hint.textContent = r ? roleBlurb(r) : t("me.role.any.hint"); };
+    paint(); sel.onchange = async () => { paint(); await onPick(sel.value); };
+    return { sel, hint };
+  }
+  function styleSelect(cur, onPick) {
+    const sel = el("select", { "aria-label": t("me.style") }, (META.archetypes || []).map(k => el("option", { value: k }, [styleLabel(k)])));
+    if (cur) sel.value = cur;
+    const hint = el("div", { class: "hint", style: "margin:6px 0 0" });
+    const paint = () => { const ps = (META.play_styles || []).find(x => x.key === sel.value); hint.textContent = ps ? (has("ps." + ps.key + ".desc") ? t("ps." + ps.key + ".desc") : ps.desc) : ""; };
+    paint(); sel.onchange = async () => { paint(); await onPick(sel.value); };
+    return { sel, hint };
+  }
   const nf = n => (n == null ? "—" : Number(n).toLocaleString(LANG));
 
   function initLang() {
@@ -1461,6 +1481,13 @@
       el("div", { class: "field" }, [el("label", { class: "label", for: "my-style" }, [t("me.style")]), styleSel]),
       el("div", { class: "field" }, [reread]),
     ]));
+    if (p.locker && store.locker()) {   // the role you want (HARDPOINT, HAMMER…): kept on your Profile
+      const rs = roleSelect(p.want_role, async v => {
+        if (STATE.readiness && STATE.readiness.final && !confirm(t("me.role.rebuild"))) { rs.sel.value = p.want_role || "any"; return; }
+        try { await lpost("/api/locker/" + store.locker().id + "/prefs", { role: v }); await refresh(); toast(v === "any" ? t("me.role.cleared") : t("me.role.saved", { role: roleName(v) })); }
+        catch (e) { toast(e.message); } });
+      kids.push(el("div", { class: "field", style: "margin-top:12px" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint]));
+    }
     kids.push(status);
     // rename after joining
     const nameIn = el("input", { id: "my-callsign", type: "text", maxlength: "24", value: p.callsign || "", autocomplete: "off" });
@@ -2355,6 +2382,12 @@
         return el("div", { class: "wornrow" }, [b]); })() : null,
     ]));
     if (!a) return card;
+    if (mine && p.want_role && p.want_role !== "any") {   // the role you asked for: got it, or who has it
+      const wn = roleName(p.want_role);
+      if (a.role === wn) card.appendChild(el("div", { class: "wantrole ok" }, ["✓ " + t("me.role.got", { role: wn })]));
+      else { const h = (STATE.players || []).find(x => x.id !== p.id && x.assignment && x.assignment.role === wn);
+        card.appendChild(el("div", { class: "wantrole" }, [h ? t("me.role.taken", { role: wn, who: h.callsign }) : t("me.role.not", { role: wn })])); }
+    }
     if (kitView === "screen") {
       card.appendChild(locker(a));
     } else {
@@ -2487,6 +2520,11 @@
         el("div", { class: "hint", style: "margin:4px 0 0" }, [LK.play_style ? t("lk.style", { style: styleLabel(LK.play_style) }) : t("me.noread")])])]),
       LK.has_pin ? null : pinSetter(L),
       el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]), el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]), tune]),
+      (() => { const ss = styleSelect(LK.play_style, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { play_style: v }); LK.play_style = v; toast(t("me.style.saved", { style: styleLabel(v) })); } catch (e) { toast(e.message); } });
+        const rs = roleSelect((LK.prefs || {}).role, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { role: v }); toast(v === "any" ? t("me.role.cleared") : t("me.role.saved", { role: roleName(v) })); } catch (e) { toast(e.message); } });
+        return el("div", { class: "grid2 prefpick", style: "margin-top:10px" }, [
+          el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.style")]), ss.sel, ss.hint]),
+          el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint])]); })(),
       el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));

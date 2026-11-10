@@ -61,6 +61,9 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one of `AWARD_ICONS`) and gives it to crew members (room members only) with an optional citation; they can
   take one back or retire the award (holders keep retired awards). Awards show on the room page, the
   diver's Profile / locker / public profile, their Discord diver card, and in the ship's log (`log.award`).
+- A diver can ask for a role (`prefs.role`: HARDPOINT, HAMMER, …) and set their play style on the Profile tab or
+  at the war table; both live on the locker and follow them (`_with_wants` adds role requests to the creator's
+  swaps: the creator's call wins, then first to ask). A Profile play style reaches unbriefed seats only.
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

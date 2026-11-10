@@ -144,7 +144,8 @@ _RULES = kitrules.rules()
 PREF_KEYS = {"vibe": {"boom", "precision", "stealth", "hold", "any"},
              "focus": {"at", "ch", "st", "support", "scout", "any"},
              "armor": {"Light", "Medium", "Heavy", "any"},
-             "front": {"terminids", "automatons", "illuminate", "any"}}
+             "front": {"terminids", "automatons", "illuminate", "any"},
+             "role": set(__import__("warmind.roles", fromlist=["ROLES"]).ROLES) | {"any"}}   # the role a diver asks for
 
 
 _ARMOR_NAMES = {r["name"] for r in loader.items().get("armor", [])}
@@ -200,12 +201,12 @@ def _resolve(lobby) -> dict:
         for gi, grp in enumerate(groups):
             for pl in grp:  # later groups avoid the stratagems the squad already brings
                 pl.excluded_items = sorted(taken)
-            dg = resolve_squad(_session_of(mission, lobby), grp, {})
+            dg = resolve_squad(_with_wants(_session_of(mission, lobby), grp), grp, {})
             if gi == 0:   # WARMIND thinks it over: the planner's picks, checked by the engine
-                plan, mind_status = mind.plan_for(lobby["id"], _session_of(mission, lobby), grp, mission)
+                plan, mind_status = mind.plan_for(lobby["id"], _with_wants(_session_of(mission, lobby), grp), grp, mission)
                 if plan:
                     try:
-                        dg, info = mind.apply(_session_of(mission, lobby), grp, plan)
+                        dg, info = mind.apply(_with_wants(_session_of(mission, lobby), grp), grp, plan)
                         mind_status.update(info)
                     except Exception as e:   # a bad plan never breaks the briefing
                         mind_status = {"status": "failed", "error": str(e)[:200]}
@@ -249,6 +250,7 @@ def _resolve(lobby) -> dict:
             "owned": _owned_of(p),           # None = owns everything; else every item owned
             "gear_confirmed": bool(p.get("gear_confirmed")),
             "go": bool(p.get("go")),
+            "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]),
@@ -269,6 +271,20 @@ def _resolve(lobby) -> dict:
 
 
 SQUAD_MAX = 4  # a Helldivers 2 squad
+
+
+def _with_wants(session, grp):
+    """The roles divers asked for (profile / war table), on top of the creator's applied swaps.
+    The creator's call wins; two divers wanting the same role: the first to join gets it."""
+    roles = dict(session.roles or {})
+    taken = set(roles.values())
+    for pl in grp:
+        w = (pl.prefs or {}).get("role")
+        if w and w != "any" and pl.id not in roles and w not in taken:
+            roles[pl.id] = w
+            taken.add(w)
+    session.roles = roles
+    return session
 
 
 def _session_of(mission, lobby) -> Session:
@@ -470,7 +486,7 @@ def meta():
                   "dmin": t.get("difficulty_min", 1), "dmax": t.get("difficulty_max", 10)}
                  for t in loader.tactical_objectives().values()]
     from warmind.roles import ROLES, PLAY_STYLES
-    roles = [{"name": r.name, "blurb": r.blurb, "reactive": r.reactive} for r in ROLES.values()]
+    roles = [{"key": k, "name": r.name, "blurb": r.blurb, "reactive": r.reactive} for k, r in ROLES.items()]
     play_styles = [{"key": k, "label": PLAY_STYLES[k].label, "desc": PLAY_STYLE_DESC.get(k, "")}
                    for k in stats.ALLOWED]
     return {"missions": sorted(missions, key=lambda x: x["name"]),
@@ -1217,6 +1233,8 @@ def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         raise HTTPException(400, "unknown play style")
     db.add_or_update_player(pid, lid, p["token"], p["callsign"], ps, "manual",
                             "Chosen by the diver.", json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
+    if p.get("locker_id"):   # and it follows the diver: their Profile keeps it for the next table
+        db.update_locker(p["locker_id"], play_style=ps, style_note="Chosen by the diver.")
     return {"ok": True}
 
 
@@ -2146,7 +2164,30 @@ def locker_prefs(lid: str, payload: dict, x_locker: str = Header(None)):
                 cur.pop(k, None)
     p = cur
     db.update_locker(lid, prefs_json=json.dumps(p))
-    return {"ok": True, "prefs": p}
+    out = {"ok": True, "prefs": p}
+    if "play_style" in (payload or {}):   # the play style the diver picks on their Profile
+        ps = stats.coerce_play_style(payload.get("play_style"))
+        if not ps:
+            raise HTTPException(400, "unknown play style")
+        db.update_locker(lid, play_style=ps, style_note="Chosen by the diver.")
+        _style_to_seats(lid, ps)
+        out["play_style"] = ps
+    return out
+
+
+def _style_to_seats(locker_id, ps):
+    """A play style picked on the Profile follows the diver to their seats at tables that
+    haven't built loadouts yet (a briefed table keeps its kits)."""
+    for row in db.locker_tables(locker_id, limit=20):
+        if not row.get("player_id"):
+            continue
+        lobby = db.get_lobby(row["lobby_id"])
+        if not lobby or lobby.get("briefed") or lobby.get("folded"):
+            continue
+        p = db.get_player(row["player_id"])
+        if p:
+            db.add_or_update_player(p["id"], p["lobby_id"], p["token"], p["callsign"], ps, "manual", "Chosen by the diver.",
+                                    json.loads(p["snapshot_json"]) if p["snapshot_json"] else None)
 
 
 @app.post("/api/locker/{lid}/visibility")
