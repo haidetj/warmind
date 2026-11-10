@@ -191,21 +191,27 @@ def diver(p: dict) -> bytes:
              ("missions won", pct(r.get("win_rate"))), ("missions", r.get("missions"))]
     for i, (lab, v) in enumerate(cells):
         _stat(d, 56 + i * 220, 270, lab, _compact(v), w=200)
-    _txt(d, (56, 410), f"MEDALS · {p.get('n_medals') or 0}", 18, "Bold", MUTED)
-    medals = p.get("medals") or []
-    if not medals:
+    medals, awards = p.get("medals") or [], p.get("awards") or []
+    head = f"MEDALS · {p.get('n_medals') or 0}" + (f"   AWARDS · {len(awards)}" if awards else "")
+    _txt(d, (56, 410), head, 18, "Bold", MUTED)
+    if not medals and not awards:
         _txt(d, (56, 440), "None yet. Swear an oath at the next war table.", 24, "Regular", MUTED)
     x, y = 56, 440
-    for m in medals[:6]:
+    chips = [(a, VIOLET) for a in awards[:4]] + [(m, AMBER) for m in medals[:6]]
+    for m, col in chips:
         label = _fit(d, m, 22, "Bold", W - 112 - 60)
         w = d.textlength(label, font=_font(22, "Bold")) + 56
         if x + w > W - 56:
             x, y = 56, y + 46
             if y > 490:
                 break
-        d.rectangle([x, y, x + w, y + 36], outline=AMBER, fill=PANEL)
-        _star(d, x + 22, y + 18, 10)
-        _txt(d, (x + 42, y + 6), label, 22, "Bold", AMBER)
+        d.rectangle([x, y, x + w, y + 36], outline=col, fill=PANEL)
+        if col == AMBER:
+            _star(d, x + 22, y + 18, 10)
+        else:   # an award: a small hexagon
+            import math
+            d.polygon([(x + 22 + 10 * math.cos(math.pi / 3 * i - math.pi / 2), y + 18 + 10 * math.sin(math.pi / 3 * i - math.pi / 2)) for i in range(6)], fill=col)
+        _txt(d, (x + 42, y + 6), label, 22, "Bold", col)
         x += w + 12
     _footer(d, p.get("url") or "")
     return _png(im)

@@ -813,7 +813,7 @@ def _room_out(rid):
             "message": r.get("message"), "message_at": r.get("message_at"),
             "mission": json.loads(r["mission_json"]) if r.get("mission_json") else None,
             "mission_name": _mission_name(r.get("mission_json")), "mission_by": r.get("mission_by"),
-            "orders": orders, "tables": tables, "members": members, "log": log,
+            "orders": orders, "tables": tables, "members": members, "log": log, "awards": _award_out(r["id"]),
             "stats": {"tables": len(lobbies), "nights": nights, "drops": tally["drops"], "medals": tally["medals"],
                       "oaths": tally["oaths"], "kills": tally["kills"], "planets": tally["planets"]},
             "ribbons": [k for k, f in RIBBONS if f(st)]}
@@ -965,6 +965,92 @@ def edit_order(rid: str, oid: str, payload: dict, x_token: str = Header(None), x
     if payload.get("done") is not None:
         db.update_room_order(oid, rid, done_at=time.time() if payload["done"] else None)
     return _room_out(rid)
+
+
+# ---------------------------------------------------------------- awards the founder names
+AWARD_ICONS = ("medal", "star", "skull", "shield", "crosshair", "bolt", "burst", "flag", "anchor", "swords", "satellite", "waves",
+               "planet", "mind", "ring", "hex")
+
+
+def _award_out(rid):
+    grants = db.room_grants(rid)
+    out = []
+    for a in db.room_awards(rid):
+        held = [{"grant_id": g["id"], "id": g["locker_id"], "callsign": g.get("callsign") or "?", "public": bool(g.get("public")),
+                 "note": g.get("note"), "at": g["granted_at"]} for g in grants if g["award_id"] == a["id"]]
+        out.append({"id": a["id"], "name": a["name"], "description": a.get("description") or "", "icon": a.get("icon") or "medal",
+                    "at": a["created_at"], "holders": held})
+    return out
+
+
+def _clean_award(payload, partial=False):
+    out = {}
+    if not partial or "name" in payload:
+        name = str(payload.get("name") or "").strip()[:40]
+        if not name:
+            raise HTTPException(400, "give the award a name")
+        out["name"] = name
+    if not partial or "description" in payload:
+        out["description"] = str(payload.get("description") or "").strip()[:160]
+    if not partial or "icon" in payload:
+        icon = str(payload.get("icon") or "medal")
+        if icon in AWARD_ICONS:
+            out["icon"] = icon
+        elif not partial:
+            out["icon"] = "medal"
+    return out
+
+
+@app.post("/api/room/{rid}/awards")
+def add_award(rid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if len(db.room_awards(rid)) >= 24:
+        raise HTTPException(400, "24 awards is plenty: retire one first")
+    a = _clean_award(payload)
+    db.add_award(_id(4), rid, a["name"], a["description"], a["icon"])
+    db.room_log(rid, "newaward", json.dumps({"k": "log.newaward", "p": {"award": a["name"]}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/awards/{aid}")
+def edit_award(rid: str, aid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if not db.get_award(aid, rid):
+        raise HTTPException(404, "no such award")
+    if payload.get("retire"):
+        db.update_award(aid, rid, retired=1)   # holders keep it on their profiles
+    else:
+        db.update_award(aid, rid, **_clean_award(payload, partial=True))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/awards/{aid}/grant")
+def grant_award(rid: str, aid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    a = db.get_award(aid, rid)
+    if not a or a.get("retired"):
+        raise HTTPException(404, "no such award")
+    to = str(payload.get("locker_id") or "")[:40]
+    member = next((m for m in db.room_members(rid) if m["locker_id"] == to), None)
+    if not member:
+        raise HTTPException(400, "only the room's crew can be awarded")
+    note = str(payload.get("note") or "").strip()[:200]
+    db.add_grant(_id(5), aid, rid, to, note or None)
+    db.room_log(rid, "award", json.dumps({"k": "log.award", "p": {"who": member.get("callsign") or "?", "award": a["name"], "note": note}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/grants/{gid}/revoke")
+def revoke_award(rid: str, gid: str, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if not db.remove_grant(gid, rid):
+        raise HTTPException(404, "no such award given")
+    return _room_out(rid)
+
+
+def _awards_of(locker_id):
+    return [{"name": a["name"], "description": a.get("description") or "", "icon": a.get("icon") or "medal", "note": a.get("note"),
+             "at": a["granted_at"], "room": a.get("room_name"), "room_id": a.get("room_id")} for a in db.locker_awards(locker_id)]
 
 
 @app.post("/api/rooms/summary")
@@ -1419,6 +1505,7 @@ def _diver_card(lid, base):
     _, medals = _record_of(lk["id"])
     return {"kind": "diver", "callsign": lk["callsign"], "style": _style_label(lk.get("play_style")), "rates": rates,
             "medals": [m["medal"].get("name") for m in medals if m.get("medal")], "n_medals": len(medals),
+            "awards": [a["name"] for a in _awards_of(lk["id"])],
             "url": f"{base}/?roster={lk['id']}"}
 
 
@@ -1476,7 +1563,8 @@ def _og_for(params, base):
                     f"{s.get('medals', 0)} medals. Tonight: {(data['mission'] or {}).get('name') or 'no mission set'}.", kind, cid, data)
         r = data["rates"] or {}
         bits = [f"{r['accuracy'] * 100:.0f}% accuracy" if r.get("accuracy") else None,
-                f"K/D {r['kd']}" if r.get("kd") else None, f"{data['n_medals']} medals"]
+                f"K/D {r['kd']}" if r.get("kd") else None, f"{data['n_medals']} medals",
+                f"{len(data['awards'])} awards" if data.get("awards") else None]
         return f"{data['callsign']} · WARMIND diver", " · ".join(b for b in bits if b) + ".", kind, cid, data
     return None
 
@@ -1871,7 +1959,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "play_style": lk.get("play_style"), "style_note": lk.get("style_note"),
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
-            "history": history, "record": record, "medals": medals,
+            "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
             "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 
@@ -2037,7 +2125,7 @@ def roster_profile(lid: str):
               for r in record[:10]]
     return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
             "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
-            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])]}
+            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])], "awards": _awards_of(lk["id"])}
 
 
 @app.post("/api/locker/{lid}/prefs")

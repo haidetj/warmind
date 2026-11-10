@@ -65,6 +65,7 @@ html:lang(ja) .big,html:lang(ko) .big,html:lang(zh) .big{letter-spacing:0}
 .panel.amber::before,.panel.amber::after{border-color:var(--amber)}
 .panel.red::before,.panel.red::after{border-color:var(--red)}
 .panel.green::before,.panel.green::after{border-color:var(--green)}
+.panel.violet{border-color:rgba(180,140,255,.3)} .panel.violet::before,.panel.violet::after{border-color:var(--violet)} .panel.violet .ph .pt{color:var(--violet)}
 .panel.amber{border-color:rgba(255,146,52,.28)} .panel.red{border-color:rgba(255,56,100,.32)} .panel.green{border-color:rgba(77,255,161,.28)}
 .ph{display:flex;align-items:center;gap:10px;margin:-2px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);
   font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase}
@@ -712,6 +713,26 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .endorse{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;font-size:13.5px;color:var(--ink-2)}
   .lkacts{margin:10px 0 0}
   .lkslide .hd{position:relative;padding-right:46px}
+  .award{border:1px solid rgba(180,140,255,.35);background:rgba(180,140,255,.04);padding:12px;margin-top:10px}
+  .award:first-child{margin-top:0}
+  .awhead{display:flex;gap:12px;align-items:center;position:relative;padding-right:44px}
+  .awhead .awt{display:flex;flex-direction:column;min-width:0} .awhead .awt b{font-family:var(--head);font-size:17px;letter-spacing:.5px;color:var(--violet)}
+  .awhead .awt small{color:var(--ink-2);font-size:13px;line-height:1.4}
+  .awbadge{width:42px;height:48px;flex:none;display:grid;place-items:center;background:var(--violet);color:#120a1f;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+  .awbadge .ico{width:22px;height:22px} .awbadge .ico svg{stroke:#120a1f}
+  .chip.aw{border-color:rgba(180,140,255,.55);color:var(--violet)}
+  .award .chips{margin-top:10px}
+  .awcites{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px;font-size:13px;color:var(--ink-2)}
+  .awcites li{display:flex;gap:8px;align-items:flex-start} .awcites .ct{flex:1;min-width:0} .awcites b{color:var(--ink)} .awcites small{color:var(--muted)}
+  .btn.xs{min-height:28px;padding:0 9px;font-size:13px;flex:none}
+  .awicons{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px}
+  .awpick{background:transparent;border:1px solid var(--line);padding:6px;display:grid;place-items:center;cursor:pointer}
+  .awpick[aria-pressed="true"]{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet) inset;background:rgba(180,140,255,.08)}
+  .lkawards{display:grid;gap:8px;margin-bottom:12px}
+  .lkaward{display:flex;gap:12px;align-items:center;border:1px solid rgba(180,140,255,.35);padding:10px;background:rgba(180,140,255,.04)}
+  .lkaward b{font-family:var(--head);color:var(--violet);font-size:15px} .lkaward .cite{font-size:13px;color:var(--ink-2);font-style:italic}
+  .lkaward small{color:var(--muted);font-size:12px} .lkaward small a{color:var(--ink-2)}
   .kwrap{position:absolute;top:0;right:0;z-index:4}
   .kebab{width:38px;height:38px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);color:var(--ink-2);font-size:20px;line-height:1;cursor:pointer;padding:0}
   .kebab:hover,.kwrap.open .kebab{border-color:var(--line-3);color:var(--cyan)}

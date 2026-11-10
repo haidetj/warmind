@@ -53,9 +53,13 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
   (`_room_tally`); ribbons and the ship's log (`room_log`, i18n keys `log.*`) build up over time.
-  Anyone with the room code can set the mission and orders; only the founder (token in
-  `wm_roomc_<id>`) renames it. Joining a room table with a locker makes you a member, and your
+  Anyone with the room code can set the mission; only the founder (token in `wm_roomc_<id>`, or the
+  founder's profile) renames it, sets standing orders, pins the crew message and names awards. Joining a room table with a locker makes you a member, and your
   rooms follow your locker into the new-table picker.
+- Awards the founder names (`room_award`, `award_grant`): the founder creates an award (name, what it's for,
+  one of `AWARD_ICONS`) and gives it to crew members (room members only) with an optional citation; they can
+  take one back or retire the award (holders keep retired awards). Awards show on the room page, the
+  diver's Profile / locker / public profile, their Discord diver card, and in the ship's log (`log.award`).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

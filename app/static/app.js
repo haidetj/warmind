@@ -640,6 +640,7 @@
       const bits = [p.kills != null ? t("lk.r.kills", { n: nf(p.kills) }) : null, p.deaths != null ? t("lk.r.deaths", { n: nf(p.deaths) }) : null].filter(Boolean).join(", ");
       return t("log.drop", { who: p.who || "?", mission: p.mission || "—", bits: bits || "—" }) + ((p.medals || []).length ? " 🎖 " + p.medals.join(", ") : "");
     }
+    if (e.k === "log.award") return t(p.note ? "log.award.cite" : "log.award", { who: p.who || "?", award: p.award || "", note: p.note || "" });
     if (e.k === "log.neworder" || e.k === "log.order") p.title = p.title || orderTitle({ kind: p.kind, target: p.n, params: p.params || {} });
     p.who = p.who || t("room.someone"); p.ship = (ROOM && ROOM.ship) || "";
     return has(e.k) ? t(e.k, p) : (e.t || "");
@@ -662,7 +663,7 @@
     let sig = JSON.stringify(ROOM);
     const poll = setInterval(async () => {   // the room is shared: pick up what others change
       if (!document.body.contains(body)) return clearInterval(poll);
-      if (document.hidden || body.querySelector("details.fold[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      if (document.hidden || body.querySelector("details.fold[open], .kwrap.open") || document.querySelector("dialog[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       try { const r = await rget(ROOM.id); const s2 = JSON.stringify(r); if (s2 !== sig) { sig = s2; ROOM = r; paintRoom(body); } } catch (e) {}
     }, 15000);
   }
@@ -706,6 +707,7 @@
     // tonight: the room's mission and a table on it
     body.appendChild(roomMissionPanel(body));
     body.appendChild(roomOrdersPanel(body));
+    body.appendChild(roomAwardsPanel(body));
     // tables
     const row = x => el("a", { class: "roomrow st-" + x.status, href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
@@ -729,6 +731,84 @@
     body.appendChild(panel("RM-07", t("room.log"), {}, [el("ol", { class: "shiplog" }, R0.log.map(e => el("li", {}, [
       el("span", { class: "ts" }, [dt(e.at) + " " + new Date(e.at * 1000).toISOString().slice(11, 16)]), el("span", {}, [logLine(e)])])))]));
   }
+  // Awards the founder names: a name, a line on what it's for, an icon; given to crew members with
+  // a citation. Holders keep them on their profiles (and their Discord card).
+  const AWARD_ICONS = ["medal", "star", "skull", "shield", "crosshair", "bolt", "burst", "flag", "anchor", "swords", "satellite", "waves", "planet", "mind", "ring", "hex"];
+  const awardBadge = icon => { const b = el("span", { class: "awbadge", "aria-hidden": "true" }); b.appendChild(ico(icon || "medal")); return b; };
+  function roomAwardsPanel(body) {
+    const R0 = ROOM, kids = [];
+    const aw = R0.awards || [];
+    if (!aw.length) kids.push(el("div", { class: "hint", style: "margin:0" }, [t(R0.founder ? "aw.none.founder" : "aw.none")]));
+    aw.forEach(a => {
+      const counts = {}; a.holders.forEach(h => { counts[h.id] = counts[h.id] || { n: 0, h: h }; counts[h.id].n++; });
+      const chips = Object.values(counts).map(({ n, h }) => h.public ? el("a", { class: "chip aw", href: "/?roster=" + h.id + fromHere() }, [h.callsign + (n > 1 ? " ×" + n : "")])
+        : el("span", { class: "chip aw" }, [h.callsign + (n > 1 ? " ×" + n : "")]));
+      const cites = a.holders.slice().reverse().slice(0, 4).map(h => el("li", {}, [el("span", { class: "ct" }, [el("b", {}, [h.callsign]), h.note ? " · “" + h.note + "”" : "", el("small", {}, [" · " + dt(h.at)])]),
+        R0.founder ? (() => { const x = el("button", { class: "btn sm xs", type: "button", "aria-label": t("aw.revoke"), title: t("aw.revoke") }, ["×"]);
+          x.onclick = async () => { if (!confirm(t("aw.revoke.q", { who: h.callsign, award: a.name }))) return;
+            try { setRoom(await fpost("/api/room/" + R0.id + "/grants/" + h.grant_id + "/revoke", {})); toast(t("aw.revoked")); paintRoom(body); } catch (e) { toast(e.message); } }; return x; })() : null]));
+      const head = el("div", { class: "awhead" }, [awardBadge(a.icon), el("div", { class: "awt" }, [el("b", {}, [a.name]), a.description ? el("small", {}, [a.description]) : null])]);
+      if (R0.founder) head.appendChild(kebab([
+        ["aw.edit", "", () => awardDialog(a, body)],
+        ["aw.retire", "red", async () => { if (!confirm(t("aw.retire.q", { award: a.name }))) return;
+          try { setRoom(await fpost("/api/room/" + R0.id + "/awards/" + a.id, { retire: true })); paintRoom(body); } catch (e) { toast(e.message); } }]]));
+      kids.push(el("div", { class: "award" }, [head,
+        chips.length ? el("div", { class: "chips" }, chips) : el("div", { class: "hint", style: "margin:6px 0 0" }, [t("aw.nobody")]),
+        cites.length ? el("ul", { class: "awcites" }, cites) : null,
+        R0.founder ? (() => { const g = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("aw.grant")]); g.onclick = () => grantDialog(a, body); return el("div", { class: "btnrow", style: "margin:8px 0 0" }, [g]); })() : null]));
+    });
+    if (R0.founder) { const n = el("button", { class: "btn sm primary", type: "button" }, ["＋ " + t("aw.new")]); n.onclick = () => awardDialog(null, body);
+      kids.push(el("div", { class: "btnrow" }, [n])); }
+    else if (aw.length) kids.push(el("div", { class: "hint" }, [t("aw.founder")]));
+    return panel("RM-08", t("aw.title"), { status: aw.length ? String(aw.length) : "", statusKind: "info", tone: "violet" }, kids);
+  }
+  function roomDialog(title, kids, onSave, saveLabel) {
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": title });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const sv = el("button", { type: "button", class: "btn primary" }, [saveLabel]);
+    sv.onclick = async () => { sv.disabled = true; try { if (await onSave() !== false) dlg.close(); } catch (e) { toast(e.message); } sv.disabled = false; };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [title]), x]), el("div", { class: "mbody" }, [...kids, el("div", { class: "btnrow" }, [sv])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    return dlg;
+  }
+  function awardDialog(a, body) {
+    const R0 = ROOM;
+    const name = el("input", { type: "text", maxlength: "40", placeholder: t("aw.name.ph") }); name.value = a ? a.name : "";
+    const desc = el("input", { type: "text", maxlength: "160", placeholder: t("aw.desc.ph") }); desc.value = a ? a.description : "";
+    let icon = a ? a.icon : "medal";
+    const grid = el("div", { class: "awicons", role: "group", "aria-label": t("aw.icon") }, AWARD_ICONS.map(k => {
+      const b = el("button", { type: "button", class: "awpick", "aria-pressed": String(k === icon), "aria-label": k }, [awardBadge(k)]);
+      b.onclick = () => { icon = k; grid.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }; return b; }));
+    const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
+    roomDialog(t(a ? "aw.edit" : "aw.new"), [lab("aw.name", name), lab("aw.desc", desc), lab("aw.icon", grid)], async () => {
+      if (!name.value.trim()) { name.focus(); toast(t("aw.name.need")); return false; }
+      const body2 = { name: name.value.trim(), description: desc.value.trim(), icon: icon };
+      setRoom(await fpost("/api/room/" + R0.id + "/awards" + (a ? "/" + a.id : ""), body2)); toast(t(a ? "aw.saved" : "aw.created")); paintRoom(body);
+    }, t(a ? "aw.save" : "aw.create"));
+    setTimeout(() => name.focus(), 50);
+  }
+  function grantDialog(a, body) {
+    const R0 = ROOM;
+    const who = el("select", {}, [el("option", { value: "" }, [t("aw.pick")]), ...R0.members.map(m => el("option", { value: m.id }, [m.callsign]))]);
+    const note = el("textarea", { rows: "3", maxlength: "200", placeholder: t("aw.note.ph") });
+    const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
+    roomDialog(t("aw.grant.title", { award: a.name }), [el("div", { class: "awhead", style: "margin-bottom:10px" }, [awardBadge(a.icon), el("div", { class: "awt" }, [el("b", {}, [a.name]), a.description ? el("small", {}, [a.description]) : null])]),
+      R0.members.length ? lab("aw.to", who) : el("div", { class: "hint" }, [t("aw.nocrew")]), lab("aw.note", note)], async () => {
+      if (!who.value) { who.focus(); toast(t("aw.pick.need")); return false; }
+      setRoom(await fpost("/api/room/" + R0.id + "/awards/" + a.id + "/grant", { locker_id: who.value, note: note.value.trim() }));
+      toast(t("aw.granted", { who: who.options[who.selectedIndex].textContent, award: a.name })); paintRoom(body);
+    }, t("aw.give"));
+  }
+  // a diver's awards (profile, locker, public profile)
+  function awardList(list) {
+    if (!list || !list.length) return [];
+    return [el("div", { class: "sub-h" }, [t("aw.title")]), el("div", { class: "lkawards" }, list.map(a => el("div", { class: "lkaward" }, [awardBadge(a.icon),
+      el("div", {}, [el("b", {}, [a.name]), a.note ? el("div", { class: "cite" }, ["“" + a.note + "”"]) : a.description ? el("div", { class: "cite" }, [a.description]) : null,
+        el("small", {}, [a.room_id ? el("a", { href: "/?room=" + a.room_id + fromHere() }, [a.room || t("room.title")]) : (a.room || ""), " · " + dt(a.at)])])])))];
+  }
+
   function roomMissionPanel(body) {
     const R0 = ROOM, m = R0.mission;
     const kids = [];
@@ -2890,6 +2970,7 @@
     if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
       el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    kids.push(...awardList(d.awards));
     if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
       el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
@@ -2921,6 +3002,7 @@
   }
   function lkRecord() {
     const kids = [];
+    kids.push(...awardList(LK.awards));
     if (LK.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, LK.medals.map(m =>
       el("div", { class: "lkmedal", title: m.medal.id }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (!LK.record.length) kids.push(el("div", { class: "hint" }, [t("lk.record.none")]));
