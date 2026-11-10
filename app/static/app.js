@@ -2189,6 +2189,15 @@
     im.onerror = () => im.replaceWith(el("span", { class: "nopic", "aria-hidden": "true" }, ["◇"]));
     return im;
   };
+  function itemStats(n) { for (const tb of META.armory || []) for (const g of tb.groups) for (const i of g.items) if (i.name === n) return i.stats; return null; }
+  // grenades carried: the grenade's base count plus the armour passive's extra throwables
+  // (Engineering Kit, Grenadier, Integrated Explosives); ship upgrades are left out
+  function nadeLine(a) {
+    const base = (itemStats(a.grenade) || {}).capacity;
+    if (base == null) return "";
+    const plus = (META.passive_throwables || {})[a.armor_passive] || 0;
+    return plus ? t("st.nades.plus", { n: nf(base + plus), plus: plus }) : t("st.nades", { n: nf(base) });
+  }
   function locker(a) {
     const strats = el("div", { class: "strats" }, (a.stratagems || []).map(s => {
       const pm = String(((META.pics || {})[s] || {}).permit || "supply").toLowerCase();
@@ -2197,10 +2206,10 @@
         el("div", { class: "sn" }, [wk(s)]),
       ]);
     }));
-    const statsOf = n => { for (const tb of META.armory || []) for (const g of tb.groups) for (const i of g.items) if (i.name === n) return i.stats; return null; };
-    const wt = (cls, label, name, stats) => el("div", { class: "wtile " + cls }, [
+    const wt = (cls, label, name, stats) => { const line = typeof stats === "string" ? stats : stats ? statLine(itemStats(name)) : "";
+      return el("div", { class: "wtile " + cls }, [
       el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [name ? wk(name) : "—"]),
-      stats && statLine(statsOf(name)) ? el("div", { class: "st" }, [statLine(statsOf(name))]) : null]);
+      line ? el("div", { class: "st" }, [line]) : null]); };
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = !a.armor_passive ? null : has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
     const armor = el("div", { class: "armorfig" }, [
@@ -2212,7 +2221,7 @@
       strats,
       el("div", { class: "equip" }, [armor, el("div", { class: "weps" }, [
         wt("primary", t("card.primary"), a.primary, true), wt("", t("card.secondary"), a.secondary, true),
-        wt("", t("card.grenade"), a.grenade), wt("booster", t("card.booster"), a.booster)])]),
+        wt("", t("card.grenade"), a.grenade, nadeLine(a)), wt("booster", t("card.booster"), a.booster)])]),
       eff ? el("div", { class: "eff" }, [el("b", {}, [a.armor_passive + ": "]), eff]) : null,
     ]);
   }
@@ -2270,7 +2279,7 @@
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
     kit.appendChild(row("card.primary", wk(a.primary)));
     kit.appendChild(row("card.secondary", wk(a.secondary)));
-    kit.appendChild(row("card.grenade", wk(a.grenade)));
+    kit.appendChild(row("card.grenade", wk(a.grenade), nadeLine(a)));
     const armorRow = row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive);
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];

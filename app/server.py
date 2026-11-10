@@ -484,6 +484,7 @@ def meta():
             "sources": loader.sources()["list"],
             "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
+            "passive_throwables": passives.throwables(),
             "vision": vision.status()}
 
 
