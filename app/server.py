@@ -39,6 +39,8 @@ ACCENTS = ["#d7a53a", "#4c9be0", "#2f9e6f", "#c084e8", "#e0574e"]
 app = FastAPI(title="WARMIND")
 app.add_middleware(GZipMiddleware, minimum_size=1024)  # i18n.js is ~240KB raw, ~60KB gzipped
 db.init()  # idempotent; also covered by the startup hook for reloads
+import cleanup  # noqa: E402  one-off data cleanup (duplicate uploads, duplicate profiles), recorded in kv
+cleanup.run()
 
 
 # ---------------------------------------------------------------- helpers
@@ -1819,7 +1821,7 @@ def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
             "vision": vision.status(), "budget": budget.status(), "war": war.status(),
             "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST},
-            "costs": _cost_brief(), "discord": discord_app.status()}
+            "costs": _cost_brief(), "discord": discord_app.status(), "cleanup": cleanup.status()}
 
 
 def _cost_brief():
