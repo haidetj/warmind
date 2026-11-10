@@ -595,7 +595,7 @@
   // ======================================================================= war rooms
   function roomsPane(pane) {
     const nm = el("input", { type: "text", id: "room-name", maxlength: "40", placeholder: t("room.name.ph"), autocomplete: "off" });
-    const mk = el("button", { class: "btn primary", type: "button" }, ["⚓ " + t("room.create")]);
+    const mk = el("button", { class: "btn primary", type: "button" }, ["＋ " + t("room.create2")]);
     mk.onclick = async () => {
       mk.disabled = true;
       try { const r = await rpost("/api/room", { name: nm.value.trim() });
@@ -606,9 +606,20 @@
     nm.addEventListener("keydown", e => { if (e.key === "Enter") mk.click(); });
     const list = el("div", { class: "stack", style: "gap:8px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     pane.appendChild(panel("RM-01", t("room.yours"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("room.what")]), list]));
-    pane.appendChild(panel("RM-02", t("room.new"), { tone: "amber" }, [
+    // join one by its code (or a pasted room link)
+    const code = el("input", { type: "text", id: "room-code", maxlength: "200", placeholder: t("room.code.ph"), autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
+    const jn = el("button", { class: "btn primary", type: "button" }, ["➤ " + t("room.join")]);
+    jn.onclick = async () => {
+      const raw = code.value.trim(), m = raw.match(/[?&]room=([A-Za-z0-9_-]+)/), c = (m ? m[1] : raw).replace(/[^A-Za-z0-9_-]/g, "").toLowerCase();
+      if (!c) { code.focus(); toast(t("home.code.need")); return; }
+      jn.disabled = true;
+      try { await api("/api/room/" + c); store.addRoom(c); location.href = "/?room=" + c; } catch (e) { toast(t("room.gone")); jn.disabled = false; }
+    };
+    code.addEventListener("keydown", e => { if (e.key === "Enter") jn.click(); });
+    pane.appendChild(panel("RM-02", t("ht.rooms"), { tone: "amber" }, [
       el("div", { class: "field" }, [el("label", { class: "label", for: "room-name" }, ["> " + t("room.name")]), nm]),
-      el("div", { class: "btnrow" }, [mk]), el("div", { class: "hint" }, [t("room.new.hint")])]));
+      el("div", { class: "btnrow" }, [mk]), el("div", { class: "hint" }, [t("room.new.hint")]),
+      el("div", { class: "field", style: "margin-top:16px" }, [el("label", { class: "label", for: "room-code" }, ["> " + t("room.joincode")]), el("div", { class: "joincode" }, [code, jn])])]));
     loadRooms().then(rs => {
       list.innerHTML = "";
       if (!rs.length) { list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("room.noneyet")])); return; }
@@ -620,6 +631,9 @@
   }
 
   let ROOM = null;
+  const rget = id => api("/api/room/" + encodeURIComponent(id), { headers: Object.assign({}, rhead(), store.roomFounder(id) ? { "x-token": store.roomFounder(id) } : {}) });
+  const fpost = (path, body) => rpost(path, body, ROOM && store.roomFounder(ROOM.id));   // founder actions
+  const setRoom = r => { if (r.founder == null && ROOM) r.founder = ROOM.founder; ROOM = r; return r; };
   const logLine = e => {
     const p = Object.assign({}, e.p || {});
     if (e.k === "log.drop") {
@@ -638,18 +652,18 @@
     app.appendChild(nav);
     const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
     app.appendChild(body);
-    try { ROOM = await api("/api/room/" + encodeURIComponent(ROOM_ID)); }
+    try { ROOM = await rget(ROOM_ID); }
     catch (e) { body.innerHTML = ""; body.appendChild(panel("ERR", t("room.title"), { tone: "red" }, [el("div", { class: "hint" }, [t("room.gone")])])); return; }
     store.addRoom(ROOM.id);
     const L = store.locker();   // visiting the room's link brings your profile aboard
-    if (L && !ROOM.members.some(m => m.id === L.id)) { try { await rpost("/api/room/" + ROOM.id + "/join", {}); ROOM = await api("/api/room/" + ROOM.id); } catch (e) {} }
+    if (L && !ROOM.members.some(m => m.id === L.id)) { try { await rpost("/api/room/" + ROOM.id + "/join", {}); ROOM = await rget(ROOM.id); } catch (e) {} }
     loadWar();
     paintRoom(body);
     let sig = JSON.stringify(ROOM);
     const poll = setInterval(async () => {   // the room is shared: pick up what others change
       if (!document.body.contains(body)) return clearInterval(poll);
       if (document.hidden || body.querySelector("details.fold[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-      try { const r = await api("/api/room/" + ROOM.id); const s2 = JSON.stringify(r); if (s2 !== sig) { sig = s2; ROOM = r; paintRoom(body); } } catch (e) {}
+      try { const r = await rget(ROOM.id); const s2 = JSON.stringify(r); if (s2 !== sig) { sig = s2; ROOM = r; paintRoom(body); } } catch (e) {}
     }, 15000);
   }
   function paintRoom(body) {
@@ -669,16 +683,42 @@
       el("div", { class: "rstats" }, [statCell("room.s.nights", st.nights), statCell("room.s.tables", st.tables), statCell("room.s.drops", st.drops),
         statCell("room.s.medals", st.medals), statCell("room.s.kills", nf(st.kills))]),
       R0.ribbons.length ? el("div", { class: "ribbons" }, R0.ribbons.map(k => el("span", { class: "ribbon r-" + k, title: t("rib." + k + ".d") }, [t("rib." + k)]))) : null,
-      el("div", { class: "btnrow" }, [share, rename])]));
+      el("div", { class: "btnrow" }, [share, rename, (() => { const L = store.locker(); if (!L || !R0.members.some(m => m.id === L.id)) return null;
+        const lv = el("button", { class: "btn sm red", type: "button" }, [t("room.leave")]);
+        lv.onclick = async () => { if (!confirm(t("room.leave.q", { name: R0.name }))) return;
+          try { await rpost("/api/room/" + R0.id + "/leave", {});
+            try { localStorage.setItem("wm_rooms", JSON.stringify(store.rooms().filter(x => x !== R0.id))); if (store.lastRoom() === R0.id) store.setLastRoom(""); } catch (e) {}
+            toast(t("room.left")); location.href = "/?tab=rooms"; } catch (e) { toast(e.message); } };
+        return lv; })()])]));
+    // the founder's pinned message to the crew
+    if (R0.message || R0.founder) {
+      const mk = [];
+      if (R0.message) mk.push(el("div", { class: "rmsg" }, [R0.message]), el("div", { class: "hint", style: "margin:4px 0 0" }, [t("room.msg.at", { d: dt(R0.message_at) })]));
+      else mk.push(el("div", { class: "hint", style: "margin:0" }, [t("room.msg.none")]));
+      if (R0.founder) {
+        const ta = el("textarea", { rows: "3", maxlength: "500", placeholder: t("room.msg.ph") }); ta.value = R0.message || "";
+        const sv = el("button", { class: "btn sm primary", type: "button" }, [t("room.msg.save")]);
+        sv.onclick = async () => { sv.disabled = true; try { setRoom(await fpost("/api/room/" + R0.id + "/message", { message: ta.value })); toast(t("room.msg.saved")); paintRoom(body); } catch (e) { toast(e.message); sv.disabled = false; } };
+        mk.push(el("details", { class: "fold" }, [el("summary", {}, ["✎ " + t(R0.message ? "room.msg.edit" : "room.msg.set")]), el("div", { class: "body" }, [ta, el("div", { class: "btnrow" }, [sv])])]));
+      }
+      body.appendChild(panel("RM-01", t("room.msg"), { tone: "amber" }, mk));
+    }
     // tonight: the room's mission and a table on it
     body.appendChild(roomMissionPanel(body));
     body.appendChild(roomOrdersPanel(body));
     // tables
-    const tl = R0.tables.length ? el("div", { class: "stack", style: "gap:6px" }, R0.tables.slice(0, 12).map(x => el("a", { class: "roomrow", href: "/?l=" + x.id + fromHere() }, [
+    const row = x => el("a", { class: "roomrow st-" + x.status, href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
-      el("div", { class: "rm" }, [(x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])])))
-      : el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]);
-    body.appendChild(panel("RM-04", t("room.tables"), { status: String(R0.tables.length), statusKind: "info" }, [tl]));
+      el("div", { class: "rm" }, [statusTag(x.status), " " + (x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])]);
+    const groups = [["open", R0.tables.filter(x => x.status === "open" || x.status === "debriefing")], ["done", R0.tables.filter(x => x.status === "done")],
+      ["folded", R0.tables.filter(x => x.status === "folded")]];
+    const tk = [];
+    if (!R0.tables.length) tk.push(el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]));
+    groups.forEach(([k, list]) => { if (!list.length) return;
+      const items = el("div", { class: "stack", style: "gap:6px" }, list.slice(0, k === "open" ? 20 : 8).map(row));
+      tk.push(el("div", { class: "sub-h" + (tk.length ? "" : " first") }, [t("tbl.group." + k) + " · " + list.length]), k === "open" ? items : el("details", { class: "fold" }, [el("summary", {}, [t("tbl.show", { n: list.length })]), el("div", { class: "body" }, [items])])); });
+    const nOpen = groups[0][1].length, nDone = groups[1][1].length;
+    body.appendChild(panel("RM-04", t("room.tables"), { status: t("tbl.counts", { o: nOpen, d: nDone }), statusKind: "info" }, tk));
     // crew
     if (R0.members.length) body.appendChild(panel("RM-05", t("room.crew"), { status: String(R0.members.length), statusKind: "info" }, [el("div", { class: "chips" },
       R0.members.map(m => m.public ? el("a", { class: "chip", href: "/?roster=" + m.id + fromHere() }, [m.callsign]) : el("span", { class: "chip" }, [m.callsign])))]));
@@ -723,11 +763,11 @@
     const save = el("button", { class: "btn primary", type: "button" }, ["✓ " + t("room.mission.save")]);
     save.onclick = async () => { save.disabled = true;
       Object.assign(draft, { faction: fac.value, mission_id: mis.value, difficulty: +diff.value, mode: mode.value, lang: LANG });
-      try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { mission: draft }); toast(ROOM.pushed ? t("room.mission.pushed", { n: ROOM.pushed }) : t("room.mission.saved")); paintRoom(body); } catch (e) { toast(e.message); save.disabled = false; } };
+      try { setRoom(await rpost("/api/room/" + R0.id + "/mission", { mission: draft })); toast(ROOM.pushed ? t("room.mission.pushed", { n: ROOM.pushed }) : t("room.mission.saved")); paintRoom(body); } catch (e) { toast(e.message); save.disabled = false; } };
     const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
     f.appendChild(el("div", { class: "body" }, [lab("war.pick", planet), lab("mis.faction", fac), lab("mis.mission", mis), lab("mis.difficulty", diff), lab("mis.mode", mode),
       el("div", { class: "btnrow" }, [save, m ? (() => { const c = el("button", { class: "btn sm", type: "button" }, [t("room.mission.clear")]);
-        c.onclick = async () => { try { ROOM = await rpost("/api/room/" + R0.id + "/mission", { clear: true }); paintRoom(body); } catch (e) { toast(e.message); } }; return c; })() : null]),
+        c.onclick = async () => { try { setRoom(await rpost("/api/room/" + R0.id + "/mission", { clear: true })); paintRoom(body); } catch (e) { toast(e.message); } }; return c; })() : null]),
       el("div", { class: "hint" }, [t("room.mission.hint")])]));
     kids.push(f);
     return panel("RM-02", t("room.tonight"), { tone: "amber" }, kids);
@@ -739,11 +779,11 @@
     R0.orders.forEach(o => {
       const done = !!o.done_at;
       const acts = [];
-      if (o.kind === "custom") { const b = el("button", { class: "btn sm", type: "button" }, [done ? t("ord.undo") : "✓ " + t("ord.done")]);
-        b.onclick = async () => { try { ROOM = await rpost("/api/room/" + R0.id + "/orders/" + o.id, { done: !done }); paintRoom(body); } catch (e) { toast(e.message); } }; acts.push(b); }
-      const x = el("button", { class: "btn sm", type: "button", title: t("ord.retire"), "aria-label": t("ord.retire") }, ["×"]);
-      x.onclick = async () => { if (!confirm(t("ord.retire.q"))) return; try { ROOM = await rpost("/api/room/" + R0.id + "/orders/" + o.id, { retire: true }); paintRoom(body); } catch (e) { toast(e.message); } };
-      acts.push(x);
+      if (R0.founder && o.kind === "custom") { const b = el("button", { class: "btn sm", type: "button" }, [done ? t("ord.undo") : "✓ " + t("ord.done")]);
+        b.onclick = async () => { try { setRoom(await fpost("/api/room/" + R0.id + "/orders/" + o.id, { done: !done })); paintRoom(body); } catch (e) { toast(e.message); } }; acts.push(b); }
+      if (R0.founder) { const x = el("button", { class: "btn sm", type: "button", title: t("ord.retire"), "aria-label": t("ord.retire") }, ["×"]);
+        x.onclick = async () => { if (!confirm(t("ord.retire.q"))) return; try { setRoom(await fpost("/api/room/" + R0.id + "/orders/" + o.id, { retire: true })); paintRoom(body); } catch (e) { toast(e.message); } };
+        acts.push(x); }
       kids.push(el("div", { class: "order" + (done ? " done" : "") }, [
         el("div", { class: "ot" }, [el("b", {}, [(done ? "✓ " : "") + orderTitle(o)]), el("small", {}, [[o.set_by ? t("room.setby", { who: o.set_by }) : null, dt(o.at)].filter(Boolean).join(" · ")])]),
         el("div", { class: "op" }, [o.kind === "custom" ? null : nixie(nf(o.progress) + "/" + nf(o.target)), ...acts]),
@@ -764,11 +804,11 @@
     kind.onchange = paint; paint();
     const add = el("button", { class: "btn primary", type: "button" }, ["＋ " + t("ord.add")]);
     add.onclick = async () => { add.disabled = true;
-      try { ROOM = await rpost("/api/room/" + R0.id + "/orders", { kind: kind.value, target: +target.value || 1, title: title.value.trim(), params: { planet: planet.value, min: +minD.value } });
+      try { setRoom(await fpost("/api/room/" + R0.id + "/orders", { kind: kind.value, target: +target.value || 1, title: title.value.trim(), params: { planet: planet.value, min: +minD.value } }));
         toast(t("ord.added")); paintRoom(body); } catch (e) { toast(e.message); add.disabled = false; } };
     f.appendChild(el("div", { class: "body" }, [el("div", { class: "field" }, [el("span", { class: "label" }, [t("ord.kind")]), kind]), fT, fP, fD, fTi, el("div", { class: "btnrow" }, [add]),
       el("div", { class: "hint" }, [t("ord.hint")])]));
-    kids.push(f);
+    if (R0.founder) kids.push(f); else kids.push(el("div", { class: "hint" }, [t("room.orders.founder")]));
     return panel("RM-03", t("room.orders"), { status: R0.orders.filter(o => o.done_at).length + "/" + R0.orders.length, statusKind: "info" }, kids);
   }
 
@@ -805,7 +845,7 @@
       const forget = el("button", { class: "btn sm red", type: "button", title: t("home.forget"), "aria-label": t("home.forget") }, ["×"]);
       const row = el("div", { class: "lrow" }, [
         el("div", { style: "min-width:0" }, [el("div", { class: "nm" }, [l.name || "Squad"]), el("div", { class: "mt" }, [meta])]),
-        tag(owned.has(l.id) ? "amber" : "cyan", owned.has(l.id) ? t("common.creator") : t("common.diver")), resume, forget,
+        statusTag(l.status), tag(owned.has(l.id) ? "amber" : "cyan", owned.has(l.id) ? t("common.creator") : t("common.diver")), resume, forget,
       ]);
       forget.onclick = () => { forgetLobby(l.id); row.remove(); if (!list.children.length) card.remove(); };
       list.appendChild(row);
@@ -914,7 +954,7 @@
 
     // 01 ASSEMBLE — join (static form), manifest + my setup (live)
     R.s1 = sect(1); R.views[1].appendChild(R.s1);
-    if (!myPlayer()) R.views[1].appendChild(joinPanel());
+    if (!myPlayer() && STATE.status !== "folded") R.views[1].appendChild(joinPanel());
     R.live1 = el("div", { class: "stack" }); R.views[1].appendChild(R.live1);
     // 02 MISSION — readout (live) + editor (static, creator)
     R.s2 = sect(2); R.views[2].appendChild(R.s2); R.views[2].appendChild(missionPanel());
@@ -1104,9 +1144,24 @@
           clearInterval(metTimer); metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
-      roomChip(), goStrip(),
+      foldRow(), roomChip(), STATE.status === "folded" ? null : goStrip(),
       ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
+  }
+
+  const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" ? "amber" : "cyan", t("tbl." + (st || "open")));
+  function foldRow() {
+    const st = STATE.status || "open", kids = [statusTag(st)];
+    if (isCreator()) {
+      const b = el("button", { class: "btn sm" + (st === "folded" ? " primary" : ""), type: "button" }, [st === "folded" ? t("tbl.unfold") : t("tbl.fold")]);
+      b.onclick = async () => { if (st !== "folded" && !confirm(t("tbl.fold.q"))) return; b.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/fold", { fold: st !== "folded" }, store.creator(LID)); lastSig = JSON.stringify(STATE); render(); toast(t(st === "folded" ? "tbl.unfolded" : "tbl.folded.toast")); }
+        catch (e) { toast(e.message); b.disabled = false; } };
+      kids.push(b);
+    }
+    if (st === "folded") kids.push(el("span", { class: "hint", style: "margin:0" }, [t("tbl.folded.hint")]));
+    else if (st === "done") kids.push(el("span", { class: "hint", style: "margin:0" }, [t("tbl.done.hint")]));
+    return el("div", { class: "foldrow" }, kids);
   }
 
   // which war room this table belongs to; the creator can attribute it (or move it)
@@ -1339,7 +1394,12 @@
       el("div", { class: "field" }, [nameBtn])]));
     const dev = el("button", { class: "btn sm", type: "button" }, ["⇄ " + t("me.device")]);
     dev.onclick = () => copy(location.origin + "/?l=" + LID + "#me=" + p.id + "." + meRec().token, t("me.device.copied"));
-    kids.push(el("div", { class: "btnrow" }, [dev]));
+    const leaveB = el("button", { class: "btn sm red", type: "button" }, [t("tbl.leave")]);
+    leaveB.onclick = async () => { if (!confirm(t("tbl.leave.q"))) return;
+      try { await api("/api/lobby/" + LID + "/player/" + p.id, { method: "DELETE", headers: { "x-token": meRec().token } });
+        try { localStorage.removeItem("wm_me_" + LID); } catch (e) {}
+        toast(t("tbl.left")); setTimeout(() => { location.href = "/?tab=tables"; }, 500); } catch (e) { toast(e.message); } };
+    kids.push(el("div", { class: "btnrow" }, [dev, leaveB]));
     if (gear && p.gear_confirmed) {
       if (p.locker && store.locker()) kids.push(lockerLine());   // the checklist lives in the locker now
       else kids.push(gear);

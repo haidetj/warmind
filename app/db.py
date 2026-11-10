@@ -194,6 +194,14 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN reroll INTEGER DEFAULT 0")
         if "roster_json" not in lcols:
             c.execute("ALTER TABLE lobby ADD COLUMN roster_json TEXT")
+        if "folded" not in lcols:   # the creator folded (closed) the table, done or not
+            c.execute("ALTER TABLE lobby ADD COLUMN folded REAL")
+        rcols = {r["name"] for r in c.execute("PRAGMA table_info(room)").fetchall()}
+        if "creator_locker" not in rcols:   # the founder's profile: founder rights on any device
+            c.execute("ALTER TABLE room ADD COLUMN creator_locker TEXT")
+        if "message" not in rcols:          # the founder's pinned message to the crew
+            c.execute("ALTER TABLE room ADD COLUMN message TEXT")
+            c.execute("ALTER TABLE room ADD COLUMN message_at REAL")
         if "creator_locker" not in lcols:   # whose profile created this table (creator rights on any device)
             c.execute("ALTER TABLE lobby ADD COLUMN creator_locker TEXT")
         if "room_id" not in lcols:   # the war room this table belongs to
@@ -532,7 +540,7 @@ def get_room(rid):
 
 
 def update_room(rid, **kw):
-    allowed = {k: v for k, v in kw.items() if k in ("name", "ship", "mission_json", "mission_by")}
+    allowed = {k: v for k, v in kw.items() if k in ("name", "ship", "mission_json", "mission_by", "creator_locker", "message", "message_at")}
     if not allowed:
         return
     sets = ",".join(f"{k}=?" for k in allowed)
@@ -700,3 +708,20 @@ def endorsements(result_id):
 def set_result_verdicts(result_id, verdicts):
     with _lock, _conn() as c:
         c.execute("UPDATE result SET verdict_json=? WHERE id=?", (json.dumps(verdicts), result_id))
+
+
+def set_lobby_folded(lobby_id, folded: bool):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET folded=?, updated_at=? WHERE id=?", (time.time() if folded else None, time.time(), lobby_id))
+
+
+def lobby_debriefed(lobby_id) -> set:
+    """Player ids at this table with a recorded debrief."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=?", (lobby_id,)).fetchall()
+    return {r["player_id"] for r in rows}
+
+
+def remove_room_member(rid, locker_id):
+    with _lock, _conn() as c:
+        c.execute("DELETE FROM room_member WHERE room_id=? AND locker_id=?", (rid, locker_id))
