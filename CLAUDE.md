@@ -53,9 +53,13 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
   (`_room_tally`); ribbons and the ship's log (`room_log`, i18n keys `log.*`) build up over time.
-  Anyone with the room code can set the mission and orders; only the founder (token in
-  `wm_roomc_<id>`) renames it. Joining a room table with a locker makes you a member, and your
+  Anyone with the room code can set the mission; only the founder (token in `wm_roomc_<id>`, or the
+  founder's profile) renames it, sets standing orders, pins the crew message and names awards. Joining a room table with a locker makes you a member, and your
   rooms follow your locker into the new-table picker.
+- Awards the founder names (`room_award`, `award_grant`): the founder creates an award (name, what it's for,
+  one of `AWARD_ICONS`) and gives it to crew members (room members only) with an optional citation; they can
+  take one back or retire the award (holders keep retired awards). Awards show on the room page, the
+  diver's Profile / locker / public profile, their Discord diver card, and in the ship's log (`log.award`).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
@@ -67,3 +71,17 @@ result, review, mission, squad). With an Admin API key (sk-ant-admin..., in `ANT
 a background thread polls `GET /v1/organizations/cost_report` every 30 min (whole org, daily
 USD) into `kv.cost_report`. `/api/costs` serves both; `/?costs` shows them (polls every 60s);
 `/health` → `costs` has a one-line summary. Hosting has no billing API: `WARMIND_HOSTING_USD_MONTH`.
+
+## Discord (`app/discord_app.py`, `app/cards.py`)
+No server admin needed, works across every server and channel:
+- Link previews: `/` injects Open Graph tags for `?l=`, `?room=`, `?roster=` links; the picture is
+  `/card/{table|room|diver}/{id}.png` (Pillow, JetBrains Mono from `app/fonts`, `?v=` = content hash so
+  Discord re-fetches when the card changes). Any pasted WARMIND link unfurls into a live card.
+- `/warmind` (table / room / diver / front): a user-installable Discord app. Each diver adds it to their
+  own account once (Profile → "Add WARMIND to my Discord", `integration_type=1`), then uses it in any
+  server that allows external apps. Pickers autocomplete recent tables, rooms and callsigns; cards
+  carry "Open in WARMIND" and "Refresh". Interactions hit `POST /api/discord/interactions`
+  (Ed25519-verified). Env: `DISCORD_APP_ID`, `DISCORD_PUBLIC_KEY` (required), `DISCORD_BOT_TOKEN`
+  (registers the command at startup). `/health` → `discord` shows registration status.
+- Saved loadouts: the ⋮ menu has Edit / Share as PNG / Delete; the PNG is drawn client-side
+  (`shareLoadoutPng`) and goes to the phone's share sheet, else downloads.

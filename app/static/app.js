@@ -640,6 +640,7 @@
       const bits = [p.kills != null ? t("lk.r.kills", { n: nf(p.kills) }) : null, p.deaths != null ? t("lk.r.deaths", { n: nf(p.deaths) }) : null].filter(Boolean).join(", ");
       return t("log.drop", { who: p.who || "?", mission: p.mission || "—", bits: bits || "—" }) + ((p.medals || []).length ? " 🎖 " + p.medals.join(", ") : "");
     }
+    if (e.k === "log.award") return t(p.note ? "log.award.cite" : "log.award", { who: p.who || "?", award: p.award || "", note: p.note || "" });
     if (e.k === "log.neworder" || e.k === "log.order") p.title = p.title || orderTitle({ kind: p.kind, target: p.n, params: p.params || {} });
     p.who = p.who || t("room.someone"); p.ship = (ROOM && ROOM.ship) || "";
     return has(e.k) ? t(e.k, p) : (e.t || "");
@@ -662,7 +663,7 @@
     let sig = JSON.stringify(ROOM);
     const poll = setInterval(async () => {   // the room is shared: pick up what others change
       if (!document.body.contains(body)) return clearInterval(poll);
-      if (document.hidden || body.querySelector("details.fold[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      if (document.hidden || body.querySelector("details.fold[open], .kwrap.open") || document.querySelector("dialog[open]") || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
       try { const r = await rget(ROOM.id); const s2 = JSON.stringify(r); if (s2 !== sig) { sig = s2; ROOM = r; paintRoom(body); } } catch (e) {}
     }, 15000);
   }
@@ -672,7 +673,7 @@
     // the plaque
     const st = R0.stats;
     const statCell = (k, v) => el("div", { class: "rstat" }, [nixie(String(v)), el("small", {}, [t(k)])]);
-    const share = el("button", { class: "btn sm", type: "button" }, ["⧉ " + t("room.copy")]); share.onclick = () => copy(location.origin + "/?room=" + R0.id, t("common.copied"));
+    const share = el("button", { class: "btn sm", type: "button" }, ["⧉ " + t("room.copy")]); share.onclick = () => copy(location.origin + "/?room=" + R0.id, t("dc.copied"));
     let rename = null;
     if (founder) { rename = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("room.rename")]);
       rename.onclick = async () => { const n = prompt(t("room.name"), R0.name); if (n == null) return; const sh = prompt(t("room.ship"), R0.ship); if (sh == null) return;
@@ -706,6 +707,7 @@
     // tonight: the room's mission and a table on it
     body.appendChild(roomMissionPanel(body));
     body.appendChild(roomOrdersPanel(body));
+    body.appendChild(roomAwardsPanel(body));
     // tables
     const row = x => el("a", { class: "roomrow st-" + x.status, href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
@@ -729,6 +731,84 @@
     body.appendChild(panel("RM-07", t("room.log"), {}, [el("ol", { class: "shiplog" }, R0.log.map(e => el("li", {}, [
       el("span", { class: "ts" }, [dt(e.at) + " " + new Date(e.at * 1000).toISOString().slice(11, 16)]), el("span", {}, [logLine(e)])])))]));
   }
+  // Awards the founder names: a name, a line on what it's for, an icon; given to crew members with
+  // a citation. Holders keep them on their profiles (and their Discord card).
+  const AWARD_ICONS = ["medal", "star", "skull", "shield", "crosshair", "bolt", "burst", "flag", "anchor", "swords", "satellite", "waves", "planet", "mind", "ring", "hex"];
+  const awardBadge = icon => { const b = el("span", { class: "awbadge", "aria-hidden": "true" }); b.appendChild(ico(icon || "medal")); return b; };
+  function roomAwardsPanel(body) {
+    const R0 = ROOM, kids = [];
+    const aw = R0.awards || [];
+    if (!aw.length) kids.push(el("div", { class: "hint", style: "margin:0" }, [t(R0.founder ? "aw.none.founder" : "aw.none")]));
+    aw.forEach(a => {
+      const counts = {}; a.holders.forEach(h => { counts[h.id] = counts[h.id] || { n: 0, h: h }; counts[h.id].n++; });
+      const chips = Object.values(counts).map(({ n, h }) => h.public ? el("a", { class: "chip aw", href: "/?roster=" + h.id + fromHere() }, [h.callsign + (n > 1 ? " ×" + n : "")])
+        : el("span", { class: "chip aw" }, [h.callsign + (n > 1 ? " ×" + n : "")]));
+      const cites = a.holders.slice().reverse().slice(0, 4).map(h => el("li", {}, [el("span", { class: "ct" }, [el("b", {}, [h.callsign]), h.note ? " · “" + h.note + "”" : "", el("small", {}, [" · " + dt(h.at)])]),
+        R0.founder ? (() => { const x = el("button", { class: "btn sm xs", type: "button", "aria-label": t("aw.revoke"), title: t("aw.revoke") }, ["×"]);
+          x.onclick = async () => { if (!confirm(t("aw.revoke.q", { who: h.callsign, award: a.name }))) return;
+            try { setRoom(await fpost("/api/room/" + R0.id + "/grants/" + h.grant_id + "/revoke", {})); toast(t("aw.revoked")); paintRoom(body); } catch (e) { toast(e.message); } }; return x; })() : null]));
+      const head = el("div", { class: "awhead" }, [awardBadge(a.icon), el("div", { class: "awt" }, [el("b", {}, [a.name]), a.description ? el("small", {}, [a.description]) : null])]);
+      if (R0.founder) head.appendChild(kebab([
+        ["aw.edit", "", () => awardDialog(a, body)],
+        ["aw.retire", "red", async () => { if (!confirm(t("aw.retire.q", { award: a.name }))) return;
+          try { setRoom(await fpost("/api/room/" + R0.id + "/awards/" + a.id, { retire: true })); paintRoom(body); } catch (e) { toast(e.message); } }]]));
+      kids.push(el("div", { class: "award" }, [head,
+        chips.length ? el("div", { class: "chips" }, chips) : el("div", { class: "hint", style: "margin:6px 0 0" }, [t("aw.nobody")]),
+        cites.length ? el("ul", { class: "awcites" }, cites) : null,
+        R0.founder ? (() => { const g = el("button", { class: "btn sm", type: "button" }, ["＋ " + t("aw.grant")]); g.onclick = () => grantDialog(a, body); return el("div", { class: "btnrow", style: "margin:8px 0 0" }, [g]); })() : null]));
+    });
+    if (R0.founder) { const n = el("button", { class: "btn sm primary", type: "button" }, ["＋ " + t("aw.new")]); n.onclick = () => awardDialog(null, body);
+      kids.push(el("div", { class: "btnrow" }, [n])); }
+    else if (aw.length) kids.push(el("div", { class: "hint" }, [t("aw.founder")]));
+    return panel("RM-08", t("aw.title"), { status: aw.length ? String(aw.length) : "", statusKind: "info", tone: "violet" }, kids);
+  }
+  function roomDialog(title, kids, onSave, saveLabel) {
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": title });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const sv = el("button", { type: "button", class: "btn primary" }, [saveLabel]);
+    sv.onclick = async () => { sv.disabled = true; try { if (await onSave() !== false) dlg.close(); } catch (e) { toast(e.message); } sv.disabled = false; };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [title]), x]), el("div", { class: "mbody" }, [...kids, el("div", { class: "btnrow" }, [sv])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    return dlg;
+  }
+  function awardDialog(a, body) {
+    const R0 = ROOM;
+    const name = el("input", { type: "text", maxlength: "40", placeholder: t("aw.name.ph") }); name.value = a ? a.name : "";
+    const desc = el("input", { type: "text", maxlength: "160", placeholder: t("aw.desc.ph") }); desc.value = a ? a.description : "";
+    let icon = a ? a.icon : "medal";
+    const grid = el("div", { class: "awicons", role: "group", "aria-label": t("aw.icon") }, AWARD_ICONS.map(k => {
+      const b = el("button", { type: "button", class: "awpick", "aria-pressed": String(k === icon), "aria-label": k }, [awardBadge(k)]);
+      b.onclick = () => { icon = k; grid.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }; return b; }));
+    const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
+    roomDialog(t(a ? "aw.edit" : "aw.new"), [lab("aw.name", name), lab("aw.desc", desc), lab("aw.icon", grid)], async () => {
+      if (!name.value.trim()) { name.focus(); toast(t("aw.name.need")); return false; }
+      const body2 = { name: name.value.trim(), description: desc.value.trim(), icon: icon };
+      setRoom(await fpost("/api/room/" + R0.id + "/awards" + (a ? "/" + a.id : ""), body2)); toast(t(a ? "aw.saved" : "aw.created")); paintRoom(body);
+    }, t(a ? "aw.save" : "aw.create"));
+    setTimeout(() => name.focus(), 50);
+  }
+  function grantDialog(a, body) {
+    const R0 = ROOM;
+    const who = el("select", {}, [el("option", { value: "" }, [t("aw.pick")]), ...R0.members.map(m => el("option", { value: m.id }, [m.callsign]))]);
+    const note = el("textarea", { rows: "3", maxlength: "200", placeholder: t("aw.note.ph") });
+    const lab = (k, n) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(k)]), n]);
+    roomDialog(t("aw.grant.title", { award: a.name }), [el("div", { class: "awhead", style: "margin-bottom:10px" }, [awardBadge(a.icon), el("div", { class: "awt" }, [el("b", {}, [a.name]), a.description ? el("small", {}, [a.description]) : null])]),
+      R0.members.length ? lab("aw.to", who) : el("div", { class: "hint" }, [t("aw.nocrew")]), lab("aw.note", note)], async () => {
+      if (!who.value) { who.focus(); toast(t("aw.pick.need")); return false; }
+      setRoom(await fpost("/api/room/" + R0.id + "/awards/" + a.id + "/grant", { locker_id: who.value, note: note.value.trim() }));
+      toast(t("aw.granted", { who: who.options[who.selectedIndex].textContent, award: a.name })); paintRoom(body);
+    }, t("aw.give"));
+  }
+  // a diver's awards (profile, locker, public profile)
+  function awardList(list) {
+    if (!list || !list.length) return [];
+    return [el("div", { class: "sub-h" }, [t("aw.title")]), el("div", { class: "lkawards" }, list.map(a => el("div", { class: "lkaward" }, [awardBadge(a.icon),
+      el("div", {}, [el("b", {}, [a.name]), a.note ? el("div", { class: "cite" }, ["“" + a.note + "”"]) : a.description ? el("div", { class: "cite" }, [a.description]) : null,
+        el("small", {}, [a.room_id ? el("a", { href: "/?room=" + a.room_id + fromHere() }, [a.room || t("room.title")]) : (a.room || ""), " · " + dt(a.at)])])])))];
+  }
+
   function roomMissionPanel(body) {
     const R0 = ROOM, m = R0.mission;
     const kids = [];
@@ -1124,7 +1204,7 @@
   function commandPanel(ph) {
     const link = location.origin + "/?l=" + LID;
     const inv = el("button", { class: "btn primary", type: "button" }, [t("cmd.invite")]);
-    inv.onclick = () => copy(link, t("common.copied"));
+    inv.onclick = () => copy(link, t("dc.copied"));
     const role = isCreator() ? tag("amber", t("common.creator")) : myPlayer() ? tag("cyan", t("common.diver")) : null;
     const fm = el("button", { class: "btn sm fmbtn", type: "button" }, ["▤ " + t("gl.short")]);
     fm.onclick = () => guardGear(() => setTab(5, true));
@@ -2410,7 +2490,21 @@
     const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
+    body.appendChild(discordPanel(L));
     try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
+  }
+
+  // WARMIND on Discord: links unfurl into live cards anywhere; the app adds /warmind to your own
+  // Discord account (no server admin needed)
+  function discordPanel(L) {
+    const inst = (META.discord || {}).install;
+    const card = el("button", { class: "btn sm", type: "button" }, ["🔗 " + t("dc.mycard")]);
+    card.onclick = () => LK && LK.public === false ? toast(t("dc.private")) : copy(location.origin + "/?roster=" + L.id, t("dc.copied"));
+    return panel("DC-01", t("dc.title"), {}, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("dc.hint")]),
+      inst ? el("div", { class: "hint", style: "margin:0 0 10px" }, [t("dc.add.hint")]) : null,
+      el("div", { class: "btnrow", style: "margin:0" }, [inst ? el("a", { class: "btn sm primary", href: inst, target: "_blank", rel: "noopener" }, [t("dc.add")]) : null, card]),
+    ]);
   }
 
   function pinSetter(L) {
@@ -2535,6 +2629,81 @@
     show(tabs.some(x => x[0] === lkTab) ? lkTab : "record");
     window.scrollTo(0, y);
   }
+  // a ⋮ button with a small menu; closes on pick, outside tap or Escape
+  function kebab(items) {
+    const menu = el("div", { class: "kmenu", role: "menu" });
+    const btn = el("button", { class: "kebab", type: "button", "aria-label": t("common.more"), "aria-haspopup": "menu", "aria-expanded": "false" }, ["⋮"]);
+    const wrap = el("div", { class: "kwrap" }, [btn, menu]);
+    const close = () => { wrap.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); document.removeEventListener("click", outside, true); document.removeEventListener("keydown", esc); };
+    const outside = e => { if (!wrap.contains(e.target)) close(); };
+    const esc = e => { if (e.key === "Escape") { close(); btn.focus(); } };
+    btn.onclick = e => { e.stopPropagation(); if (wrap.classList.contains("open")) return close();
+      wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", outside, true); document.addEventListener("keydown", esc); const f = menu.querySelector("button"); if (f) f.focus(); };
+    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [t(k)]);
+      b.onclick = () => { close(); fn(); }; menu.appendChild(b); });
+    return wrap;
+  }
+
+  // a saved loadout as a 1200x675 picture (armour, weapons, grenades carried, booster, stratagems),
+  // shared through the phone's share sheet (Discord, Messages…) or downloaded
+  const imgOf = src => new Promise(res => { if (!src) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+  async function shareLoadoutPng(o, callsign) {
+    const k = o.kit || {}, P = META.pics || {};
+    try { await document.fonts.ready; } catch (e) {}
+    const W = 1200, H = 675, c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    const C = { bg: "#040604", panel: "#0a110b", line: "rgba(120,255,170,.22)", line2: "rgba(120,255,170,.45)", ink: "#dff5df", ink2: "#a5c3a6", muted: "#6e8c70", green: "#78ffaa", amber: "#ff9a3c" };
+    const font = (w, px, fam) => (g.font = `${w} ${px}px ${fam === "h" ? "'Chakra Petch', sans-serif" : "'JetBrains Mono', monospace"}`);
+    const fitText = (txt, x, y, max) => { txt = String(txt || ""); if (g.measureText(txt).width <= max) return g.fillText(txt, x, y);
+      while (txt && g.measureText(txt + "…").width > max) txt = txt.slice(0, -1); g.fillText(txt + "…", x, y); };
+    const box = (x, y, w, h) => { g.fillStyle = C.panel; g.fillRect(x, y, w, h); g.strokeStyle = C.line; g.lineWidth = 1.5; g.strokeRect(x + .5, y + .5, w - 1, h - 1); };
+    const contain = (im, x, y, w, h) => { if (!im) return; const r = Math.min(w / (im.naturalWidth || w), h / (im.naturalHeight || h)); const iw = (im.naturalWidth || w) * r, ih = (im.naturalHeight || h) * r;
+      g.drawImage(im, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih); };
+    g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "rgba(120,255,170,.035)"; for (let y = 0; y < H; y += 4) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    g.strokeStyle = C.line2; g.lineWidth = 2; g.beginPath(); g.moveTo(46, 24); g.lineTo(W - 24, 24); g.lineTo(W - 24, H - 46); g.lineTo(W - 46, H - 24); g.lineTo(24, H - 24); g.lineTo(24, 46); g.closePath(); g.stroke();
+    g.fillStyle = C.green; font(800, 22, "m"); g.fillText("WARMIND", 56, 66);
+    g.textAlign = "right"; font(700, 20, "m"); g.fillText(t("lk.png.kicker").toUpperCase(), W - 56, 66); g.textAlign = "left";
+    g.fillStyle = C.ink; font(700, 48, "h"); fitText(o.name || k.role || "Loadout", 56, 124, W - 112);
+    const src = o.source || {};
+    g.fillStyle = C.amber; font(700, 22, "m"); const nm = String(o.name || "").toLowerCase();
+    fitText([k.role, callsign, src.mission, src.mode ? t("mode." + src.mode) : ""].filter(x => x && !nm.includes(String(x).toLowerCase())).join(" · "), 56, 160, W - 112);
+    const pics = await Promise.all([k.armor, k.primary, k.secondary, k.grenade, k.booster].map(n => imgOf((P[n] || {}).img || (P[n] || {}).icon)));
+    const sicons = await Promise.all((k.stratagems || []).map(n => imgOf((P[n] || {}).icon || (P[n] || {}).img)));
+    // armour
+    box(56, 186, 300, 404); contain(pics[0], 76, 206, 260, 300);
+    g.fillStyle = C.ink; font(700, 20, "m"); fitText(k.armor || "—", 72, 540, 270);
+    g.fillStyle = C.amber; font(500, 16, "m"); fitText([has("w." + k.armor_weight) ? t("w." + k.armor_weight) : k.armor_weight, k.armor_passive].filter(Boolean).join(" · "), 72, 566, 270);
+    // weapons, grenade, booster
+    const tiles = [["card.primary", k.primary, statLine(itemStats(k.primary)), pics[1]], ["card.secondary", k.secondary, statLine(itemStats(k.secondary)), pics[2]],
+                   ["card.grenade", k.grenade, nadeLine(k), pics[3]], ["card.booster", k.booster, "", pics[4]]];
+    tiles.forEach(([lab, name, st, im], i) => {
+      const x = 376 + (i % 2) * 390, y = 186 + Math.floor(i / 2) * 148, w = 378, h = 136;
+      box(x, y, w, h); contain(im, x + 12, y + 12, 140, h - 24);
+      g.fillStyle = C.muted; font(700, 14, "m"); g.fillText(t(lab).toUpperCase(), x + 166, y + 30);
+      g.fillStyle = C.ink; font(700, 20, "m"); fitText(name || "—", x + 166, y + 64, w - 180);
+      if (st) { g.fillStyle = C.ink2; font(400, 14, "m"); fitText(st, x + 166, y + 92, w - 180); }
+    });
+    // stratagems
+    (k.stratagems || []).slice(0, 4).forEach((n, i) => {
+      const x = 376 + i * 195, y = 482, w = 183, h = 108;
+      box(x, y, w, h); contain(sicons[i], x + 10, y + 14, 64, 64);
+      g.fillStyle = C.ink; font(600, 15, "m");
+      const words = String(n).split(" "), lines = [""]; words.forEach(wd => { const cur = lines[lines.length - 1]; if (g.measureText((cur + " " + wd).trim()).width > w - 92 && cur) lines.push(wd); else lines[lines.length - 1] = (cur + " " + wd).trim(); });
+      lines.slice(0, 3).forEach((ln, j) => fitText(ln, x + 84, y + 36 + j * 20, w - 92));
+    });
+    g.fillStyle = C.muted; font(400, 16, "m"); g.fillText(location.host, 56, H - 48);
+    const blob = await new Promise(r => c.toBlob(r, "image/png"));
+    if (!blob) { toast(t("lk.png.fail")); return; }
+    const file = new File([blob], "warmind-loadout-" + String(o.name || "kit").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) + ".png", { type: "image/png" });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: o.name || "WARMIND" }); return; }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+    const a = el("a", { href: URL.createObjectURL(blob), download: file.name }); document.body.appendChild(a); a.click(); a.remove();
+    toast(t("lk.png.saved"));
+  }
+
   function lkCarousel(list, opts) {
     opts = opts || {};
     const L = list || LK.loadouts || [];
@@ -2552,14 +2721,14 @@
           [src.mission, src.mode ? t("mode." + src.mode) : ""].filter(Boolean).map(x => " · " + x).join("")])]));
       card.appendChild(locker(o.kit));
       if (o.note) card.appendChild(el("div", { class: "why" }, [o.note]));
-      if (opts.editable) {
-        const after = opts.after || loadLocker;
-        const ed = el("button", { class: "btn sm", type: "button" }, [t("lk.edit")]); ed.onclick = () => buildKitDialog(o, after);
-        const del = el("button", { class: "btn sm red", type: "button" }, [t("lk.delete")]);
-        del.onclick = async () => { if (!confirm(t("lk.delete.confirm", { name: o.name }))) return;
-          try { await lpost("/api/locker/" + store.locker().id + "/loadouts/" + o.id + "/delete", {}); toast(t("lk.deleted")); await after(); } catch (e) { toast(e.message); } };
-        card.appendChild(el("div", { class: "btnrow lkacts" }, [ed, del]));
-      }
+      // ⋮ menu: Edit / Share as PNG / Delete (share only on someone else's profile)
+      const items = [];
+      const after = opts.after || loadLocker;
+      if (opts.editable) items.push(["lk.edit", "", () => buildKitDialog(o, after)]);
+      items.push(["lk.sharepng", "", () => shareLoadoutPng(o, opts.callsign || (LK && LK.callsign) || "")]);
+      if (opts.editable) items.push(["lk.delete", "red", async () => { if (!confirm(t("lk.delete.confirm", { name: o.name }))) return;
+        try { await lpost("/api/locker/" + store.locker().id + "/loadouts/" + o.id + "/delete", {}); toast(t("lk.deleted")); await after(); } catch (e) { toast(e.message); } }]);
+      card.querySelector(".hd").appendChild(kebab(items));
       track.appendChild(card);
     });
     const count = el("span", { class: "lkcount" }, ["1 / " + L.length]);
@@ -2796,11 +2965,12 @@
     app.appendChild(panel("ROS-02", t("ros.profile"), { status: d.medals.length ? "🎖 " + d.medals.length : "", statusKind: "warn", tone: "amber" }, [
       el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [d.callsign]),
         el("div", { class: "hint", style: "margin:4px 0 0" }, [d.play_style ? t("lk.style", { style: styleLabel(d.play_style) }) : t("me.noread")])])])]));
-    const car = lkCarousel(d.loadouts, { readonly: true }); if (car) app.appendChild(car);
+    const car = lkCarousel(d.loadouts, { readonly: true, callsign: d.callsign }); if (car) app.appendChild(car);
     const kids = [];
     if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
       el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    kids.push(...awardList(d.awards));
     if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
       el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
@@ -2832,6 +3002,7 @@
   }
   function lkRecord() {
     const kids = [];
+    kids.push(...awardList(LK.awards));
     if (LK.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, LK.medals.map(m =>
       el("div", { class: "lkmedal", title: m.medal.id }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (!LK.record.length) kids.push(el("div", { class: "hint" }, [t("lk.record.none")]));

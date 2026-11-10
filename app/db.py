@@ -36,6 +36,24 @@ CREATE TABLE IF NOT EXISTS api_usage (
   cache_write INTEGER,
   cost_usd REAL
 );
+CREATE TABLE IF NOT EXISTS room_award (
+  id TEXT PRIMARY KEY,
+  room_id TEXT,
+  name TEXT,
+  description TEXT,
+  icon TEXT,
+  created_at REAL,
+  retired INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS award_grant (
+  id TEXT PRIMARY KEY,
+  award_id TEXT,
+  room_id TEXT,
+  locker_id TEXT,
+  note TEXT,
+  granted_at REAL
+);
+CREATE INDEX IF NOT EXISTS award_grant_locker ON award_grant(locker_id);
 CREATE TABLE IF NOT EXISTS endorsement (
   result_id TEXT,
   oath TEXT,
@@ -725,3 +743,86 @@ def lobby_debriefed(lobby_id) -> set:
 def remove_room_member(rid, locker_id):
     with _lock, _conn() as c:
         c.execute("DELETE FROM room_member WHERE room_id=? AND locker_id=?", (rid, locker_id))
+
+
+# ---------------------------------------------------------------- Discord pickers
+def recent_lobbies(since, q="", limit=25):
+    """War tables touched since `since`, newest first, optionally matching a name / code."""
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM lobby WHERE updated_at>=? AND (name LIKE ? OR id LIKE ?) AND COALESCE(folded,0)=0 "
+                         "ORDER BY updated_at DESC LIMIT ?", (since, like, like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def find_rooms(q="", limit=25):
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM room WHERE name LIKE ? OR id LIKE ? ORDER BY updated_at DESC LIMIT ?",
+                         (like, like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def find_public_lockers(q="", limit=25):
+    like = f"%{q}%"
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT id, callsign FROM locker WHERE callsign IS NOT NULL AND COALESCE(public,1)!=0 AND callsign LIKE ? "
+                         "ORDER BY updated_at DESC LIMIT ?", (like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------- awards the room's founder names
+def add_award(aid, rid, name, description, icon):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO room_award(id,room_id,name,description,icon,created_at,retired) VALUES(?,?,?,?,?,?,0)",
+                  (aid, rid, name, description, icon, time.time()))
+
+
+def update_award(aid, rid, **kw):
+    allowed = {k: v for k, v in kw.items() if k in ("name", "description", "icon", "retired")}
+    if allowed:
+        sets = ",".join(f"{k}=?" for k in allowed)
+        with _lock, _conn() as c:
+            c.execute(f"UPDATE room_award SET {sets} WHERE id=? AND room_id=?", (*allowed.values(), aid, rid))
+
+
+def room_awards(rid, include_retired=False):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM room_award WHERE room_id=?" + ("" if include_retired else " AND COALESCE(retired,0)=0")
+                         + " ORDER BY created_at", (rid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_award(aid, rid):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM room_award WHERE id=? AND room_id=?", (aid, rid)).fetchone()
+    return dict(r) if r else None
+
+
+def add_grant(gid, aid, rid, locker_id, note):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO award_grant(id,award_id,room_id,locker_id,note,granted_at) VALUES(?,?,?,?,?,?)",
+                  (gid, aid, rid, locker_id, note, time.time()))
+
+
+def remove_grant(gid, rid):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM award_grant WHERE id=? AND room_id=?", (gid, rid)).fetchone()
+        c.execute("DELETE FROM award_grant WHERE id=? AND room_id=?", (gid, rid))
+    return dict(r) if r else None
+
+
+def room_grants(rid):
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT g.*, k.callsign, COALESCE(k.public,1) AS public FROM award_grant g LEFT JOIN locker k ON k.id=g.locker_id "
+                         "WHERE g.room_id=? ORDER BY g.granted_at", (rid,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def locker_awards(locker_id):
+    """Every award a diver holds, newest first, with the award and its room."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT g.id, g.note, g.granted_at, a.id AS award_id, a.name, a.description, a.icon, r.id AS room_id, r.name AS room_name "
+                         "FROM award_grant g JOIN room_award a ON a.id=g.award_id LEFT JOIN room r ON r.id=g.room_id "
+                         "WHERE g.locker_id=? ORDER BY g.granted_at DESC", (locker_id,)).fetchall()
+    return [dict(r) for r in rows]

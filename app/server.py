@@ -22,8 +22,10 @@ from starlette.middleware.gzip import GZipMiddleware
 import pathlib
 
 import budget
+import cards
 import costs
 import db
+import discord_app
 import vision
 import war
 from warmind import compass, coverage, kitrules, loader, oaths, passives, stats
@@ -485,6 +487,7 @@ def meta():
             "pics": loader.pictures(),
             "passives": {k: v.get("effect", "") for k, v in passives.table().items()},
             "passive_throwables": passives.throwables(),
+            "discord": {"install": discord_app.install_url()},
             "vision": vision.status()}
 
 
@@ -810,7 +813,7 @@ def _room_out(rid):
             "message": r.get("message"), "message_at": r.get("message_at"),
             "mission": json.loads(r["mission_json"]) if r.get("mission_json") else None,
             "mission_name": _mission_name(r.get("mission_json")), "mission_by": r.get("mission_by"),
-            "orders": orders, "tables": tables, "members": members, "log": log,
+            "orders": orders, "tables": tables, "members": members, "log": log, "awards": _award_out(r["id"]),
             "stats": {"tables": len(lobbies), "nights": nights, "drops": tally["drops"], "medals": tally["medals"],
                       "oaths": tally["oaths"], "kills": tally["kills"], "planets": tally["planets"]},
             "ribbons": [k for k, f in RIBBONS if f(st)]}
@@ -962,6 +965,92 @@ def edit_order(rid: str, oid: str, payload: dict, x_token: str = Header(None), x
     if payload.get("done") is not None:
         db.update_room_order(oid, rid, done_at=time.time() if payload["done"] else None)
     return _room_out(rid)
+
+
+# ---------------------------------------------------------------- awards the founder names
+AWARD_ICONS = ("medal", "star", "skull", "shield", "crosshair", "bolt", "burst", "flag", "anchor", "swords", "satellite", "waves",
+               "planet", "mind", "ring", "hex")
+
+
+def _award_out(rid):
+    grants = db.room_grants(rid)
+    out = []
+    for a in db.room_awards(rid):
+        held = [{"grant_id": g["id"], "id": g["locker_id"], "callsign": g.get("callsign") or "?", "public": bool(g.get("public")),
+                 "note": g.get("note"), "at": g["granted_at"]} for g in grants if g["award_id"] == a["id"]]
+        out.append({"id": a["id"], "name": a["name"], "description": a.get("description") or "", "icon": a.get("icon") or "medal",
+                    "at": a["created_at"], "holders": held})
+    return out
+
+
+def _clean_award(payload, partial=False):
+    out = {}
+    if not partial or "name" in payload:
+        name = str(payload.get("name") or "").strip()[:40]
+        if not name:
+            raise HTTPException(400, "give the award a name")
+        out["name"] = name
+    if not partial or "description" in payload:
+        out["description"] = str(payload.get("description") or "").strip()[:160]
+    if not partial or "icon" in payload:
+        icon = str(payload.get("icon") or "medal")
+        if icon in AWARD_ICONS:
+            out["icon"] = icon
+        elif not partial:
+            out["icon"] = "medal"
+    return out
+
+
+@app.post("/api/room/{rid}/awards")
+def add_award(rid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if len(db.room_awards(rid)) >= 24:
+        raise HTTPException(400, "24 awards is plenty: retire one first")
+    a = _clean_award(payload)
+    db.add_award(_id(4), rid, a["name"], a["description"], a["icon"])
+    db.room_log(rid, "newaward", json.dumps({"k": "log.newaward", "p": {"award": a["name"]}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/awards/{aid}")
+def edit_award(rid: str, aid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if not db.get_award(aid, rid):
+        raise HTTPException(404, "no such award")
+    if payload.get("retire"):
+        db.update_award(aid, rid, retired=1)   # holders keep it on their profiles
+    else:
+        db.update_award(aid, rid, **_clean_award(payload, partial=True))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/awards/{aid}/grant")
+def grant_award(rid: str, aid: str, payload: dict, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    a = db.get_award(aid, rid)
+    if not a or a.get("retired"):
+        raise HTTPException(404, "no such award")
+    to = str(payload.get("locker_id") or "")[:40]
+    member = next((m for m in db.room_members(rid) if m["locker_id"] == to), None)
+    if not member:
+        raise HTTPException(400, "only the room's crew can be awarded")
+    note = str(payload.get("note") or "").strip()[:200]
+    db.add_grant(_id(5), aid, rid, to, note or None)
+    db.room_log(rid, "award", json.dumps({"k": "log.award", "p": {"who": member.get("callsign") or "?", "award": a["name"], "note": note}}))
+    return _room_out(rid)
+
+
+@app.post("/api/room/{rid}/grants/{gid}/revoke")
+def revoke_award(rid: str, gid: str, x_token: str = Header(None), x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    _require_founder(rid, x_token, x_locker_id, x_locker)
+    if not db.remove_grant(gid, rid):
+        raise HTTPException(404, "no such award given")
+    return _room_out(rid)
+
+
+def _awards_of(locker_id):
+    return [{"name": a["name"], "description": a.get("description") or "", "icon": a.get("icon") or "medal", "note": a.get("note"),
+             "at": a["granted_at"], "room": a.get("room_name"), "room_id": a.get("room_id")} for a in db.locker_awards(locker_id)]
 
 
 @app.post("/api/rooms/summary")
@@ -1354,10 +1443,235 @@ def leave(lid: str, pid: str, x_token: str = Header(None)):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------- picture cards + link previews
+# A WARMIND link pasted in Discord (or anything that reads Open Graph tags) unfurls into a
+# picture card: the table's squad and Go / No-Go, the room's stats and orders, a diver's rates.
+def _public_base(request: Request | None = None) -> str:
+    base = os.environ.get("WARMIND_PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL")
+    if not base and request is not None:
+        base = str(request.base_url)
+    return (base or "https://warmind.onrender.com").rstrip("/")
+
+
+def _style_label(key):
+    from warmind import roles
+    ps = roles.PLAY_STYLES.get(key or "")
+    return ps.label if ps else None
+
+
+def _table_card(lid, base):
+    lobby = db.get_lobby(str(lid)[:40])
+    if not lobby:
+        return None
+    players = db.list_players(lobby["id"])
+    got = db.lobby_debriefed(lobby["id"])
+    mission = _mission_from(lobby) or {}
+    room = db.get_room(lobby["room_id"]) if lobby.get("room_id") else None
+    divers = []
+    for p in players:
+        medal = None
+        if p["id"] in got:
+            r = db.latest_result(p["id"]) or {}
+            medal = next((v["medal"].get("name") for v in _verdicts_of(r.get("verdict_json")) if v and v.get("medal")), None)
+        divers.append({"callsign": p.get("callsign"), "style": _style_label(p.get("play_style")), "go": bool(p.get("go")),
+                       "debriefed": p["id"] in got, "medal": medal})
+    return {"kind": "table", "name": lobby["name"], "status": _table_status(lobby, players),
+            "mission": _mission_name(lobby.get("mission_json")), "planet": mission.get("planet_name"),
+            "room": room["name"] if room else None, "code": lobby["id"], "url": f"{base}/?l={lobby['id']}",
+            "squad_size": lobby.get("squad_size"), "divers": divers}
+
+
+def _room_card(rid, base):
+    try:
+        r = _room_out(str(rid)[:40])
+    except HTTPException:
+        return None
+    titles = {"drops": "Drops", "medals": "Medals", "oaths": "Oaths kept", "kills": "Kills", "d100": "D100 drops",
+              "planet": "Drops on {planet}", "difficulty": "Drops at D{min}+"}
+    orders = []
+    for o in r["orders"]:
+        title = o.get("title") or titles.get(o["kind"], o["kind"]).format(**{"planet": "", "min": 10, **(o.get("params") or {})})
+        orders.append({"title": title, "progress": o["progress"], "target": o["target"], "done": bool(o["done_at"])})
+    return {"kind": "room", "name": r["name"], "ship": r["ship"], "mission": r["mission_name"],
+            "planet": (r["mission"] or {}).get("planet_name"), "stats": r["stats"], "orders": orders,
+            "crew": len(r["members"]), "ribbons": len(r["ribbons"]), "url": f"{base}/?room={r['id']}"}
+
+
+def _diver_card(lid, base):
+    lk = db.get_locker(str(lid)[:40])
+    if not lk or lk.get("public") == 0 or not lk.get("callsign"):
+        return None
+    _, rates = _public_rates(lk)
+    _, medals = _record_of(lk["id"])
+    return {"kind": "diver", "callsign": lk["callsign"], "style": _style_label(lk.get("play_style")), "rates": rates,
+            "medals": [m["medal"].get("name") for m in medals if m.get("medal")], "n_medals": len(medals),
+            "awards": [a["name"] for a in _awards_of(lk["id"])],
+            "url": f"{base}/?roster={lk['id']}"}
+
+
+_CARD_DATA = {"table": _table_card, "room": _room_card, "diver": _diver_card}
+_card_cache: dict = {}
+
+
+def _card_version(data) -> str:
+    return hashlib.sha1(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()[:10]
+
+
+def card_png(kind, cid, base):
+    """(png bytes, data) for a card, or (None, None). Rendered once per distinct content."""
+    fn = _CARD_DATA.get(kind)
+    data = fn(cid, base) if fn else None
+    if not data:
+        return None, None
+    key = (kind, _card_version(data))
+    png = _card_cache.get(key)
+    if png is None:
+        png = getattr(cards, kind)(data)
+        if len(_card_cache) > 200:
+            _card_cache.clear()
+        _card_cache[key] = png
+    return png, data
+
+
+@app.get("/card/{kind}/{cid}.png")
+def card(kind: str, cid: str, request: Request):
+    from fastapi.responses import Response
+    png, _ = card_png(kind, cid, _public_base(request))
+    if not png:
+        raise HTTPException(404, "no such card")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=60"})
+
+
+def _og_for(params, base):
+    """(title, description, card kind, id) for a shared link, or None."""
+    for key, kind in (("l", "table"), ("room", "room"), ("roster", "diver")):
+        cid = params.get(key)
+        if not cid or cid in ("1", ""):
+            continue
+        data = _CARD_DATA[kind](cid, base)
+        if not data:
+            return None
+        if kind == "table":
+            m = data["mission"]
+            desc = " · ".join(x for x in [(m or {}).get("name"), data.get("planet"),
+                                          f"{len(data['divers'])}/{data.get('squad_size') or 4} divers",
+                                          f"{sum(1 for d in data['divers'] if d['go'])} GO", data["status"]] if x)
+            return f"War table: {data['name']}", desc + f". Join with code {data['code']}.", kind, cid, data
+        if kind == "room":
+            s = data["stats"]
+            return (f"War room: {data['name']}", f"{data['ship']} · {s.get('nights', 0)} nights · {s.get('drops', 0)} drops · "
+                    f"{s.get('medals', 0)} medals. Tonight: {(data['mission'] or {}).get('name') or 'no mission set'}.", kind, cid, data)
+        r = data["rates"] or {}
+        bits = [f"{r['accuracy'] * 100:.0f}% accuracy" if r.get("accuracy") else None,
+                f"K/D {r['kd']}" if r.get("kd") else None, f"{data['n_medals']} medals",
+                f"{len(data['awards'])} awards" if data.get("awards") else None]
+        return f"{data['callsign']} · WARMIND diver", " · ".join(b for b in bits if b) + ".", kind, cid, data
+    return None
+
+
+class _DiscordCards:
+    """What the Discord app needs from the server: cards, pickers, the front."""
+    def __init__(self, base):
+        self.base = base
+
+    def card(self, kind, cid, fresh=False):
+        fn = _CARD_DATA.get(kind)
+        data = fn(cid, self.base) if fn else None
+        og = _og_for({"table": {"l": cid}, "room": {"room": cid}, "diver": {"roster": cid}}[kind], self.base) if data else None
+        if not og:
+            return None
+        title, desc, _, _, data = og
+        img = f"{self.base}/card/{kind}/{cid}.png?v={_card_version(data)}" + (f"&t={int(time.time())}" if fresh else "")
+        return title, data["url"], desc, img
+
+    def pick(self, sub, q):
+        q = q.strip()[:40]
+        if sub == "table":
+            out = []
+            for l in db.recent_lobbies(time.time() - 3 * 86400, q):
+                m = _mission_name(l.get("mission_json")) or {}
+                n = len(db.list_players(l["id"]))
+                label = " · ".join(x for x in [l["name"], m.get("name"), f"{n} diver{'s' if n != 1 else ''}"] if x)
+                out.append({"name": label[:100], "value": l["id"]})
+            return out
+        if sub == "room":
+            return [{"name": f"{r['name']} · {r['ship']}"[:100], "value": r["id"]} for r in db.find_rooms(q)]
+        if sub == "diver":
+            seen = {}
+            for r in db.find_public_lockers(q):
+                seen.setdefault(r["callsign"].lower(), {"name": r["callsign"][:100], "value": r["callsign"][:100]})
+            return list(seen.values())
+        return []
+
+    def diver_id(self, callsign):
+        for r in db.find_public_lockers(callsign.strip()[:40], limit=50):
+            if r["callsign"].lower() == callsign.strip().lower():
+                return r["id"]
+        return None
+
+    def front(self):
+        w = war.snapshot()
+        lines = []
+        for o in (w.get("orders") or [])[:1]:
+            lines.append(f"**Major Order: {o.get('title')}**")
+            if o.get("briefing"):
+                lines.append(o["briefing"][:300])
+            for t in o.get("tasks") or []:
+                if t.get("pct") is not None:
+                    lines.append(f"- {t.get('kind', '').capitalize()} {t.get('faction') or ''}: {t['pct']}%")
+                elif t.get("planet"):
+                    lines.append(f"- {'Done' if t.get('done') else 'Liberate'} {t['planet']}")
+        planets = sorted(w.get("planets") or [], key=lambda p: -(p.get("players") or 0))[:5]
+        if planets:
+            lines.append("\n**Busiest planets**")
+            for p in planets:
+                lines.append(f"- {p['name']} ({(p.get('enemy') or '').capitalize()}) · {p.get('players') or 0:,} divers · "
+                             f"{p.get('progress') or 0}%{' · Major Order' if p.get('mo') else ''}")
+        if not lines:
+            lines = ["The war feed is quiet right now."]
+        return "The front", f"{self.base}/?tab=front", "\n".join(lines)
+
+
+@app.post("/api/discord/interactions")
+async def discord_interactions(request: Request):
+    body = await request.body()
+    if not discord_app.verify(request.headers.get("x-signature-ed25519", ""), request.headers.get("x-signature-timestamp", ""), body):
+        raise HTTPException(401, "invalid request signature")
+    try:
+        payload = json.loads(body)
+    except Exception:
+        raise HTTPException(400, "bad json")
+    return JSONResponse(discord_app.handle(payload, _DiscordCards(_public_base(request))))
+
+
+discord_app.start()   # registers /warmind when DISCORD_APP_ID + DISCORD_BOT_TOKEN are set
+
+
+def _esc(s):
+    return (str(s).replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
 # ---------------------------------------------------------------- static frontend
 @app.get("/", response_class=HTMLResponse)
-def index():
-    return (HERE / "static" / "index.html").read_text()
+def index(request: Request):
+    html = (HERE / "static" / "index.html").read_text()
+    base = _public_base(request)
+    title, desc, img = "WARMIND", "The squad coach for Helldivers 2: loadouts built for your mission, gear and stats.", None
+    try:
+        og = _og_for(request.query_params, base)
+    except Exception:
+        og = None
+    if og:
+        title, desc, kind, cid, data = og
+        img = f"{base}/card/{kind}/{cid}.png?v={_card_version(data)}"
+    tags = [f'<meta property="og:site_name" content="WARMIND">', f'<meta property="og:type" content="website">',
+            f'<meta property="og:title" content="{_esc(title)}">', f'<meta property="og:description" content="{_esc(desc)}">',
+            f'<meta name="description" content="{_esc(desc)}">']
+    if img:
+        tags += [f'<meta property="og:image" content="{_esc(img)}">', '<meta property="og:image:width" content="1200">',
+                 '<meta property="og:image:height" content="630">', '<meta name="twitter:card" content="summary_large_image">',
+                 f'<meta name="twitter:image" content="{_esc(img)}">']
+    return html.replace('<meta name="theme-color"', "\n".join(tags) + '\n<meta name="theme-color"', 1)
 
 
 @app.get("/app.js")
@@ -1404,7 +1718,7 @@ def health():
     return {"ok": True, "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:12],   # set by Render on each deploy
             "vision": vision.status(), "budget": budget.status(), "war": war.status(),
             "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "last": mind.LAST},
-            "costs": _cost_brief()}
+            "costs": _cost_brief(), "discord": discord_app.status()}
 
 
 def _cost_brief():
@@ -1645,7 +1959,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "play_style": lk.get("play_style"), "style_note": lk.get("style_note"),
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
-            "history": history, "record": record, "medals": medals,
+            "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
             "loadouts": [_with_armor(o) for o in db.list_loadouts(lid)], "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 
@@ -1811,7 +2125,7 @@ def roster_profile(lid: str):
               for r in record[:10]]
     return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
             "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
-            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])]}
+            "recent": recent, "loadouts": [_with_armor(o) for o in db.list_loadouts(lk["id"])], "awards": _awards_of(lk["id"])}
 
 
 @app.post("/api/locker/{lid}/prefs")
