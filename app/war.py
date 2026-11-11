@@ -68,6 +68,19 @@ def _faction(name) -> str | None:
 
 BIOME_EFFECTS = {"hive world": ["gloom_source"]}   # biome -> planet effects in operation_modifiers.yaml
 DSS_ACTIVE = 2                                       # tactical action status: 2 = active (community API)
+# station actions that don't change a mission on the ground (campaign-level boosts): never shown
+# as part of a mission or handed to the planner
+DSS_NOT_MISSION = {"operational support", "exosuit reserves"}
+
+
+def mission_dss(actions) -> list:
+    """Only the station actions that act on a mission (Eagle Storm, Orbital Blockade, ...)."""
+    out = []
+    for a in actions or []:
+        name = a.get("name") if isinstance(a, dict) else a
+        if name and str(name).strip().lower() not in DSS_NOT_MISSION:
+            out.append(a)
+    return out
 
 
 def _dss(stations) -> dict:
@@ -77,7 +90,7 @@ def _dss(stations) -> dict:
         idx = (st.get("planet") or {}).get("index")
         if idx is None:
             continue
-        acts = [a for a in st.get("tacticalActions") or [] if a.get("status") == DSS_ACTIVE and a.get("name")]
+        acts = mission_dss([a for a in st.get("tacticalActions") or [] if a.get("status") == DSS_ACTIVE and a.get("name")])
         out[idx] = {"actions": [a["name"] for a in acts],
                     "details": [{"name": a["name"][:60], "desc": str(a.get("strategicDescription") or a.get("description") or "")[:300]}
                                 for a in acts]}

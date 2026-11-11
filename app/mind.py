@@ -102,7 +102,10 @@ def brief_key(session, players, mission: dict) -> str:
     diver told WARMIND. Once a set exists for this key it stays, so background changes
     (a gear tick, a re-read of stats) never swap kits under the squad's feet."""
     body = {"m": {k: v for k, v in sorted(mission.items()) if k not in ("think", "lang")}, "seed": session.seed,
-            "p": sorted([p.id, p.play_style, sorted((p.prefs or {}).items())] for p in players), "v": 1}
+            # the armour a diver pins is left out: pinning swaps that diver's armour only (the engine puts it
+            # on over the kept picks), it doesn't rebuild the squad
+            "p": sorted([p.id, p.play_style, sorted((k, v) for k, v in (p.prefs or {}).items() if k != "armor_set")] for p in players),
+            "v": 1}
     return "k:" + hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()[:20]
 
 
@@ -247,6 +250,7 @@ unless this mission or mode clearly calls for otherwise, and say so in that dive
 - free_stratagems_for_everyone (Weapons Experimentation) are handed to every diver outside their four slots: \
 never spend a slot on one; plan around it.
 - Exactly four stratagems per diver, obeying the kit rules (one held support weapon, one backpack item, ...).
+- No stratagem twice in the squad: each one is brought by one diver only.
 - The front's spawners (bug holes, fabricators, warp ships) keep spawning until killed: at least two divers \
 need a way to kill them (a grenade that says "kills ...: yes/hard/outside/any", or an explosive weapon).
 - Across the squad: at least two divers who can kill heavies with their support weapon, at least one \

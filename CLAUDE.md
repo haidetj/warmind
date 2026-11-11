@@ -71,6 +71,24 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one of their locker kits; `_with_saved_kits` sends it through the engine as an override (owned / legal / kit rules,
   role kept, the rest of the squad unchanged). Results carry `loadout_id`; `_with_records` gives each saved kit
   its record (drops, kills and deaths per drop, medals).
+- Quick swap (`player.kit_edits`, `POST /api/lobby/{lid}/player/{pid}/swap`): on your own card, tap a piece of kit to
+  use another item (`to`) or say you don't have it (`not_owned`: that slot alone is refilled). Either also fixes the
+  profile's gear. Swaps sit on top of the squad's pinned picks in `_with_saved_kits`; a refilled slot never takes a
+  squadmate's stratagem, so nobody else's kit moves. Cleared on a new mission or reroll; "Undo my swaps" in the ⋮ menu.
+- Pinning armour (`prefs.armor_set`) is left out of `mind.brief_key`: it swaps that diver's armour only, no rebuild.
+- No stratagem twice in a squad (`kitrules.squad_excludes`, and the planner is told); only a diver who owns nothing
+  else legal ends up with a double. Democracy Space Station actions that don't act on a mission (`war.DSS_NOT_MISSION`:
+  Operational Support, Exosuit Reserves) are dropped from missions and the briefing.
+- App nav (`appNav`): fixed at the bottom of every page: Profile, your current / last table, War tables, War rooms, Roster.
+- Debrief uploads (yours, or the whole squad's scoreboard) take 1–4 screenshots of the same mission (`images`), read together.
+- Endorse-only oaths (Side Sweep, Sample Run…) can still be ruled out by the scoreboard: each lists `dq` rules in
+  `oaths.OATHS` (a field at or under a max, or objectives left undone), checked by `oaths.disqualified` whenever that
+  number was read. A DQ beats endorsements. Endorsements are per oath (the button names the oath).
+- Fix a misread number (`POST /api/lobby/{lid}/player/{pid}/result/fix`, the diver or the creator): the oaths are judged
+  again from the fixed numbers (an endorsed oath stays endorsed unless a DQ now applies); `result.corrected` lists the
+  fields fixed by hand and everyone sees them.
+- Feedback can carry up to 3 screenshots (`/api/feedback/{id}/images`, downscaled JPEG, EXIF dropped, public like the
+  note); the export lists their URLs and `feedback-sync.yml` puts them in the issue.
 - Re-uploads (`_same_drop`): the screenshot's mission name (read with the numbers) decides; without names the
   table's mission at upload time does, and identical numbers are always the same scoreboard. Same drop = replaced
   (endorsements too); a different mission is a new drop.

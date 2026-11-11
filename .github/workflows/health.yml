@@ -50,6 +50,8 @@ jobs:
                   except Exception as e:
                       last = e; time.sleep(6)
               raise last
+          h = get("/health")
+          print("health: cleanup", json.dumps(h.get("cleanup")), "| discord", json.dumps(h.get("discord")))
           m = get("/api/meta")
           print("meta: pictures for", len(m.get("pics", {})), "items")
           w = get("/api/war")

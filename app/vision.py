@@ -65,8 +65,8 @@ RESULT_FIELDS = ["kills", "accuracy_pct", "shots_fired", "shots_hit", "deaths", 
                  "objectives_completed", "objectives_total"]
 
 RESULT_PROMPT = (
-    "This is a Helldivers 2 end-of-mission screen (a player scoreboard and/or the mission "
-    "summary). Return ONE JSON object, no prose, with these fields where visible (omit any you "
+    "These are one or more screenshots of the same Helldivers 2 mission's end screens (a player "
+    "scoreboard and/or the mission summary): read them together as one mission. Return ONE JSON object, no prose, with these fields where visible (omit any you "
     "cannot read): " + ", ".join(RESULT_FIELDS) + ". objectives_completed / objectives_total "
     "count main + optional objectives only if the screen lists them. Also mission_name (the mission "
     "title as shown, e.g. \"Eradicate Automaton Forces\") and planet if the screen names them. "
@@ -246,16 +246,23 @@ MOCK_RESULT = {"kills": 180, "accuracy_pct": 78.0, "deaths": 3, "accidentals": 0
                "times_reinforcing": 2, "friendly_fire_dmg": 0}
 
 
-def read_result(image_bytes: bytes, media_type: str) -> dict:
+def _imgs(image_bytes, media_type):
+    """One screenshot (bytes + type) or several ([(bytes, type), ...]) -> a list, capped at 4."""
+    if isinstance(image_bytes, list):
+        return image_bytes[:4]
+    return [(image_bytes, media_type)]
+
+
+def read_result(image_bytes, media_type=None) -> dict:
     """Read the end-of-mission screen into numbers. The oath verdict is computed from
     these in code (warmind.oaths) before the review is written."""
     if MOCK:
         return dict(MOCK_RESULT)
-    return _extract_json(_call([(image_bytes, media_type)], RESULT_PROMPT, kind="result"))
+    return _extract_json(_call(_imgs(image_bytes, media_type), RESULT_PROMPT, kind="result"))
 
 
 SQUAD_PROMPT = (
-    "This is a Helldivers 2 end-of-mission scoreboard that shows EVERY player in the squad "
+    "These are one or more screenshots of the same Helldivers 2 mission's end screens; the scoreboard shows EVERY player in the squad "
     "(one column or row per player, each headed by the player's name). Return ONE JSON object, "
     "no prose: {\"players\": [{\"name\": <the player's name exactly as shown>, <fields>}]} with one entry "
     "per player in the order shown, and these fields where visible (omit any you cannot read): "
@@ -265,7 +272,7 @@ SQUAD_PROMPT = (
 )
 
 
-def read_squad_results(image_bytes: bytes, media_type: str, expected: list | None = None) -> list:
+def read_squad_results(image_bytes, media_type=None, expected: list | None = None) -> list:
     """Read a whole-squad scoreboard into one result per player: [{"name", ...fields}]."""
     expected = [e for e in (expected or []) if e]
     if MOCK:   # sample columns named after the squad, so matching can be exercised offline
@@ -276,7 +283,7 @@ def read_squad_results(image_bytes: bytes, media_type: str, expected: list | Non
             out.append({"name": n.upper() if i % 2 else n, **r})
         return out
     hint = ("The squad's callsigns in WARMIND are: " + ", ".join(expected) + " (in-game names may differ). ") if expected else ""
-    data = _extract_json(_call([(image_bytes, media_type)], SQUAD_PROMPT.replace("{hint}", hint), kind="squad"))
+    data = _extract_json(_call(_imgs(image_bytes, media_type), SQUAD_PROMPT.replace("{hint}", hint), kind="squad"))
     rows = data.get("players") if isinstance(data, dict) else data
     top = {k: data.get(k) for k in ("mission_name", "planet") if isinstance(data, dict) and data.get(k)}
     return [dict(top, **r) for r in (rows or []) if isinstance(r, dict) and r.get("name")][:8]
@@ -329,7 +336,7 @@ LANG_NAMES = {"en": "English", "es": "Spanish", "pt": "Brazilian Portuguese", "f
               "pirate": "English written in playful pirate speak (arr, matey, ye) — still clear and precise"}
 
 
-def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
+def write_aar(image_bytes, media_type, result: dict, context: dict,
               verdict: dict | None = None, lang: str = "en") -> str:
     """Grade the ADVICE against the player's role and career baseline (stoic), with the
     oath verdict — already decided in code — woven in as citation or dressing-down.
@@ -363,7 +370,7 @@ def write_aar(image_bytes: bytes, media_type: str, result: dict, context: dict,
         "this diver's KIT (an item, stratagem, armour or role to swap in or out) that WARMIND should carry into "
         "the next loadout, or `LESSON: none` if the kit worked. Return only the review and that line."
     )
-    text, stop = _call([(image_bytes, media_type)], prompt, max_tokens=1400, kind="review", with_stop=True)
+    text, stop = _call(_imgs(image_bytes, media_type), prompt, max_tokens=1400, kind="review", with_stop=True)
     review, lesson = split_lesson(text)
     if stop == "max_tokens":   # never leave a review cut off mid-sentence
         review = _whole_sentences(review)

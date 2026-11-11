@@ -247,7 +247,7 @@
   }
   // nixie tubes: each character in its own glowing glass cell
   const nixie = str => el("span", { class: "nixie", "aria-label": String(str) }, String(str).split("").map(c => el("span", { class: "nx" + (/[0-9A-Za-z]/.test(c) ? "" : " sep"), "aria-hidden": "true" }, [c])));
-  const metText = t0 => { const s = Math.max(0, Math.floor(Date.now() / 1000 - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+  const metText = (t0, t1) => { const s = Math.max(0, Math.floor((t1 || Date.now() / 1000) - t0)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
     return (h > 99 ? Math.floor(h / 24) + "d" : String(h).padStart(2, "0")) + ":" + String(m).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   let metTimer = null;
   // falling code behind the hero: slow, faint, stops when the hero leaves the page
@@ -396,6 +396,7 @@
     // you are your callsign: home, war tables and the locker need it; roster, rooms and costs are open to look at
     if (!store.locker() && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE) return renderGate();
     if (store.locker()) await syncTables();
+    appNav();
     if (LOCKER_PAGE) return renderLocker();
     if (ROSTER_PAGE) return renderRoster();
     if (ROOM_ID) return renderRoom();
@@ -404,6 +405,42 @@
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
   })().catch(e => { app.innerHTML = ""; app.appendChild(el("div", { class: "alert red" }, [el("b", {}, ["ERR"]), t("err.start", { msg: e.message })])); });
+
+  // ======================================================================= app nav
+  // always at the bottom of every page: your profile, the table you're on (or were last on),
+  // war tables, war rooms, the roster. On home it switches tabs in place.
+  let homeShow = null;   // set by renderHome: switch a home tab without reloading
+  function navHere() {
+    if (LID) return "table";
+    if (LOCKER_PAGE) return "me";
+    if (ROSTER_PAGE) return "roster";
+    if (ROOM_ID) return "rooms";
+    if (COSTS_PAGE) return "";
+    return new URLSearchParams(location.search).get("tab") || "me";
+  }
+  function appNav() {
+    let old = document.querySelector(".appnav"); if (old) old.remove();
+    let last = null; try { last = JSON.parse(localStorage.getItem("wm_last_lobby") || "null"); } catch (e) {}
+    const tableId = LID || (last && last.id), tableName = LID ? (STATE && STATE.name) || (last && last.name) : last && last.name;
+    const here = navHere();
+    const items = [
+      ["me", "◉", t("ht.me"), "/"],
+      ["table", "⚔", t("nav.table"), tableId ? "/?l=" + tableId : "/?tab=tables", tableId ? tableName || "" : t("nav.table.none")],
+      ["tables", "▦", t("ht.tables"), "/?tab=tables"],
+      ["rooms", "⚓", t("ht.rooms"), "/?tab=rooms"],
+      ["roster", "☰", t("ros.title"), "/?tab=roster"],
+    ];
+    const nav = el("nav", { class: "appnav", "aria-label": t("nav.label") }, items.map(([k, ic, label, href, sub]) => {
+      const a = el("a", { href: href, class: "an-" + k, "aria-current": k === here ? "page" : null }, [
+        el("span", { class: "ic", "aria-hidden": "true" }, [ic]), el("b", {}, [label]), sub != null ? el("small", {}, [sub]) : null]);
+      a.onclick = e => {   // on home, the home tabs switch in place
+        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["me", "tables", "rooms", "roster"].includes(k)) {
+          e.preventDefault(); homeShow(k); window.scrollTo(0, 0); markNav(k); }
+      };
+      return a; }));
+    document.body.appendChild(nav); document.body.classList.add("hasnav");
+  }
+  function markNav(k) { document.querySelectorAll(".appnav a").forEach(a => a.setAttribute("aria-current", a.classList.contains("an-" + k) ? "page" : "false")); }
 
   // ======================================================================= who you are
   // the profile's war tables (made or joined) come back to any device it signs in on
@@ -528,11 +565,13 @@
     });
     let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
+      markNav(k);
       try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
       Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
       if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
     app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
+    homeShow = show;
 
     // --- Welcome
     const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
@@ -1129,6 +1168,7 @@
   function renderLive() {
     maybeLinkLocker();
     try { if (LID) localStorage.setItem("wm_last_lobby", JSON.stringify({ id: LID, name: STATE.name || "" })); } catch (e) {}
+    const navT = document.querySelector(".appnav .an-table small"); if (navT && STATE && navT.textContent !== (STATE.name || "")) navT.textContent = STATE.name || "";
     if (!liveRoot) return render();
     const y = window.scrollY;
     const ph = phases();
@@ -1188,6 +1228,16 @@
       kinds.appendChild(b);
     });
     const text = el("textarea", { rows: "5", maxlength: "2000", placeholder: t("fb.text.ph") });
+    // up to 3 screenshots (public with the note): shown as thumbnails, tap one to drop it
+    let shots = [];
+    const thumbs = el("div", { class: "fbthumbs" });
+    const pickBtn = fileBtn("sm", "🖼 " + t("fb.shots"), true);
+    const paintShots = () => { thumbs.innerHTML = "";
+      shots.forEach((f, i) => { const u = URL.createObjectURL(f);
+        const th = el("button", { type: "button", class: "fbthumb", "aria-label": t("fb.shot.remove") }, [el("img", { src: u, alt: "" }), el("span", {}, ["×"])]);
+        th.onclick = () => { shots.splice(i, 1); paintShots(); }; thumbs.appendChild(th); });
+      pickBtn.style.display = shots.length >= 3 ? "none" : ""; };
+    pickBtn.querySelector("input").onchange = ev => { shots = shots.concat(Array.from(ev.target.files || []).filter(f => /^image\//.test(f.type))).slice(0, 3); ev.target.value = ""; paintShots(); };
     const send = el("button", { type: "button", class: "btn primary" }, ["➤ " + t("fb.send")]);
     const cancel = el("button", { type: "button", class: "btn" }, [t("fb.cancel")]);
     const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fb.title") });
@@ -1196,8 +1246,12 @@
       send.disabled = true;
       try {
         try { localStorage.setItem("wm_fb_name", name.value.trim()); } catch (e) {}
-        await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
+        const r = await jpost("/api/feedback", { name: name.value.trim(), kind: kind, text: text.value.trim(), lobby: LID || "",
           page: LID ? "tab" + (curTab || "") : "home", lang: LANG });
+        if (shots.length && r && r.id) {
+          const fd = new FormData(); shots.forEach(f => fd.append("images", f));
+          try { await fdpost("/api/feedback/" + r.id + "/images", fd); } catch (e) { toast(t("fb.shots.fail")); }
+        }
         dlg.close(); toast(t("fb.thanks"));
       } catch (e) { toast(e.message); send.disabled = false; }
     };
@@ -1208,7 +1262,9 @@
         el("span", { class: "label" }, [t("fb.name")]), name,
         el("span", { class: "label" }, [t("fb.kind")]), kinds,
         el("span", { class: "label" }, [t("fb.text")]), text,
+        el("div", { class: "fbshots" }, [thumbs, pickBtn]),
         el("div", { class: "hint", style: "margin:0" }, [t("fb.public")]),
+        el("div", { class: "hint", style: "margin:0" }, [t("fb.shots.public")]),
       ]),
       el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [send, cancel])]));
     dlg.addEventListener("close", () => dlg.remove());
@@ -1243,8 +1299,11 @@
         el("span", { class: "ok" }, ["● " + t("cmd.uplink")]),
         el("span", {}, ["SEC-" + LID.slice(0, 4).toUpperCase()]),
         el("span", {}, [STATE.players.length + "/" + ((STATE.readiness || {}).expected || STATE.players.length) + " " + t("cmd.divers")]),
-        STATE.created_at ? (() => { const n = el("span", { class: "met", title: t("cmd.met") }, ["MET T+", nixie(metText(STATE.created_at))]);
-          clearInterval(metTimer); metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
+        STATE.created_at ? (() => { const end = STATE.ended_at;   // folded or done: the clock stops there
+          const n = el("span", { class: "met" + (end ? " stopped" : ""), title: end ? t(STATE.status === "folded" ? "cmd.met.folded" : "cmd.met.done") : t("cmd.met") },
+            [end ? "MET ■ " : "MET T+", nixie(metText(STATE.created_at, end))]);
+          clearInterval(metTimer);
+          if (!end) metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
       foldRow(), roomChip(), STATE.status === "folded" ? null : goStrip(),
@@ -2308,30 +2367,37 @@
     const plus = (META.passive_throwables || {})[a.armor_passive] || 0;
     return plus ? t("st.nades.plus", { n: nf(base + plus), plus: plus }) : t("st.nades", { n: nf(base) });
   }
-  function locker(a) {
+  function locker(a, onSwap) {
+    // onSwap(slot, name): your own card: tap a piece of kit to swap it (the name stays a wiki link)
+    const tap = (node, slot, name) => { if (!onSwap || !name) return node;
+      node.classList.add("swappable"); node.setAttribute("role", "button"); node.setAttribute("tabindex", "0");
+      node.setAttribute("aria-label", t("sw.title", { item: name }));
+      node.addEventListener("click", e => { if (e.target.closest("a")) return; onSwap(slot, name); });
+      node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSwap(slot, name); } });
+      node.appendChild(el("span", { class: "swapmark", "aria-hidden": "true" }, ["⇄"])); return node; };
     const strats = el("div", { class: "strats" }, (a.stratagems || []).map(s => {
       const pm = String(((META.pics || {})[s] || {}).permit || "supply").toLowerCase();
-      return el("div", { class: "sslot " + pm, title: s }, [
+      return tap(el("div", { class: "sslot " + pm, title: s }, [
         el("div", { class: "sq" }, [pic(s, "icon"), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
         el("div", { class: "sn" }, [wk(s)]),
-      ]);
+      ]), "stratagem", s);
     }));
-    const wt = (cls, label, name, stats) => { const line = typeof stats === "string" ? stats : stats ? statLine(itemStats(name)) : "";
-      return el("div", { class: "wtile " + cls }, [
+    const wt = (cls, label, name, stats, slot) => { const line = typeof stats === "string" ? stats : stats ? statLine(itemStats(name)) : "";
+      return tap(el("div", { class: "wtile " + cls }, [
       el("span", { class: "lab" }, [label]), el("div", { class: "pv" }, [pic(name, "img")]), el("div", { class: "nm" }, [name ? wk(name) : "—"]),
-      line ? el("div", { class: "st" }, [line]) : null]); };
+      line ? el("div", { class: "st" }, [line]) : null]), slot, name); };
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = !a.armor_passive ? null : has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
-    const armor = el("div", { class: "armorfig" }, [
+    const armor = tap(el("div", { class: "armorfig" }, [
       el("span", { class: "lab" }, [t("card.armor")]), el("div", { class: "pv" }, [pic(a.armor, "img")]),
       el("div", { class: "nm" }, [wk(a.armor)]),
       a.armor_weight || a.armor_passive ? el("div", { class: "ps", title: eff || "" }, [[has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight, a.armor_passive].filter(Boolean).join(" · ")]) : null,
-    ]);
+    ]), "armor", a.armor);
     return el("div", { class: "locker" }, [
       strats,
       el("div", { class: "equip" }, [armor, el("div", { class: "weps" }, [
-        wt("primary", t("card.primary"), a.primary, true), wt("", t("card.secondary"), a.secondary, true),
-        wt("", t("card.grenade"), a.grenade, nadeLine(a)), wt("booster", t("card.booster"), a.booster)])]),
+        wt("primary", t("card.primary"), a.primary, true, "primary"), wt("", t("card.secondary"), a.secondary, true, "secondary"),
+        wt("", t("card.grenade"), a.grenade, nadeLine(a), "grenade"), wt("booster", t("card.booster"), a.booster, false, "booster")])]),
       eff ? el("div", { class: "eff" }, [el("b", {}, [a.armor_passive + ": "]), eff]) : null,
     ]);
   }
@@ -2345,6 +2411,7 @@
     const p = Object.assign({}, w.p || {});
     if (w.k === "why.mind") return p.t || "";   // WARMIND's planner, already in the squad's language
     if (w.k === "why.saved") return t("why.saved", { name: p.name || "" });
+    if (w.k === "why.swap" || w.k === "why.swap.no" || w.k === "why.swap.out") return t(w.k, { to: p.to || "", from: p.from || "" });
     if (w.k === "why.worn") return t(p.why && has(p.why) ? "why.worn.pays" : "why.worn", { armor: p.armor, passive: p.passive, why: p.why && has(p.why) ? t(p.why) : "" });
     if (w.k.indexOf("why.") !== 0) return tp(w, "");
     if (p.style) p.style = styleLabel(p.style);
@@ -2367,13 +2434,60 @@
   }
 
   // #41: fight with one of your saved loadouts at this table, or let WARMIND build the kit
-  function kitChoiceRow(p) {
-    const b = el("button", { class: "btn sm", type: "button" }, [p.kit_choice ? "🗄 " + t("kc.change") : "🗄 " + t("kc.use")]);
-    b.onclick = () => kitChoiceDialog(p);
-    const kids = [b];
-    if (p.kit_choice) { const x = el("button", { class: "btn sm", type: "button" }, [t("kc.clear")]);
-      x.onclick = () => setKitChoice(p, null); kids.push(x); }
-    return el("div", { class: "kcrow" }, [p.kit_choice ? el("span", { class: "tag amber" }, [t("kc.on")]) : null, ...kids]);
+  // your own card: one ⋮ menu for what you can do with this kit (fight with a saved loadout,
+  // always wear this armour, save it to the locker), and small chips saying what's on
+  const isWorn = a => (a.why || []).some(w => w.k === "why.worn");
+  function myKitChips(p, a) {
+    const chips = [];
+    if (p.kit_choice) chips.push(el("span", { class: "tag amber" }, ["🗄 " + (p.kit_choice_name ? t("kc.chip", { name: p.kit_choice_name }) : t("kc.on"))]));
+    if (isWorn(a)) chips.push(el("span", { class: "tag" }, ["📌 " + t("arm.wearing", { armor: a.armor })]));
+    return chips.length ? el("div", { class: "mychips" }, chips) : null;
+  }
+  function myKitMenu(p, a) {
+    const items = [];
+    if (p.locker) {
+      items.push([p.kit_choice ? "kc.change" : "kc.use", "", () => kitChoiceDialog(p)]);
+      if (p.kit_choice) items.push(["kc.clear", "", () => setKitChoice(p, null)]);
+    }
+    const worn = isWorn(a);
+    items.push([worn ? t("arm.release.menu") : t("arm.keep", { armor: a.armor }), "", async () => {
+      try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
+        toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); } }]);
+    if (p.swapped) items.push(["sw.reset", "", () => swapPost(p, { reset: true }, t("sw.undone"))]);
+    items.push(["lk.save", "", () => saveKitDialog(a)]);
+    return kebab(items);
+  }
+  // quick swap: the profile's gear was off (an item you don't have, or one you do that WARMIND
+  // didn't know about). Fixes this kit now and your profile's gear for the next one.
+  const SLOT_TAB = { primary: "Primary", secondary: "Secondary", grenade: "Grenade", armor: "Armor", booster: "Booster", stratagem: "Stratagem" };
+  async function swapPost(p, body, msg) {
+    try { STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/swap", body, meRec().token); lastSig = JSON.stringify(STATE); renderLive(); if (msg) toast(msg); }
+    catch (e) { toast(e.message); }
+  }
+  function swapDialog(p, slot, name) {
+    const tab = (META.armory || []).find(tb => tb.slot === SLOT_TAB[slot]); if (!tab) return;
+    const owned = p.owned == null ? null : new Set(p.owned);
+    const items = []; tab.groups.forEach(g => g.items.forEach(i => { if (i.name !== name) items.push(i); }));
+    items.sort((x, y) => ((owned && !owned.has(x.name)) - (owned && !owned.has(y.name))) || x.name.localeCompare(y.name));
+    const dlg = el("dialog", { class: "modal swapdlg", "aria-label": t("sw.title", { item: name }) });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const no = el("button", { type: "button", class: "btn red" }, [t("sw.notowned", { item: name })]);
+    no.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, not_owned: true }, t("sw.removed", { item: name })); };
+    const q = el("input", { type: "search", placeholder: t("sw.search"), autocomplete: "off", "aria-label": t("sw.search") });
+    const list = el("div", { class: "swaplist" });
+    const paint = () => { list.innerHTML = ""; const f = q.value.trim().toLowerCase();
+      items.filter(i => !f || i.name.toLowerCase().includes(f)).slice(0, 80).forEach(i => {
+        const b = el("button", { type: "button", class: "swapitem" }, [el("span", { class: "pv" }, [pic(i.name, slot === "stratagem" ? "icon" : "img")]),
+          el("span", { class: "t" }, [el("b", {}, [i.name]), owned && !owned.has(i.name) ? el("small", {}, [t("sw.notlisted")]) : null])]);
+        b.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, to: i.name }, t("sw.done", { from: name, to: i.name })); };
+        list.appendChild(b); }); };
+    q.oninput = paint; paint();
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("sw.title", { item: name })]), x]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("sw.explain")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [no]),
+        el("div", { class: "sub-h first" }, [t("sw.instead")]), q, list]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
   }
   async function setKitChoice(p, oid) {
     if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
@@ -2407,15 +2521,10 @@
       el("div", { class: "meta" }, [el("span", { class: "cs" }, [p.callsign]), "·", t("card.style", { style: styleLabel(p.play_style) }),
         mine ? tag("amber", t("common.you")) : null, medal ? tag("amber", "🎖 " + medal.id) : null]),
       a && a.compass ? el("div", { class: "cmini", title: t("cmp.title") }, [compassSvg([Object.assign({ color: p.accent }, a.compass)], 44, false), el("small", {}, [compassWord(a.compass)])]) : null,
-      a && mine && store.locker() ? (() => {   // "I want to wear my armour": keep this set from now on, or let WARMIND pick again
-        const worn = (a.why || []).some(w => w.k === "why.worn");
-        const b = el("button", { class: "btn sm", type: "button" }, [worn ? "📌 " + t("arm.wearing", { armor: a.armor }) + " · " + t("arm.release") : "📌 " + t("arm.keep", { armor: a.armor })]);
-        b.onclick = async () => { b.disabled = true; try { await setWorn(worn ? "" : a.armor); STATE = await api("/api/lobby/" + LID); lastSig = JSON.stringify(STATE); renderLive();
-          toast(worn ? t("arm.cleared") : t("arm.saved", { armor: a.armor })); } catch (e) { toast(e.message); b.disabled = false; } };
-        return el("div", { class: "wornrow" }, [b]); })() : null,
+      a && mine && store.locker() ? myKitChips(p, a) : null,
     ]));
+    if (a && mine && store.locker()) { card.querySelector(".hd").classList.add("hasmenu"); card.querySelector(".hd").appendChild(myKitMenu(p, a)); }
     if (!a) return card;
-    if (mine && p.locker && store.locker()) card.appendChild(kitChoiceRow(p));
     if (mine && p.want_role && p.want_role !== "any") {   // the role you asked for: got it, or who has it
       const wn = roleName(p.want_role);
       if (a.role === wn) card.appendChild(el("div", { class: "wantrole ok" }, ["✓ " + t("me.role.got", { role: wn })]));
@@ -2423,7 +2532,8 @@
         card.appendChild(el("div", { class: "wantrole" }, [h ? t("me.role.taken", { role: wn, who: h.callsign }) : t("me.role.not", { role: wn })])); }
     }
     if (kitView === "screen") {
-      card.appendChild(locker(a));
+      card.appendChild(locker(a, mine && p.locker ? (slot, name) => swapDialog(p, slot, name) : null));
+      if (mine && p.locker) card.appendChild(el("div", { class: "swaphint" }, [p.swapped ? t("sw.hint.on") : t("sw.hint")]));
     } else {
     const kit = el("ul", { class: "kit" });
     const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
@@ -2451,11 +2561,7 @@
     } else if (a.thin && a.thin.length) card.appendChild(el("div", { class: "thin" }, [t("card.thin", { list: a.thin.join(", ") })]));
     card.appendChild(a.why && a.why.length ? whyKit(p, a) : el("div", { class: "why" }, [
       (a.rationale_parts || []).map(x => tp(x, "")).filter(Boolean).join(" ") || a.rationale]));
-    if (mine && store.locker()) {   // keep this kit for reference
-      const sv = el("button", { class: "btn sm", type: "button" }, ["🗄 " + t("lk.save")]);
-      sv.onclick = () => saveKitDialog(a);
-      card.appendChild(el("div", { class: "btnrow" }, [sv]));
-    }
+
     return card;
   }
 
@@ -2715,7 +2821,7 @@
     btn.onclick = e => { e.stopPropagation(); if (wrap.classList.contains("open")) return close();
       wrap.classList.add("open"); btn.setAttribute("aria-expanded", "true");
       document.addEventListener("click", outside, true); document.addEventListener("keydown", esc); const f = menu.querySelector("button"); if (f) f.focus(); };
-    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [t(k)]);
+    items.forEach(([k, cls, fn]) => { const b = el("button", { class: "kitem " + cls, type: "button", role: "menuitem" }, [has(k) ? t(k) : k]);
       b.onclick = () => { close(); fn(); }; menu.appendChild(b); });
     return wrap;
   }
@@ -3242,11 +3348,36 @@
   }
 
   // an oath no scoreboard shows: the other divers at the table vouch for it
+  // the screenshot read a number wrong: fix it, and the oaths are judged again
+  const FIX_LAB = { kills: "sb.kills", deaths: "sb.deaths", accuracy_pct: "sb.accuracy", accidentals: "sb.accidentals",
+    friendly_fire_dmg: "fix.ff", samples_extracted: "sb.samples", times_reinforcing: "sb.reinforces", stims_used: "fix.stims",
+    objectives_completed: "fix.objc", objectives_total: "fix.objt" };
+  function fixDialog(p, r) {
+    const dlg = el("dialog", { class: "modal fbmodal", "aria-label": t("fix.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const ins = {};
+    const rows = Object.keys(FIX_LAB).map(k => { const i = el("input", { type: "number", inputmode: "decimal", min: "0", step: k === "accuracy_pct" ? "0.1" : "1" });
+      if (r[k] != null) i.value = r[k]; ins[k] = i;
+      return el("div", { class: "field fixf" }, [el("span", { class: "label" }, [has(FIX_LAB[k]) ? t(FIX_LAB[k]) : k]), i]); });
+    const sv = el("button", { type: "button", class: "btn primary" }, ["✓ " + t("fix.save")]);
+    sv.onclick = async () => { const fields = {};
+      Object.entries(ins).forEach(([k, i]) => { const v = i.value.trim(), was = r[k] != null ? String(r[k]) : ""; if (v !== was) fields[k] = v === "" ? null : v; });
+      if (!Object.keys(fields).length) { dlg.close(); return; }
+      sv.disabled = true;
+      try { const token = (myPlayer() || {}).id === p.id ? meRec().token : store.creator(LID);
+        STATE = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/result/fix", { fields }, token); lastSig = JSON.stringify(STATE); dlg.close(); renderLive(); toast(t("fix.saved")); }
+      catch (e) { toast(e.message); sv.disabled = false; } };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("fix.title") + " · " + p.callsign]), x]),
+      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("fix.hint")]), el("div", { class: "fixgrid" }, rows), el("div", { class: "btnrow" }, [sv])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
   function endorseRow(v, subject) {
     const me = myPlayer(), meR = meRec(), got = v.endorsers || [], need = v.needed || 1;
     const kids = [el("span", {}, [got.length ? t("end.by", { names: got.join(", "), n: got.length, m: need }) : t("end.none", { m: need })])];
     if (me && meR && subject && me.id !== subject.id && !(v.endorser_ids || []).includes(me.id)) {
-      const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch", { name: subject.callsign })]);
+      const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch.oath", { oath: t("oath." + v.oath + ".name"), name: subject.callsign })]);
       b.onclick = async () => { b.disabled = true;
         try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
         catch (e) { toast(e.message); b.disabled = false; } };
@@ -3268,7 +3399,8 @@
         el("div", { class: "btnrow", style: "margin:8px 0 0" }, [shareBtn])])]);
     }
     if (v.passed === false) return el("div", { class: "broken" }, [el("div", { class: "bt" }, [t("deb.broken", { name: name })]), el("div", { class: "bw" }, [reason])]);
-    return el("div", { class: "unver" }, [el("div", {}, [t("deb.unver", { reason: reason })]), subject ? endorseRow(v, subject) : null]);
+    return el("div", { class: "unver" }, [el("div", { class: "oathname" }, [name, el("small", {}, [" · " + t("oath." + v.oath + ".rule")])]),
+      el("div", {}, [t("deb.unver", { reason: reason })]), subject ? endorseRow(v, subject) : null]);
   }
 
   // Squad scoreboard: confirm which column is which diver (prefilled from the names), then
@@ -3323,13 +3455,13 @@
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-      const up = fileBtn(primary ? "primary" : "sm", label, false);
+      const up = fileBtn(primary ? "primary" : "sm", label, true);   // 1-4 screenshots of the same mission
       up.querySelector("input").onchange = async ev => {
-        const f = ev.target.files[0]; if (!f || busy) return;
+        const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
         busy = true; lockControls([up], true);
         const stop = workTicker(status, lines("tick.review.", 5));
         try {
-          const fd = new FormData(); fd.append("image", f); fd.append("lang", LANG);
+          const fd = new FormData(); fs.forEach(f => fd.append("images", f)); fd.append("lang", LANG);
           const token = me && me.id === target.id ? meRec().token : store.creator(LID);
           const rr = await fdpost("/api/lobby/" + LID + "/player/" + target.id + "/result", fd, token);
           stop(); busy = false; await refresh();
@@ -3343,13 +3475,13 @@
     }
     // whole squad from one scoreboard (any member), or just yourself
     if (me || isCreator()) {
-      const sq = fileBtn("primary", "▦ " + t("deb.squad"), false), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+      const sq = fileBtn("primary", "▦ " + t("deb.squad"), true), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
       sq.querySelector("input").onchange = async ev => {
-        const f = ev.target.files[0]; ev.target.value = ""; if (!f || busy) return;
+        const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
         busy = true; lockControls([sq], true);
         const stop = workTicker(sqStatus, lines("tick.review.", 5));
         try {
-          const fd = new FormData(); fd.append("image", f);
+          const fd = new FormData(); fs.forEach(f => fd.append("images", f));
           const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, me ? meRec().token : store.creator(LID));
           stop(); sqStatus.style.display = "none"; busy = false;
           squadConfirm(r, me ? meRec().token : store.creator(LID));
@@ -3381,6 +3513,9 @@
         const chips = [["sb.kills", r.kills], ["sb.accuracy", r.accuracy_pct != null ? r.accuracy_pct + "%" : null], ["sb.deaths", r.deaths],
           ["sb.accidentals", r.accidentals], ["sb.reinforces", r.times_reinforcing], ["sb.samples", r.samples_extracted]].filter(x => x[1] != null);
         if (chips.length) inner.push(el("div", { class: "scoreline", title: t("deb.score") }, chips.map(([k, v]) => el("span", {}, [t(k), el("b", {}, [String(v)])]))));
+        if ((r.corrected || []).length) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, ["✎ " + t("fix.marked", { list: r.corrected.map(k => has(FIX_LAB[k] || "") ? t(FIX_LAB[k]) : k).join(", ") })]));
+        if ((me && me.id === p.id) || isCreator()) { const fb = el("button", { class: "btn sm", type: "button" }, ["✎ " + t("fix.btn")]);
+          fb.onclick = () => fixDialog(p, r); inner.push(el("div", { class: "btnrow", style: "margin:6px 0 0" }, [fb])); }
         if (r.mission_name) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.read.mission", { m: r.mission_name + (r.planet ? " · " + r.planet : "") })]));
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
         if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));

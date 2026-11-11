@@ -138,6 +138,12 @@ CREATE TABLE IF NOT EXISTS callsign_stats (
   style_note TEXT,
   updated_at REAL
 );
+CREATE TABLE IF NOT EXISTS feedback_image (
+  feedback_id TEXT,
+  n INTEGER,
+  data BLOB,
+  PRIMARY KEY (feedback_id, n)
+);
 CREATE TABLE IF NOT EXISTS feedback (
   id TEXT PRIMARY KEY,
   created_at REAL,
@@ -250,6 +256,8 @@ def init():
             c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
         if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
             c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
+        if "kit_edits" not in cols:     # quick swaps on this table's kit: {slot or "strat:<old>": item}
+            c.execute("ALTER TABLE player ADD COLUMN kit_edits TEXT")
 
 
 def set_owned(pid, owned):
@@ -326,6 +334,7 @@ def lock_roster(lobby_id, player_ids):
 def bump_reroll(lobby_id) -> int:
     with _lock, _conn() as c:
         c.execute("UPDATE lobby SET reroll=COALESCE(reroll,0)+1, updated_at=? WHERE id=?", (time.time(), lobby_id))
+        c.execute("UPDATE player SET kit_edits=NULL WHERE lobby_id=?", (lobby_id,))   # a reroll: quick swaps start over
         return c.execute("SELECT reroll FROM lobby WHERE id=?", (lobby_id,)).fetchone()["reroll"]
 
 
@@ -356,8 +365,11 @@ def get_lobby(lobby_id):
 
 def set_mission(lobby_id, mission: dict):
     with _lock, _conn() as c:
+        old = c.execute("SELECT mission_json FROM lobby WHERE id=?", (lobby_id,)).fetchone()
         c.execute("UPDATE lobby SET mission_json=?, updated_at=? WHERE id=?",
                   (json.dumps(mission), time.time(), lobby_id))
+        if not old or (old["mission_json"] or "") != json.dumps(mission):   # new kits: quick swaps start over
+            c.execute("UPDATE player SET kit_edits=NULL WHERE lobby_id=?", (lobby_id,))
 
 
 def add_or_update_player(pid, lobby_id, token, callsign, play_style, style_source, style_note, snapshot):
@@ -425,7 +437,12 @@ def locker_lessons(locker_id, limit=3):
 
 def set_kit_choice(pid, loadout_id):
     with _lock, _conn() as c:
-        c.execute("UPDATE player SET kit_choice=?, updated_at=? WHERE id=?", (loadout_id, time.time(), pid))
+        c.execute("UPDATE player SET kit_choice=?, kit_edits=NULL, updated_at=? WHERE id=?", (loadout_id, time.time(), pid))
+
+
+def set_kit_edits(pid, edits: dict | None):
+    with _lock, _conn() as c:
+        c.execute("UPDATE player SET kit_edits=?, updated_at=? WHERE id=?", (json.dumps(edits) if edits else None, time.time(), pid))
 
 
 def latest_result(player_id):
@@ -441,6 +458,32 @@ def add_feedback(fid, name, kind, text, lobby_id, page, lang):
     with _lock, _conn() as c:
         c.execute("INSERT INTO feedback(id,created_at,name,kind,text,lobby_id,page,lang) VALUES(?,?,?,?,?,?,?,?)",
                   (fid, time.time(), name, kind, text, lobby_id, page, lang))
+
+
+def add_feedback_image(fid, n, data: bytes):
+    with _lock, _conn() as c:
+        c.execute("INSERT OR REPLACE INTO feedback_image(feedback_id,n,data) VALUES(?,?,?)", (fid, n, data))
+
+
+def feedback_image(fid, n):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT data FROM feedback_image WHERE feedback_id=? AND n=?", (fid, n)).fetchone()
+    return bytes(r["data"]) if r else None
+
+
+def feedback_image_counts(fids) -> dict:
+    if not fids:
+        return {}
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT feedback_id, COUNT(*) AS n FROM feedback_image WHERE feedback_id IN (%s) GROUP BY feedback_id"
+                         % ",".join("?" * len(fids)), list(fids)).fetchall()
+    return {r["feedback_id"]: r["n"] for r in rows}
+
+
+def get_feedback(fid):
+    with _lock, _conn() as c:
+        r = c.execute("SELECT * FROM feedback WHERE id=?", (fid,)).fetchone()
+    return dict(r) if r else None
 
 
 def list_feedback(after: float = 0.0, limit: int = 200) -> list:
@@ -755,6 +798,12 @@ def endorsements(result_id):
     for r in rows:
         out.setdefault(r["oath"], []).append(r["endorser_id"])
     return out
+
+
+def fix_result(result_id, result: dict, verdicts):
+    with _lock, _conn() as c:
+        c.execute("UPDATE result SET result_json=?, verdict_json=? WHERE id=?",
+                  (json.dumps(result), json.dumps(verdicts) if verdicts else None, result_id))
 
 
 def set_result_verdicts(result_id, verdicts):

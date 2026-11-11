@@ -40,6 +40,7 @@ jobs:
               body = (f"**From:** {defuse(i['name'])}  \n**When:** {when}  \n**Where:** {i.get('page') or '-'}"
                       f"{' · war table ' + i['lobby_id'] if i.get('lobby_id') else ''}  \n**Language:** {i.get('lang') or 'en'}\n\n"
                       + "\n".join("> " + line for line in defuse(i["text"]).splitlines())
+                      + "".join(f"\n\n![screenshot {n + 1}]({u})" for n, u in enumerate(i.get("images") or []))
                       + "\n\n---\n_Submitted through WARMIND's in-app feedback form._")
               subprocess.run(["gh", "issue", "create", "--repo", os.environ["REPO"], "--title", title,
                               "--label", "feedback", "--body", body], check=True)

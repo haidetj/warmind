@@ -8,6 +8,7 @@ the deterministic resolver you can run offline.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import re
@@ -256,6 +257,9 @@ def _resolve(lobby) -> dict:
             "go": bool(p.get("go")),
             "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
             "kit_choice": p.get("kit_choice"),   # the saved loadout this diver chose to fight with, if any
+            "swapped": bool(p.get("kit_edits")),  # quick swaps on this table's kit
+            "kit_choice_name": next((o["name"] for o in db.list_loadouts(p["locker_id"]) if o["id"] == p.get("kit_choice")), None)
+            if p.get("kit_choice") and p.get("locker_id") else None,
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker
             "assignment": _assignment_dict(a) if a else None,
             "aar": ({"text": res["aar_text"], "result": json.loads(res["result_json"]), "lesson": res.get("lesson"),
@@ -272,10 +276,23 @@ def _resolve(lobby) -> dict:
         "readiness": readiness, "reroll": int(lobby.get("reroll") or 0), "created_at": lobby.get("created_at"),
         "room": _room_brief(lobby.get("room_id")),
         "status": _table_status(lobby, players_rows),
+        "ended_at": _ended_at(lobby, players_rows),   # the mission clock stops when the table folds or is done
     }
 
 
 SQUAD_MAX = 4  # a Helldivers 2 squad
+
+
+def _ended_at(lobby, players_rows):
+    """When the table's clock stopped: folded (when), or done (the last debrief); None while it runs."""
+    st = _table_status(lobby, players_rows)
+    if st == "folded":
+        f = lobby.get("folded")
+        return float(f) if isinstance(f, (int, float)) and f > 1 else lobby.get("updated_at")
+    if st == "done":
+        last = [r["created_at"] for p in players_rows for r in [db.latest_result(p["id"])] if r]
+        return max(last) if last else lobby.get("updated_at")
+    return None
 
 
 _KIT_SLOTS = ("primary", "secondary", "grenade", "armor", "booster", "stratagems")
@@ -286,29 +303,74 @@ def _with_saved_kits(dg, grp, players_rows, session, plan):
     the engine like the planner's picks (owned, legal, kit rules); their role and the rest of the
     squad's picks stay as they were."""
     rows = {r["id"]: r for r in players_rows}
-    chosen = {}
+    chosen, edits = {}, {}
     for pl in grp:
         r = rows.get(pl.id) or {}
         if r.get("kit_choice") and r.get("locker_id"):
             o = next((x for x in db.list_loadouts(r["locker_id"]) if x["id"] == r["kit_choice"]), None)
             if o:
                 chosen[pl.id] = o
-    if not chosen:
+        try:
+            e = json.loads(r["kit_edits"]) if r.get("kit_edits") else {}
+        except Exception:
+            e = {}
+        if e:
+            edits[pl.id] = e
+    if not chosen and not edits:
         return dg
     by = {a.player_id: a for a in dg.assignments}
     override = {}
-    for a in dg.assignments:   # everyone else keeps exactly what they had
+    pinned = (plan or {}).get("override") or {}
+    for a in dg.assignments:   # everyone else keeps exactly what they had (the squad's pinned picks)
         override[a.player_id] = {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                                  "grenade": a.grenade, "armor": a.armor, "booster": a.booster, "stratagems": list(a.stratagems)}
+        if a.player_id not in chosen and pinned.get(a.player_id):   # edits apply on top of the pinned picks
+            override[a.player_id] = dict(override[a.player_id], **{k: v for k, v in pinned[a.player_id].items() if v})
     for pid, o in chosen.items():
         kit = {k: o["kit"].get(k) for k in _KIT_SLOTS if o["kit"].get(k)}
         override[pid] = dict(kit, role=by[pid].role.replace(" ", "_")) if pid in by else kit
+    for pid, e in edits.items():   # quick swaps, on top of whatever this diver has
+        ov = dict(override.get(pid) or {})
+        strat = list(ov.get("stratagems") or [])
+        for k, v in e.items():
+            gone = v.startswith("!")   # "I don't have it": empty the slot, WARMIND refills just that
+            if k.startswith("strat:"):
+                old = k[6:]
+                strat = [s_ for s_ in strat if s_ != old] if gone else [v if s_ == old else s_ for s_ in strat]
+            elif k in _KIT_SLOTS:
+                if gone:
+                    ov.pop(k, None)
+                else:
+                    ov[k] = v
+        ov["stratagems"] = strat
+        override[pid] = ov
     old_why = {a.player_id: a.why for a in dg.assignments}
-    d2 = resolve_squad(session, grp, {}, override=override)
+    # a refilled slot never takes a stratagem a squadmate already carries (that would bump them)
+    saved_ex = {pl.id: list(pl.excluded_items or []) for pl in grp}
+    for pl in grp:
+        if pl.id in edits:
+            mine = set((override.get(pl.id) or {}).get("stratagems") or [])
+            theirs = {x for q, ov in override.items() if q != pl.id for x in (ov.get("stratagems") or [])}
+            pl.excluded_items = sorted(set(pl.excluded_items or []) | (theirs - mine))
+    try:
+        d2 = resolve_squad(session, grp, {}, override=override)
+    finally:
+        for pl in grp:
+            pl.excluded_items = saved_ex[pl.id]
     for a in d2.assignments:
+        lines = []
         if a.player_id in chosen:
-            a.why = [{"kind": "role", "k": "why.saved", "p": {"name": chosen[a.player_id]["name"]}}] + \
-                    [w for w in a.why if w.get("kind") in ("role", "thin", "nostats")]
+            lines.append({"kind": "role", "k": "why.saved", "p": {"name": chosen[a.player_id]["name"]}})
+        for k, v in (edits.get(a.player_id) or {}).items():
+            if v.startswith("!"):
+                lines.append({"kind": "role", "k": "why.swap.out", "p": {"from": v[1:]}})
+                continue
+            got = v in ([a.primary, a.secondary, a.grenade, a.armor, a.booster] + list(a.stratagems))
+            lines.append({"kind": "role", "k": "why.swap" if got else "why.swap.no", "p": {"to": v, "from": k[6:] if k.startswith("strat:") else ""}})
+        if lines:
+            keep = [w for w in (a.why if a.player_id in chosen else old_why.get(a.player_id, a.why))
+                    if a.player_id not in chosen or w.get("kind") in ("role", "thin", "nostats")]
+            a.why = lines + keep
         else:
             a.why = old_why.get(a.player_id, a.why)
     return d2
@@ -340,7 +402,7 @@ def _session_of(mission, lobby) -> Session:
         stealth=bool(mission.get("stealth", False)),
         roles=dict(mission.get("roles") or {}),
         free_stratagems=list(mission.get("free_stratagems") or []),
-        dss_actions=list(mission.get("dss_actions") or []),
+        dss_actions=war.mission_dss(mission.get("dss_actions")),   # missions saved before the filter too
         seed=int(lobby.get("reroll") or 0),
     )
 
@@ -378,6 +440,52 @@ def _with_endorsements(res, players_rows):
             v["needed"] = need
         out.append(v)
     return out
+
+
+_FIXABLE = ("kills", "deaths", "accuracy_pct", "accidentals", "friendly_fire_dmg", "samples_extracted",
+            "times_reinforcing", "stims_used", "objectives_completed", "objectives_total")
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/result/fix")
+def fix_result(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """The screenshot read a number wrong (deaths, kills…): the diver (or the table's creator)
+    corrects it. The oaths are re-judged from the corrected numbers; an oath the table already
+    endorsed stays endorsed; the fields fixed by hand are recorded and shown to everyone."""
+    _require_player_or_creator(lid, pid, x_token)
+    res = db.latest_result(pid)
+    if not res or res["lobby_id"] != lid:
+        raise HTTPException(400, "no debrief to fix yet")
+    result = json.loads(res["result_json"]) if res.get("result_json") else {}
+    fixed = set(result.get("corrected") or [])
+    for k, v in (payload.get("fields") or {}).items():
+        if k not in _FIXABLE:
+            continue
+        if v in (None, ""):
+            result.pop(k, None)
+        else:
+            try:
+                n = float(v)
+            except (TypeError, ValueError):
+                raise HTTPException(400, f"{k} must be a number")
+            if n < 0 or (k == "accuracy_pct" and n > 100) or n > 1_000_000:
+                raise HTTPException(400, f"{k} is out of range")
+            result[k] = n if k == "accuracy_pct" else int(n)
+        fixed.add(k)
+    result["corrected"] = sorted(fixed)
+    mission = _mission_from(db.get_lobby(lid)) or {}
+    old = {v["oath"]: v for v in _verdicts_of(res.get("verdict_json")) if v}
+    verdicts = []
+    for key in _oaths_of(mission):
+        v = oaths.evaluate(key, result)
+        if not v:
+            continue
+        if v.get("passed") is None and (old.get(key) or {}).get("endorsed_by"):
+            v = old[key]   # the table already vouched for it
+        else:
+            v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=result, mode=mission.get("mode"))
+        verdicts.append(v)
+    db.fix_result(res["id"], result, verdicts or None)
+    return _resolve(db.get_lobby(lid))
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/endorse")
@@ -579,10 +687,60 @@ def feedback(payload: dict, request: Request):
     return {"ok": True, "id": fid}
 
 
+FEEDBACK_IMAGES = 3
+
+
+def _shrink_screenshot(data: bytes) -> bytes:
+    """A feedback screenshot, at most 1600 px and re-encoded as JPEG (which also drops
+    EXIF, such as where a phone photo was taken)."""
+    from PIL import Image, ImageOps
+    im = Image.open(io.BytesIO(data))
+    im = ImageOps.exif_transpose(im).convert("RGB")
+    im.thumbnail((1600, 1600))
+    out = io.BytesIO()
+    im.save(out, "JPEG", quality=82, optimize=True)
+    return out.getvalue()
+
+
+@app.post("/api/feedback/{fid}/images")
+async def feedback_images(fid: str, request: Request, images: list[UploadFile] = File(default=[])):
+    """Screenshots for a feedback note, sent right after it (public, like the note)."""
+    fb = db.get_feedback(fid[:20])
+    if not fb or time.time() - (fb["created_at"] or 0) > 900:
+        raise HTTPException(404, "no such feedback (or it's too late to add pictures)")
+    have = db.feedback_image_counts([fb["id"]]).get(fb["id"], 0)
+    n = have
+    for up in (images or [])[:FEEDBACK_IMAGES - have]:
+        data = await up.read()
+        if not data or len(data) > 15_000_000:
+            continue
+        try:
+            jpg = await run_in_threadpool(_shrink_screenshot, data)
+        except Exception:
+            raise HTTPException(400, "that file isn't a picture")
+        db.add_feedback_image(fb["id"], n, jpg)
+        n += 1
+    return {"ok": True, "images": n}
+
+
+@app.get("/api/feedback/{fid}/image/{n}.jpg")
+def feedback_image(fid: str, n: int):
+    from fastapi.responses import Response
+    data = db.feedback_image(fid[:20], n)
+    if not data:
+        raise HTTPException(404, "no such picture")
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=604800"})
+
+
 @app.get("/api/feedback/export")
-def feedback_export(after: float = 0.0):
+def feedback_export(request: Request, after: float = 0.0):
     """Feedback for the daily GitHub sync (public by design: it's published as issues)."""
-    return {"items": db.list_feedback(after)}
+    items = db.list_feedback(after)
+    base = _public_base(request)
+    counts = db.feedback_image_counts([i["id"] for i in items])
+    for i in items:
+        i["images"] = [f"{base}/api/feedback/{i['id']}/image/{k}.jpg" for k in range(counts.get(i["id"], 0))]
+    return {"items": items}
 
 
 # ---------------------------------------------------------------- lobby lifecycle
@@ -729,7 +887,7 @@ def _clean_mission(raw) -> dict:
     strat_names = {s["name"] for s in loader.items().get("stratagems", [])}
     m["free_stratagems"] = [x for x in (m.get("free_stratagems") or []) if x in strat_names][:2]   # Weapons Experimentation
     m["dss_actions"] = [{"name": str(x.get("name") or "")[:60], "desc": str(x.get("desc") or "")[:300]}
-                        for x in (m.get("dss_actions") or []) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
+                        for x in war.mission_dss(m.get("dss_actions")) if isinstance(x, dict) and x.get("name")][:3]   # Democracy Space Station
     m["planet_name"] = str(m.get("planet_name") or "")[:40]   # picked from the live war feed (display only)
     m["planet_hazards"] = [h for h in (m.get("planet_hazards") or []) if h in loader.hazards()]
     try:
@@ -1278,6 +1436,65 @@ def set_kit_choice(lid: str, pid: str, payload: dict, x_token: str = Header(None
     return _resolve(db.get_lobby(lid))
 
 
+_SWAP_SLOTS = {"primary": "Primary", "secondary": "Secondary", "grenade": "Grenade", "armor": "Armor",
+               "booster": "Booster", "stratagem": "Stratagem"}
+
+
+def _slot_names(slot):
+    tab = next((tb for tb in loader.armory() if tb["slot"] == _SWAP_SLOTS[slot]), None)
+    return {i["name"] for g in (tab or {}).get("groups", []) for i in g["items"]}
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/swap")
+def quick_swap(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
+    """Quick swap on your kit at this table: {slot, from, to} uses another item instead, and/or
+    {not_owned: true} says you don't have `from`. Either fixes your profile's gear too (you own
+    `to`; you don't own `from`), so the next kit comes out right. {reset: true} undoes the swaps."""
+    p = _require_player(pid, x_token)
+    edits = json.loads(p["kit_edits"]) if p.get("kit_edits") else {}
+    if payload.get("reset"):
+        db.set_kit_edits(pid, None)
+        return _resolve(db.get_lobby(lid))
+    slot = payload.get("slot")
+    if slot not in _SWAP_SLOTS:
+        raise HTTPException(400, "unknown slot")
+    names = _slot_names(slot)
+    frm, to = str(payload.get("from") or ""), payload.get("to")
+    if to is not None and to not in names:
+        raise HTTPException(400, "that item doesn't go in this slot")
+    if frm and frm not in names:
+        raise HTTPException(400, "unknown item")
+    # the profile's gear follows what the diver tells us
+    owned = _owned_of(p)
+    every = {i["name"] for tb in loader.armory() for g in tb["groups"] for i in g["items"]}
+    have = set(every if owned is None else owned)
+    if payload.get("not_owned") and frm:
+        have.discard(frm)
+    if to:
+        have.add(to)
+    if owned is None and not payload.get("not_owned"):
+        pass   # owns everything already: nothing to record
+    else:
+        stored = _owned_store(sorted(have))
+        db.set_owned(pid, stored)
+        db.remember_gear(p["callsign"], stored)
+        if p.get("locker_id"):
+            db.update_locker(p["locker_id"], owned_json=json.dumps(stored), gear_set=1)
+    key = "strat:" + frm if slot == "stratagem" else slot
+    if to:
+        edits[key] = to
+    else:   # not owned, no pick: this one slot is refilled by WARMIND, the rest of the kit stays
+        edits = {k: v for k, v in edits.items() if v != frm}
+        edits[key] = "!" + frm
+    if slot == "armor" and to and p.get("locker_id") and _prefs_of(p["locker_id"]).get("armor_set"):
+        lk = db.get_locker(p["locker_id"])   # a pinned armour would win over the swap: the swap becomes the pin
+        cur = json.loads(lk["prefs_json"]) if lk and lk.get("prefs_json") else {}
+        cur["armor_set"] = to
+        db.update_locker(p["locker_id"], prefs_json=json.dumps(cur))
+    db.set_kit_edits(pid, edits or None)
+    return _resolve(db.get_lobby(lid))
+
+
 @app.post("/api/lobby/{lid}/player/{pid}/style")
 def set_style(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     p = _require_player(pid, x_token)
@@ -1357,8 +1574,8 @@ async def update_career(lid: str, pid: str, request: Request, images: list[Uploa
 
 
 @app.post("/api/lobby/{lid}/player/{pid}/result")
-async def submit_result(lid: str, pid: str, request: Request, image: UploadFile = File(...), lang: str = Form("en"),
-                        x_token: str = Header(None)):
+async def submit_result(lid: str, pid: str, request: Request, image: UploadFile = File(None),
+                        images: list[UploadFile] = File(default=[]), lang: str = Form("en"), x_token: str = Header(None)):
     p = _require_player_or_creator(lid, pid, x_token)
     lobby = db.get_lobby(lid)
     state = _resolve(lobby)
@@ -1368,7 +1585,9 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
     baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
     ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
-    data, mt = await image.read(), _media_type(image)
+    data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
+    if not data:
+        raise HTTPException(400, "no screenshot provided")
     try:
         _charge(request, lid, 2)  # scoreboard read + after-action review
         result = await run_in_threadpool(vision.read_result, data, mt)
@@ -1474,11 +1693,14 @@ def _require_member(lid, token):
 
 
 @app.post("/api/lobby/{lid}/results/squad")
-async def squad_results_read(lid: str, request: Request, image: UploadFile = File(...), x_token: str = Header(None)):
+async def squad_results_read(lid: str, request: Request, image: UploadFile = File(None),
+                             images: list[UploadFile] = File(default=[]), x_token: str = Header(None)):
     """Step 1: read a scoreboard that shows the whole squad; propose who is who."""
     _require_member(lid, x_token)
     players = db.list_players(lid)
-    data, mt = await image.read(), _media_type(image)
+    data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
+    if not data:
+        raise HTTPException(400, "no screenshot provided")
     try:
         _charge(request, lid, 1)
         rows = await run_in_threadpool(vision.read_squad_results, data, mt, [x["callsign"] for x in players])
