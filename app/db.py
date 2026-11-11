@@ -13,6 +13,7 @@ import time
 
 DB_PATH = os.environ.get("WARMIND_DB", "/data/warmind.db")
 _lock = threading.Lock()
+GEN = [0]   # bumped on every write to results or stat reads (career totals are cached on it)
 
 
 def _conn():
@@ -407,6 +408,7 @@ def remove_player(pid):
 
 def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None,
                 lesson: str | None = None, loadout_id: str | None = None):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id)"
                   " VALUES(?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
@@ -421,6 +423,7 @@ def player_results(player_id):
 
 def delete_result(rid):
     """A re-upload of the same mission replaces the earlier read (and its endorsements)."""
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("DELETE FROM endorsement WHERE result_id=?", (rid,))
         c.execute("DELETE FROM result WHERE id=?", (rid,))
@@ -547,7 +550,10 @@ def add_locker_stats(lid, snapshot, source):
     with _lock, _conn() as c:
         last = c.execute("SELECT snapshot_json FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT 1",
                          (lid,)).fetchone()
-        if last and last["snapshot_json"] == blob:
+        GEN[0] += 1
+        if last and last["snapshot_json"] == blob:   # the same numbers read again: the career read is now dated today
+            c.execute("UPDATE locker_stats SET at=? WHERE id=(SELECT id FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT 1)",
+                      (time.time(), lid))
             return
         c.execute("INSERT INTO locker_stats(locker_id,at,snapshot_json,source) VALUES(?,?,?,?)",
                   (lid, time.time(), blob, source))
@@ -785,6 +791,7 @@ def lobby_has_results(lobby_id) -> bool:
 
 # ---------------------------------------------------------------- oath endorsements
 def add_endorsement(result_id, oath, endorser_id):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("INSERT OR IGNORE INTO endorsement(result_id,oath,endorser_id,at) VALUES(?,?,?,?)",
                   (result_id, oath, endorser_id, time.time()))
@@ -801,12 +808,14 @@ def endorsements(result_id):
 
 
 def fix_result(result_id, result: dict, verdicts):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("UPDATE result SET result_json=?, verdict_json=? WHERE id=?",
                   (json.dumps(result), json.dumps(verdicts) if verdicts else None, result_id))
 
 
 def set_result_verdicts(result_id, verdicts):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("UPDATE result SET verdict_json=? WHERE id=?", (json.dumps(verdicts), result_id))
 

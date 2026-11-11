@@ -92,6 +92,15 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - Re-uploads (`_same_drop`): the screenshot's mission name (read with the numbers) decides; without names the
   table's mission at upload time does, and identical numbers are always the same scoreboard. Same drop = replaced
   (endorsements too); a different mission is a new drop.
+- Career stats (`app/enrich.py`, `server._career`): the latest career read (`locker_stats`, dated) is the baseline; every
+  debrief after it adds its numbers on top (kills, deaths, shots, accidentals → friendly kills, samples, stratagems,
+  objectives, +1 mission); wins, extractions, time in mission and stratagem types are added at the diver's own career
+  rate. A new career read re-grounds: earlier debriefs are marked `counted: "career"` ("in read of {date}") and never
+  added twice; later ones `"added"`. Rates, the planner's `derived` / accuracy, the roster and the diver card all use
+  these totals (`_snap_of`); the stored `snapshot_json` stays the raw read. Enriched stats (mission types, fronts,
+  difficulty, modes, roles, oaths kept / broken, medals) come from every debrief and survive re-grounding; results now
+  record `table_faction`, `table_difficulty`, `table_mode` and `role` at upload. Cached per `db.GEN` (bumped on result /
+  stat writes).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

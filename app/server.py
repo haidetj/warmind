@@ -27,6 +27,7 @@ import cards
 import costs
 import db
 import discord_app
+import enrich
 import vision
 import war
 from warmind import compass, coverage, kitrules, loader, oaths, passives, stats
@@ -78,23 +79,74 @@ def _owned_of(p) -> list | None:
     return _owned_from_json(p.get("owned_json") if isinstance(p, dict) else None)
 
 
-def _accuracy_of(p) -> float | None:
-    """Career accuracy (shots hit / fired) from the diver's stat read, if there is one."""
+_CAREER: dict = {}   # locker id -> (db.GEN, career)
+
+
+def _career_rows(lid):
+    """A locker's debriefs for the career totals: when, the numbers, where (the mission at upload
+    time; older results fall back to the table's mission) and the oath verdicts."""
+    out = []
+    for r in db.locker_record(lid, limit=5000):
+        try:
+            res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        except Exception:
+            res = {}
+        lm = _mission_name(r.get("mission_json")) or {}
+        rec = loader.missions().get(res.get("table_mission")) if res.get("table_mission") else None
+        m = {"name": (rec["display_name"] if rec else None) or res.get("mission_name") or lm.get("name"),
+             "faction": res.get("table_faction") or lm.get("faction"),
+             "difficulty": res.get("table_difficulty") or lm.get("difficulty"), "mode": res.get("table_mode") or lm.get("mode")}
+        out.append({"at": r.get("created_at") or 0, "result": res, "mission": m, "verdicts": _verdicts_of(r.get("verdict_json"))})
+    return out
+
+
+def _career(lid) -> dict:
+    """A diver's career now: the latest career read (dated) plus every debrief since, what came from
+    where, and the enriched stats (mission types, factions, ...) the game doesn't keep."""
+    hit = _CAREER.get(lid)
+    if hit and hit[0] == db.GEN[0]:
+        return hit[1]
+    gen = db.GEN[0]
+    rows = _career_rows(lid)
+    base, base_at = enrich.basis(db.locker_stats(lid))
+    if base is None:
+        lk = db.get_locker(lid) or {}
+        if lk.get("snapshot_json"):   # a read from before stat history was kept: count nothing on top
+            base, base_at = json.loads(lk["snapshot_json"]), max([r["at"] for r in rows] or [time.time()])
+    snap, how = enrich.effective(base, base_at, rows)
+    since, _ = enrich.effective(None, base_at, rows)
+    out = {"snap": snap if base else None, "how": how, "since": since if how["added"] else None,
+           "base_at": base_at or None, "enriched": enrich.enriched(rows)}
+    _CAREER[lid] = (gen, out)
+    return out
+
+
+def _snap_of(p) -> dict | None:
+    """A seat's career numbers: its profile's career (read + debriefs since) when linked, else its own read."""
+    if p.get("locker_id"):
+        try:
+            c = _career(p["locker_id"])
+        except Exception:
+            c = None
+        if c and c["snap"]:
+            return c["snap"]
     try:
-        snap = json.loads(p["snapshot_json"]) if p.get("snapshot_json") else None
+        return json.loads(p["snapshot_json"]) if p.get("snapshot_json") else None
     except Exception:
         return None
+
+
+def _accuracy_of(p) -> float | None:
+    """Career accuracy (shots hit / fired) from the diver's career numbers, if there are any."""
+    snap = _snap_of(p)
     if not snap or not (snap.get("shots_fired") or 0):
         return None
     return float(snap.get("shots_hit") or 0) / float(snap["shots_fired"])
 
 
 def _derived_of(p) -> dict | None:
-    """Career rates (deaths / mission, Eagle share, ...) from the diver's stat read, if any."""
-    try:
-        snap = json.loads(p["snapshot_json"]) if p.get("snapshot_json") else None
-    except Exception:
-        return None
+    """Career rates (deaths / mission, Eagle share, ...) from the diver's career numbers, if any."""
+    snap = _snap_of(p)
     return stats.derive(snap) if snap and (snap.get("missions_played") or snap.get("total_stratagems")) else None
 
 
@@ -241,7 +293,7 @@ def _resolve(lobby) -> dict:
     for i, p in enumerate(players_rows):
         a = by_pid.get(p["id"])
         res = db.latest_result(p["id"])
-        snap = json.loads(p["snapshot_json"]) if p["snapshot_json"] else None
+        snap = _snap_of(p)   # the career read plus debriefs since, when the seat has a profile
         rates = _round(stats.derive(snap)) if snap else None
         players_out.append({
             "id": p["id"], "callsign": p["callsign"], "accent": ACCENTS[i % len(ACCENTS)],
@@ -267,7 +319,7 @@ def _resolve(lobby) -> dict:
                      "verdict": (_verdicts_of(res.get("verdict_json")) or [None])[0]}
                     if res else None),
         })
-    all_snaps = [json.loads(p["snapshot_json"]) for p in players_rows if p["snapshot_json"]]
+    all_snaps = [x for x in (_snap_of(p) for p in players_rows) if x]
     return {
         "id": lobby["id"], "name": lobby["name"], "mission": mission,
         "players": players_out, "directive": directive,
@@ -1582,7 +1634,7 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
     mission = _mission_from(lobby) or {}
     me = next((x for x in state["players"] if x["id"] == pid), None)
     a = me and me["assignment"]
-    baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
+    baseline = stats.derive(_snap_of(p) or {}) if _snap_of(p) else {}
     ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
            "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
     data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
@@ -1616,7 +1668,10 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
         # the numbers and verdicts already stand; don't lose them over the prose call
         aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
     # #42: a re-upload of the same mission replaces the earlier read (a different mission is a new drop)
-    result = dict(result, table_mission=mission.get("mission_id"))   # the mission the table was on
+    # where this drop was fought (the table's mission at upload time), for the enriched career stats
+    result = dict(result, table_mission=mission.get("mission_id"), table_faction=mission.get("faction"),
+                  table_difficulty=mission.get("difficulty"), table_mode=mission.get("mode"),
+                  role=(ctx.get("role") or None))
     replaced = [r for r in db.player_results(pid) if _same_drop(r, result)]
     for r in replaced:
         db.delete_result(r["id"])
@@ -1748,7 +1803,7 @@ async def squad_results_commit(lid: str, rid: str, payload: dict, request: Reque
         p = players[pid]
         me = next((x for x in state["players"] if x["id"] == pid), None)
         a = me and me["assignment"]
-        baseline = stats.derive(json.loads(p["snapshot_json"])) if p["snapshot_json"] else {}
+        baseline = stats.derive(_snap_of(p) or {}) if _snap_of(p) else {}
         ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
                "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline,
                "column": read["rows"][i].get("name")}
@@ -2252,12 +2307,15 @@ def link_locker(lid: str, payload: dict, x_locker: str = Header(None)):
 def _record_of(lid):
     """A locker's recorded results (newest first) and the medals in them."""
     record, medals = [], []
+    base_at = _career(lid)["base_at"]
     for r in db.locker_record(lid):
         verdicts = _verdicts_of(r.get("verdict_json"))
         row = {"at": r["created_at"], "lobby": r.get("lobby_name"), "lobby_id": r.get("lobby_id"),
                "callsign": r.get("callsign"), "mission": _mission_name(r.get("mission_json")),
                "result": json.loads(r["result_json"]) if r.get("result_json") else {},
-               "verdicts": verdicts, "aar": r.get("aar_text") or "", "lesson": r.get("lesson")}
+               "verdicts": verdicts, "aar": r.get("aar_text") or "", "lesson": r.get("lesson"),
+               # added on top of the career read, or already inside it (dated by that read)
+               "counted": "career" if base_at and (r["created_at"] or 0) <= base_at else "added"}
         record.append(row)
         for v in verdicts:
             if v and v.get("medal"):
@@ -2269,7 +2327,8 @@ def _record_of(lid):
 @app.get("/api/locker/{lid}")
 def get_locker(lid: str, x_locker: str = Header(None)):
     lk = _require_locker(lid, x_locker)
-    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
+    car = _career(lid)
+    snap = car["snap"] or (json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None)
     hist = db.locker_stats(lid)
     history = []
     for h in hist:
@@ -2285,6 +2344,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "stats": snap, "scorecard": stats.scorecard(snap) if snap else None,
             "rates": _round(stats.derive(snap)) if snap else None,
             "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
+            "career": _career_out(car),
             "loadouts": _with_records(lid, [_with_armor(o) for o in db.list_loadouts(lid)]), "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 
@@ -2430,8 +2490,14 @@ def delete_loadout(lid: str, oid: str, x_locker: str = Header(None)):
 # Every named locker is listed unless its diver opts out (locker > "Show me on the roster").
 # Public view only: callsign, play style, stat rates, medals, saved loadouts. Never the key,
 # the gear list or which war tables they're in.
+def _career_out(car):
+    """What the profile shows about how the career numbers were made, plus the enriched stats."""
+    return {"career_at": car["how"]["career_at"], "added": car["how"]["added"], "dated": car["how"]["dated"],
+            "since": car["since"], "enriched": car["enriched"]}
+
+
 def _public_rates(lk):
-    snap = json.loads(lk["snapshot_json"]) if lk.get("snapshot_json") else None
+    snap = _snap_of({"locker_id": lk["id"], "snapshot_json": lk.get("snapshot_json")})
     if not snap:
         return None, None
     d = stats.derive(snap)
@@ -2441,7 +2507,7 @@ def _public_rates(lk):
                   "kd": round(k / deaths, 2) if deaths else None,
                   "kills_pm": round(k / m, 1) if m else None,
                   "deaths_pm": round(d["deaths_per_mission"], 2) if m else None,
-                  "win_rate": round(d["win_rate"], 4) if m else None,
+                  "win_rate": round(d["win_rate"], 4) if m and snap.get("missions_won") is not None else None,
                   "missions": int(m) if m else None}
 
 
@@ -2470,11 +2536,11 @@ def roster_profile(lid: str):
     recent = [{"at": r["at"], "mission": r["mission"], "table": r.get("lobby"), "kills": (r["result"] or {}).get("kills"),
                "accuracy": (r["result"] or {}).get("accuracy_pct"), "medal": next((v["medal"]["name"] for v in r["verdicts"] if v and v.get("medal")), None),
                "deaths": (r["result"] or {}).get("deaths"),
-               "oaths": [{"name": v.get("name"), "passed": v.get("passed")} for v in r["verdicts"] if v]}
+               "oaths": [{"name": v.get("name"), "passed": v.get("passed")} for v in r["verdicts"] if v], "counted": r["counted"]}
               for r in record[:10]]
     return {"id": lk["id"], "callsign": lk["callsign"], "play_style": lk.get("play_style"), "rates": rates,
             "scorecard": stats.scorecard(snap) if snap else None, "history": hist, "medals": medals,
-            "recent": recent, "loadouts": _with_records(lk["id"], [_with_armor(o) for o in db.list_loadouts(lk["id"])]), "awards": _awards_of(lk["id"])}
+            "career": _career_out(_career(lk["id"])), "recent": recent, "loadouts": _with_records(lk["id"], [_with_armor(o) for o in db.list_loadouts(lk["id"])]), "awards": _awards_of(lk["id"])}
 
 
 @app.post("/api/locker/{lid}/prefs")

@@ -3156,20 +3156,56 @@
     if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
       el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    const cl = careerLine(d.career, false); if (cl) kids.push(cl);
+    const en = enrichedPanel(d.career); if (en) kids.push(en);
     kids.push(...awardList(d.awards));
     if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
       el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
       el("b", {}, [(r.mission && r.mission.name) || "—"]), " · " + dt(r.at),
       r.kills != null ? " · " + t("lk.r.kills", { n: nf(r.kills) }) : "", r.deaths != null ? " · " + t("lk.r.deaths", { n: nf(r.deaths) }) : "",
-      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name))]))));
+      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name)),
+      " ", countedTag(r, d.career)]))));
     app.appendChild(panel("ROS-03", t("lk.tab.stats"), {}, kids));
   }
+
+  // where the career numbers come from: the latest career read (dated) plus the debriefs since,
+  // and what only WARMIND tracks (mission types, factions, difficulty, roles, oaths)
+  function careerLine(c, own) {
+    if (!c || !c.career_at) return null;
+    const kids = [el("div", {}, [c.added ? t("car.since", { d: dt(c.career_at), n: nf(c.added) }) : t("car.read", { d: dt(c.career_at) })])];
+    const s = c.since;
+    if (s) kids.push(el("div", { class: "carplus" }, [[s.missions_played ? t("car.p.missions", { n: nf(s.missions_played) }) : null,
+      s.enemy_kills != null ? t("car.p.kills", { n: nf(s.enemy_kills) }) : null, s.deaths != null ? t("car.p.deaths", { n: nf(s.deaths) }) : null]
+      .filter(Boolean).join(" · ")]));
+    if (c.added) kids.push(el("div", { class: "hint" }, [t(own ? "car.est" : "car.est.pub")]));
+    return el("div", { class: "carline" }, kids);
+  }
+  function enrichedPanel(c) {
+    const e = c && c.enriched;
+    if (!e || !e.drops) return null;
+    const top = (o, lab, n) => Object.entries(o || {}).slice(0, n || 6).map(([k, v]) => el("span", { class: "tag" }, [lab(k) + " · " + nf(v)]));
+    const row = (key, chips) => chips.length ? el("div", { class: "enrrow" }, [el("div", { class: "k" }, [t(key)]), el("div", { class: "chips" }, chips)]) : null;
+    const fac = k => has("faction." + k) ? t("faction." + k) : k, mode = k => has("mode." + k) ? t("mode." + k) : k;
+    const o = e.oaths || {};
+    return el("div", { class: "enriched" }, [
+      el("div", { class: "sub-h" }, [t("car.enr")]),
+      el("div", { class: "hint" }, [t("car.enr.hint", { n: nf(e.drops) })]),
+      row("car.missions", top(e.missions, x => x, 8)), row("car.factions", top(e.factions, fac)),
+      row("car.diff", Object.entries(e.difficulty || {}).sort((a, b) => parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k, v]) => el("span", { class: "tag" }, [k + " · " + nf(v)]))), row("car.modes", top(e.modes, mode)), row("car.roles", top(e.roles, roleName)),
+      (o.kept || o.broken) ? row("car.oaths", [el("span", { class: "tag green" }, ["✓ " + t("car.kept", { n: nf(o.kept) })]),
+        el("span", { class: "tag red" }, ["✗ " + t("car.broken", { n: nf(o.broken) })]), e.medals ? el("span", { class: "tag" }, ["🎖 " + nf(e.medals)]) : null].filter(Boolean)) : null,
+    ]);
+  }
+  const countedTag = (r, c) => r.counted === "career" && c && c.career_at ? tag("", t("car.dated", { d: dt(c.career_at) }), t("car.dated.tip"))
+    : r.counted === "added" && c && c.career_at ? tag("green", "+ " + t("car.added"), t("car.added.tip")) : null;
 
   function lkStats() {
     const kids = [];
     if (LK.stats) kids.push(statBlock({ scorecard: LK.scorecard, stats: LK.stats, confidence: null }));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    const cl = careerLine(LK.career, true); if (cl) kids.push(cl);
+    const en = enrichedPanel(LK.career); if (en) kids.push(en);
     const h = (LK.history || []).slice();
     if (h.length) {
       const pct = v => v == null ? "—" : (v * 100).toFixed(1) + "%", num = (v, d) => v == null ? "—" : Number(v).toFixed(d);
@@ -3197,7 +3233,7 @@
       const bits = [res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
         res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ");
       const vs = (r.verdicts || []).filter(Boolean).map(v => el("span", { class: "tag " + (v.passed ? "green" : v.passed === false ? "red" : "") }, [(v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath)]));
-      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]),
+      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("span", { class: "rsum" }, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]), countedTag(r, LK.career)]),
         el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
           r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
           r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null,
