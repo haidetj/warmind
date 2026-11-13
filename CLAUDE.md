@@ -48,8 +48,11 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one ("did you mean"). Pre-PIN profiles take the first PIN entered. Callsigns are unique.
   Tables record `lobby.creator_locker`; `/api/locker/{id}/tables` hands a signed-in device its
   creator tokens and seats, so a diver's tables, creator rights and seat follow them to any device.
-  Home lands on the Profile tab (Profile / Front / War rooms / War tables / Roster / Welcome); the tab is
-  kept in the URL (`?tab=`) so back links return to it.
+  Home lands on the Home tab (Home / Profile / War tables / War rooms / Roster, switched only from the bottom nav;
+  no top tabs). The tab is kept in the URL (`?tab=`, Home is `/`, Profile `?tab=me`; old `?tab=front` opens Home).
+  Home (`homePane`, `GET /api/locker/{id}/home`): the Major Order, the open standing orders of your war rooms with
+  progress, the medals in play at your open tables (this mission's oaths until you debrief, whole-operation oaths and how
+  they stand), your latest medals, then the front (planets, "War table here"), the field manual and how-it-works.
 - `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
@@ -79,7 +82,8 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - No stratagem twice in a squad (`kitrules.squad_excludes`, and the planner is told); only a diver who owns nothing
   else legal ends up with a double. Democracy Space Station actions that don't act on a mission (`war.DSS_NOT_MISSION`:
   Operational Support, Exosuit Reserves) are dropped from missions and the briefing.
-- App nav (`appNav`): fixed at the bottom of every page: Profile, your current / last table, War tables, War rooms, Roster.
+- App nav (`appNav`): fixed at the bottom of every page, the only nav: Home, your current / last table, Profile, War tables,
+  War rooms, Roster (short labels `nav.*` so six fit at 360 px in every language).
 - Debrief uploads (yours, or the whole squad's scoreboard) take 1–4 screenshots of the same mission (`images`), read together.
 - Endorse-only oaths (Side Sweep, Sample Run…) can still be ruled out by the scoreboard: each lists `dq` rules in
   `oaths.OATHS` (a field at or under a max, or objectives left undone), checked by `oaths.disqualified` whenever that

@@ -2534,6 +2534,49 @@ def _record_of(lid):
     return record, medals
 
 
+@app.get("/api/locker/{lid}/home")
+def locker_home(lid: str, x_locker: str = Header(None)):
+    """Home for a signed-in diver: the standing orders of their war rooms (with progress), the medals in
+    play at their open tables (this mission's oaths, the operation's oaths and how they stand), and their
+    latest medals."""
+    _require_locker(lid, x_locker)
+    orders = []
+    for r in db.locker_rooms(lid)[:8]:
+        try:
+            ro = _room_out(r["id"])
+        except HTTPException:
+            continue
+        for o in ro["orders"]:
+            if not o.get("done_at"):
+                orders.append({"room_id": r["id"], "room": r["name"], "title": o["title"], "kind": o["kind"],
+                               "progress": o["progress"], "target": o["target"] or 1})
+    inplay = []
+    for seat in db.locker_players(lid)[:30]:
+        lobby = db.get_lobby(seat["lobby_id"])
+        if not lobby or lobby.get("folded") or lobby.get("op_done"):
+            continue
+        players = db.list_players(lobby["id"])
+        st = _table_status(lobby, players)
+        if st == "done":
+            continue
+        mission = _mission_from(lobby) or {}
+        mine = db.latest_result(seat["id"], _cur_drop(lobby))
+        per = [] if mine else [{"oath": k} for k in _oaths_of(mission)]
+        op = _op_out(lobby, players)
+        stand = next((x for x in op["standing"] if x["player_id"] == seat["id"]), None)
+        opv = [{"oath": v["oath"], "passed": v.get("passed"), "missions": v.get("missions")} for v in (stand or {}).get("verdicts", [])]
+        if not opv and op["op_oaths"]:
+            opv = [{"oath": k, "passed": None, "missions": 0} for k in op["op_oaths"]]
+        if not per and not opv:
+            continue
+        inplay.append({"lobby_id": lobby["id"], "name": lobby["name"], "status": st, "mission": _mission_name(lobby.get("mission_json")),
+                       "drop": op["drop"], "of": op["of"], "legacy": op["legacy"], "mission_oaths": per, "op_oaths": opv,
+                       "at": lobby.get("updated_at")})
+    inplay.sort(key=lambda x: -(x["at"] or 0))
+    _, medals = _record_of(lid)
+    return {"orders": orders, "inplay": inplay[:6], "medals": medals[:4]}
+
+
 @app.get("/api/locker/{lid}")
 def get_locker(lid: str, x_locker: str = Header(None)):
     lk = _require_locker(lid, x_locker)

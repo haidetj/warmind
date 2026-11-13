@@ -298,13 +298,13 @@
     return (p.mo ? "★ " : "") + p.name + " · " + t("faction." + p.enemy) + (p.defense ? " · " + t("war.defense") : "") +
       " · " + t("war.divers", { n: nf(p.players) });
   }
-  function warPanel(full) {
+  function warPanel(full, noMO) {
     const body = el("div", { class: "stack", style: "gap:10px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     const card = panel("SYS-00", t("war.title"), { status: t("war.live"), statusKind: "ok" }, [body]);
     loadWar().then(w => {
       if (!w || (!w.orders.length && !w.planets.length)) { card.remove(); return; }
       body.innerHTML = "";
-      w.orders.forEach(o => body.appendChild(moStrip(o)));
+      if (!noMO) w.orders.forEach(o => body.appendChild(moStrip(o)));
       const top = full ? w.planets : w.planets.slice(0, 8);
       if (top.length) body.appendChild(el("div", { class: "fronts" }, [el("span", { class: "label" }, [t("war.fronts")])].concat(top.map(p =>
         el("div", { class: "front f-" + p.enemy }, [
@@ -416,7 +416,8 @@
     if (ROSTER_PAGE) return "roster";
     if (ROOM_ID) return "rooms";
     if (COSTS_PAGE) return "";
-    return new URLSearchParams(location.search).get("tab") || "me";
+    const k = new URLSearchParams(location.search).get("tab") || "home";
+    return k === "front" ? "home" : k;
   }
   function appNav() {
     let old = document.querySelector(".appnav"); if (old) old.remove();
@@ -424,17 +425,18 @@
     const tableId = LID || (last && last.id), tableName = LID ? (STATE && STATE.name) || (last && last.name) : last && last.name;
     const here = navHere();
     const items = [
-      ["me", "◉", t("ht.me"), "/"],
+      ["home", "⌂", t("nav.home"), "/"],
       ["table", "⚔", t("nav.table"), tableId ? "/?l=" + tableId : "/?tab=tables", tableId ? tableName || "" : t("nav.table.none")],
-      ["tables", "▦", t("ht.tables"), "/?tab=tables"],
-      ["rooms", "⚓", t("ht.rooms"), "/?tab=rooms"],
+      ["me", "◉", t("ht.me"), "/?tab=me"],
+      ["tables", "▦", t("nav.tables"), "/?tab=tables"],
+      ["rooms", "⚓", t("nav.rooms"), "/?tab=rooms"],
       ["roster", "☰", t("ros.title"), "/?tab=roster"],
     ];
     const nav = el("nav", { class: "appnav", "aria-label": t("nav.label") }, items.map(([k, ic, label, href, sub]) => {
       const a = el("a", { href: href, class: "an-" + k, "aria-current": k === here ? "page" : null }, [
         el("span", { class: "ic", "aria-hidden": "true" }, [ic]), el("b", {}, [label]), sub != null ? el("small", {}, [sub]) : null]);
       a.onclick = e => {   // on home, the home tabs switch in place
-        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["me", "tables", "rooms", "roster"].includes(k)) {
+        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["home", "me", "tables", "rooms", "roster"].includes(k)) {
           e.preventDefault(); homeShow(k); window.scrollTo(0, 0); markNav(k); }
       };
       return a; }));
@@ -552,10 +554,11 @@
     const term = el("div", { class: "term", "aria-hidden": "true" });
     // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
     // you land on your profile; the war, your rooms, your tables and the welcome sit beside it
-    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")],
-                ["roster", "☰ " + t("ros.title")], ["home", "⌂ " + t("ht.home")]];
-    let ht = new URLSearchParams(location.search).get("tab") || "me";
-    if (!HT.some(x => x[0] === ht)) ht = "me";
+    // the bottom nav is the only nav: Home (the war, your rooms' orders, medals in play), Profile, War tables, War rooms, Roster
+    const HT = [["home", t("nav.home")], ["me", t("ht.me")], ["tables", t("ht.tables")], ["rooms", t("ht.rooms")], ["roster", t("ros.title")]];
+    let ht = new URLSearchParams(location.search).get("tab") || "home";
+    if (ht === "front") ht = "home";
+    if (!HT.some(x => x[0] === ht)) ht = "home";
     const tabs = el("div", { class: "seg hometabs", role: "tablist" });
     const panes = {};
     HT.forEach(([k, label]) => {
@@ -566,39 +569,26 @@
     let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
       markNav(k);
-      try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
+      try { history.replaceState(null, "", k === "home" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
       Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
       if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
-    app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
+    HT.forEach(([k]) => app.appendChild(panes[k]));
     homeShow = show;
 
-    // --- Welcome
+    // --- Home: the Major Order, your war rooms' standing orders, the medals in play at your tables, the front
     const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
     how.onclick = howModal;
-    const cv = el("canvas", { class: "rain", "aria-hidden": "true" });
-    panes.home.appendChild(el("section", { class: "hero" }, [cv,
-      el("div", { class: "fx rings" }), el("div", { class: "fx radar" }),
-      el("div", { class: "hero-body" }, [
-        el("div", { class: "eyebrow" }, [t("app.eyebrow")]),
-        el("h1", { class: "wordmark", style: "font-size:inherit;margin:0" }, [el("div", { class: "wordmark" }, ["WARMIND"])]),
-        el("div", { class: "tag-line" }, [t("app.tagline")]),
-        term,
-        el("div", { class: "btnrow", style: "justify-content:center" }, [
-          el("button", { class: "btn primary", type: "button", onclick: null, "data-go": "tables" }, ["▶ " + t("ht.go.tables")]),
-          el("button", { class: "btn", type: "button", "data-go": "front" }, ["✦ " + t("ht.go.front")]), how]),
-      ]),
-    ]));
-    panes.home.querySelectorAll("[data-go]").forEach(b => { b.onclick = () => { show(b.dataset.go); window.scrollTo(0, 0); }; });
+    homePane(panes.home);
     profilePane(panes.me);
-    const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
-    fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
-    panes.home.appendChild(fmFold);
-    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
-    if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
 
-    // --- Front: the live war, each planet one tap from a war table
-    panes.front.appendChild(warPanel(true));
+    // --- the front, under Home: each planet one tap from a war table
+    panes.home.appendChild(warPanel(true, true));
+    const fmFold2 = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
+    fmFold2.addEventListener("toggle", () => { if (fmFold2.open && fmFold2.children.length < 2) fmFold2.appendChild(manualBody()); });
+    panes.home.appendChild(fmFold2);
+    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [how, feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
+    if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
 
     // --- War rooms: the squad's lasting homes
     roomsPane(panes.rooms);
@@ -627,8 +617,38 @@
     const tablesSlot = el("div", { class: "slot" }); panes.tables.appendChild(tablesSlot);
     renderMyLobbies(tablesSlot);
     show(ht);
-    rain(cv);
-    bootSequence(term);
+  }
+  // Home's briefing: what's in play for you right now
+  function homePane(pane) {
+    const body = el("div", { class: "stack", style: "gap:12px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+    pane.appendChild(panel("HQ-01", t("hm.title"), { tone: "amber" }, [body]));
+    const L = store.locker();
+    Promise.all([loadWar(), L ? lget("/api/locker/" + L.id + "/home").catch(() => null) : Promise.resolve(null)]).then(([w, h]) => {
+      body.innerHTML = "";
+      (w && w.orders || []).forEach(o => body.appendChild(moStrip(o)));
+      if (!w || !(w.orders || []).length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.nomo")]));
+      body.appendChild(el("div", { class: "sub-h" }, [t("hm.orders")]));
+      const ords = (h && h.orders) || [];
+      if (!ords.length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.orders.none")]));
+      ords.forEach(o => body.appendChild(el("a", { class: "hmorder", href: "/?room=" + o.room_id + fromHere() }, [
+        el("div", { class: "t" }, [el("b", {}, [o.title]), el("small", {}, [" · ⚓ " + o.room])]),
+        el("div", { class: "p" }, [meter(Math.round(100 * o.progress / (o.target || 1))), el("span", {}, [nf(o.progress) + " / " + nf(o.target)])])])));
+      body.appendChild(el("div", { class: "sub-h" }, [t("hm.medals")]));
+      const ip = (h && h.inplay) || [];
+      if (!ip.length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.medals.none")]));
+      ip.forEach(x => {
+        const chips = (x.mission_oaths || []).map(o => tag("cyan", "★ " + t("oath." + o.oath + ".medal") + " · " + t("hm.thismission")))
+          .concat((x.op_oaths || []).map(o => tag(o.passed === false ? "red" : "amber", (o.passed === false ? "✗ " : "● ") + t("oath." + o.oath + ".medal") + " · " +
+            (o.passed === false ? t("hm.lost") : t("hm.opprog", { n: o.missions || 0, m: x.of })))));
+        body.appendChild(el("a", { class: "hmplay", href: "/?l=" + x.lobby_id }, [
+          el("div", {}, [el("b", {}, [x.name]), el("small", {}, [" · " + [(x.mission && x.mission.name), x.legacy ? null : t("op.of", { n: x.drop, m: x.of })].filter(Boolean).join(" · ")])]),
+          el("div", { class: "chips" }, chips)]));
+      });
+      const md = (h && h.medals) || [];
+      if (md.length) body.appendChild(el("div", { class: "hmrecent" }, [el("span", { class: "label", style: "margin:0" }, [t("hm.recent")]),
+        ...md.map(m => tag("", "🎖 " + m.medal.name + (m.mission ? " · " + m.mission : "")))]));
+      if (!L) body.appendChild(el("div", { class: "hint" }, [t("hm.signin")]));
+    });
   }
 
   // a new war table; `planet` (a war-feed planet name) pre-picks the mission's planet in the editor
