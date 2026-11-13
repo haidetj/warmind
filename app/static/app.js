@@ -774,7 +774,7 @@
     const row = x => el("a", { class: "roomrow st-" + x.status, href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
       el("div", { class: "rm" }, [statusTag(x.status), " " + (x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])]);
-    const groups = [["open", R0.tables.filter(x => x.status === "open" || x.status === "debriefing")], ["done", R0.tables.filter(x => x.status === "done")],
+    const groups = [["open", R0.tables.filter(x => x.status === "open" || x.status === "debriefing" || x.status === "between")], ["done", R0.tables.filter(x => x.status === "done")],
       ["folded", R0.tables.filter(x => x.status === "folded")]];
     const tk = [];
     if (!R0.tables.length) tk.push(el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]));
@@ -1306,12 +1306,77 @@
           if (!end) metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
-      foldRow(), roomChip(), STATE.status === "folded" ? null : goStrip(),
+      foldRow(), opStrip(), roomChip(), STATE.status === "folded" ? null : goStrip(),
       ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
   }
 
-  const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" ? "amber" : "cyan", t("tbl." + (st || "open")));
+  const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" || st === "between" ? "amber" : "cyan", t("tbl." + (st || "open")));
+  // the operation: mission n of m on this planet; between missions the creator calls the next one (fresh kits
+  // for it) or ends the operation here, and the whole-operation oaths are judged
+  function opStrip() {
+    const op = STATE.op; if (!op || (op.legacy && STATE.status !== "between")) return null;
+    const dots = el("span", { class: "opdots", "aria-hidden": "true" }, Array.from({ length: op.of }, (_, i) =>
+      el("i", { class: i + 1 < op.drop || ((op.done || STATE.status === "between") && i + 1 === op.drop) ? "d" : i + 1 === op.drop ? "c" : "" })));
+    const kids = [el("span", { class: "label", style: "margin:0" }, [t("op.label")]), dots,
+      el("b", {}, [op.done ? t("op.done", { n: op.drop }) : t("op.of", { n: op.drop, m: op.of })])];
+    if (isCreator() && !op.done && STATE.status !== "folded") {
+      const nx = el("button", { class: "btn sm" + (STATE.status === "between" ? " primary" : ""), type: "button" }, ["▶ " + t("op.next")]);
+      nx.onclick = () => nextMissionDialog();
+      const end = el("button", { class: "btn sm", type: "button" }, ["■ " + t("op.end")]);
+      end.onclick = async () => { if (!confirm(t("op.end.q"))) return; end.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/endop", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); render(); toast(t("op.ended")); }
+        catch (e) { toast(e.message); end.disabled = false; } };
+      if (STATE.status === "between" || STATE.status === "debriefing") kids.push(nx);
+      if (STATE.status === "between") kids.push(end);
+    }
+    const hint = STATE.status === "between" && !op.done ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t(isCreator() ? "op.between.c" : "op.between")]) : null;
+    return el("div", { class: "opstrip" }, [el("div", { class: "oprow" }, kids), hint]);
+  }
+  function nextMissionDialog() {
+    const m = STATE.mission || {}, played = new Set(((STATE.op || {}).drops || []).map(d => d.mission && d.mission.name).concat([(META.missions || []).find(x => x.id === m.mission_id)].filter(Boolean).map(x => x.name)));
+    const dv = m.difficulty || 7;
+    const list = (META.missions || []).filter(x => (!x.factions || !x.factions.length || x.factions.indexOf(m.faction) >= 0) && (x.dmin == null || (dv >= x.dmin && dv <= x.dmax)));
+    const dlg = el("dialog", { class: "modal", "aria-label": t("op.next") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const sel = el("select", {}, list.map(z => el("option", { value: z.id }, [z.name + (played.has(z.name) ? " ✓" : "")])));
+    const fresh = list.find(z => !played.has(z.name)); if (fresh) sel.value = fresh.id;
+    const go = el("button", { type: "button", class: "btn primary" }, ["▶ " + t("op.next.go", { n: ((STATE.op || {}).drop || 1) + 1 })]);
+    go.onclick = async () => { go.disabled = true;
+      try { const req = jpost("/api/lobby/" + LID + "/next", { mission: { mission_id: sel.value } }, store.creator(LID));
+        dlg.close(); STATE = STATE.directive ? await regenScreen(req, 1500) : await req; lastSig = JSON.stringify(STATE); render(); toast(t("op.next.done")); }
+      catch (e) { toast(e.message); go.disabled = false; } };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("op.next")]), x]), el("div", { class: "mbody" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("op.next.hint", { planet: m.planet_name || t("op.planet") })]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), sel]),
+      el("div", { class: "btnrow" }, [go])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  // earlier missions of the operation, and how each diver stands on the whole-operation oaths
+  function opPanel() {
+    const op = STATE.op; if (!op || op.legacy) return null;
+    const kids = [];
+    if ((op.op_oaths || []).length) {
+      kids.push(el("div", { class: "sub-h first" }, [t("op.oaths")]), el("div", { class: "hint" }, [t(op.done ? "op.oaths.final" : "op.oaths.live")]));
+      (op.standing || []).forEach(sd => {
+        const tot = sd.totals || {};
+        kids.push(el("div", { class: "opstand" }, [el("b", {}, [sd.callsign]),
+          el("small", {}, [" · " + t("op.missions", { n: sd.missions }) + (tot.deaths != null ? " · " + t("lk.r.deaths", { n: nf(tot.deaths) }) : "") + (tot.kills != null ? " · " + t("lk.r.kills", { n: nf(tot.kills) }) : "")]),
+          el("div", { class: "chips" }, (sd.verdicts.length ? sd.verdicts : op.op_oaths.map(k => ({ oath: k, passed: undefined }))).map(v =>
+            tag(v.passed ? "green" : v.passed === false ? "red" : "", (v.passed ? (op.done ? "✓ " : "● ") : v.passed === false ? "✗ " : "? ") + t("oath." + v.oath + ".name"))))]));
+      });
+    }
+    if ((op.drops || []).length) {
+      kids.push(el("div", { class: "sub-h" + (kids.length ? "" : " first") }, [t("op.earlier")]));
+      op.drops.forEach(d => kids.push(el("details", { class: "fold opdrop" }, [el("summary", {}, [el("span", { class: "rsum" }, [
+        el("b", {}, [t("op.mission.n", { n: d.n }) + " · " + ((d.mission && d.mission.name) || "—")]), " · " + d.divers.length + "/" + STATE.players.length])]),
+        el("div", { class: "body" }, d.divers.map(dv => el("div", { class: "opdiver" }, [el("b", {}, [dv.callsign]),
+          " " + [dv.kills != null ? t("lk.r.kills", { n: nf(dv.kills) }) : null, dv.deaths != null ? t("lk.r.deaths", { n: nf(dv.deaths) }) : null].filter(Boolean).join(" · ") + " ",
+          ...(dv.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + (o.name || o.oath) + (o.medal ? " · 🎖" : "")))])))])));
+    }
+    return kids.length ? el("div", { class: "oppanel" }, kids) : null;
+  }
   function foldRow() {
     const st = STATE.status || "open", kids = [statusTag(st)];
     if (isCreator()) {
@@ -2091,6 +2156,17 @@
     });
     setHint();
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.oath.label")]), oathRow, oathHint]));
+    // whole-operation oaths: judged on the operation's missions added up (e.g. Unbroken across all three)
+    draft.op_oaths = Array.isArray(draft.op_oaths) ? draft.op_oaths.slice() : [];
+    const opRow = el("div", { class: "chips" });
+    const paintOp = () => opRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.k ? draft.op_oaths.indexOf(x.dataset.k) >= 0 : !draft.op_oaths.length)));
+    [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => { if (!k) draft.op_oaths = []; else if (draft.op_oaths.indexOf(k) >= 0) draft.op_oaths = draft.op_oaths.filter(z => z !== k);
+        else if (draft.op_oaths.length < 3) draft.op_oaths = draft.op_oaths.concat([k]); else { toast(t("mis.oaths.max")); return; } paintOp(); };
+      opRow.appendChild(c); });
+    paintOp();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("op.oaths.label")]), opRow, el("div", { class: "hint" }, [t("op.oaths.hint")])]));
 
     // actions
     const save = el("button", { class: "btn primary", type: "button" }, [t("mis.save")]);
@@ -3507,7 +3583,7 @@
     if (me && meR && subject && me.id !== subject.id && !(v.endorser_ids || []).includes(me.id)) {
       const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch.oath", { oath: t("oath." + v.oath + ".name"), name: subject.callsign })]);
       b.onclick = async () => { b.disabled = true;
-        try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
+        try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, scope: v.scope || null, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
         catch (e) { toast(e.message); b.disabled = false; } };
       kids.push(b);
     } else if (me && subject && me.id === subject.id) kids.push(el("span", { class: "hint", style: "margin:0" }, [t("end.ask")]));
@@ -3515,7 +3591,7 @@
   }
   function verdictBlock(v, callsign, subject) {
     if (!v) return null;
-    const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
+    const name = t("oath." + v.oath + ".name") + (v.scope === "operation" ? " · " + t("op.whole") : ""), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
     if (v.passed === true && v.medal) {
       const base = t("oath." + v.oath + ".medal"), mname = v.medal.d100 ? t("medal.d100", { name: base }) : base;
       const shareBtn = el("button", { class: "btn sm share", type: "button" }, ["⇪ " + t("share.btn")]);
@@ -3579,7 +3655,9 @@
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
-    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
+    const opb = opPanel(); if (opb) kids.push(opb);
+    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: opb ? null : "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
+    if ((m.op_oaths || []).length && !(STATE.op || {}).done) kids.push(el("div", { class: "sub-h" }, [t("op.stakes")]), medalPreview(m.op_oaths, m.mode === "d100"));
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });

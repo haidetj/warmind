@@ -231,6 +231,10 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN creator_locker TEXT")
         if "room_id" not in lcols:   # the war room this table belongs to
             c.execute("ALTER TABLE lobby ADD COLUMN room_id TEXT")
+        if "drop_no" not in lcols:   # an operation: which mission the table is on (NULL = a table from before operations)
+            c.execute("ALTER TABLE lobby ADD COLUMN drop_no INTEGER")
+            c.execute("ALTER TABLE lobby ADD COLUMN drop_at REAL")
+            c.execute("ALTER TABLE lobby ADD COLUMN op_done REAL")
         if "go" not in cols:          # Go / No-Go poll before the drop
             c.execute("ALTER TABLE player ADD COLUMN go INTEGER DEFAULT 0")
         ccols = {r["name"] for r in c.execute("PRAGMA table_info(callsign_stats)").fetchall()}
@@ -257,6 +261,8 @@ def init():
             c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
         if "room_id" not in rcols:      # a drop logged from the Profile for a war room (its tables carry their own)
             c.execute("ALTER TABLE result ADD COLUMN room_id TEXT")
+        if "drop_no" not in rcols:      # which mission of the table's operation (NULL = the first)
+            c.execute("ALTER TABLE result ADD COLUMN drop_no INTEGER")
         if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
             c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
         if "kit_edits" not in cols:     # quick swaps on this table's kit: {slot or "strat:<old>": item}
@@ -356,8 +362,31 @@ def set_squad_size(lobby_id, n):
 def create_lobby(lobby_id, name, creator_token, squad_size=4):
     now = time.time()
     with _lock, _conn() as c:
-        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,squad_size,created_at,updated_at)"
-                  " VALUES(?,?,?,?,?,?,?)", (lobby_id, name, creator_token, None, squad_size, now, now))
+        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,squad_size,created_at,updated_at,drop_no,drop_at)"
+                  " VALUES(?,?,?,?,?,?,?,1,?)", (lobby_id, name, creator_token, None, squad_size, now, now, now))
+
+
+def next_drop(lobby_id, mission: dict) -> int:
+    """The operation's next mission: a new mission number, its own clock, Go / No-Go and quick swaps start over."""
+    GEN[0] += 1
+    now = time.time()
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET drop_no=COALESCE(drop_no,1)+1, drop_at=?, mission_json=?, updated_at=? WHERE id=?",
+                  (now, json.dumps(mission), now, lobby_id))
+        c.execute("UPDATE player SET kit_edits=NULL, go=0 WHERE lobby_id=?", (lobby_id,))
+        return c.execute("SELECT drop_no FROM lobby WHERE id=?", (lobby_id,)).fetchone()["drop_no"]
+
+
+def set_lobby_drop1(lobby_id):
+    """A table from before operations joins one: its first mission is mission 1."""
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET drop_no=1, drop_at=COALESCE(drop_at, created_at) WHERE id=? AND drop_no IS NULL", (lobby_id,))
+        c.execute("UPDATE result SET drop_no=1 WHERE lobby_id=? AND drop_no IS NULL", (lobby_id,))
+
+
+def end_op(lobby_id):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET op_done=?, updated_at=? WHERE id=? AND op_done IS NULL", (time.time(), time.time(), lobby_id))
 
 
 def get_lobby(lobby_id):
@@ -409,12 +438,13 @@ def remove_player(pid):
 
 
 def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None,
-                lesson: str | None = None, loadout_id: str | None = None, room_id: str | None = None):
+                lesson: str | None = None, loadout_id: str | None = None, room_id: str | None = None,
+                drop_no: int | None = None):
     GEN[0] += 1
     with _lock, _conn() as c:
-        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id,room_id)"
-                  " VALUES(?,?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
-                                                   json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id, room_id))
+        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id,room_id,drop_no)"
+                  " VALUES(?,?,?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
+                                                     json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id, room_id, drop_no))
 
 
 def player_results(player_id):
@@ -450,11 +480,22 @@ def set_kit_edits(pid, edits: dict | None):
         c.execute("UPDATE player SET kit_edits=?, updated_at=? WHERE id=?", (json.dumps(edits) if edits else None, time.time(), pid))
 
 
-def latest_result(player_id):
+def latest_result(player_id, drop_no=None):
+    """The diver's latest debrief (at one mission of the operation, if `drop_no` is given)."""
     with _lock, _conn() as c:
-        row = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC LIMIT 1",
-                        (player_id,)).fetchone()
+        if drop_no is None:
+            row = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC LIMIT 1", (player_id,)).fetchone()
+        else:
+            row = c.execute("SELECT * FROM result WHERE player_id=? AND COALESCE(drop_no,1)=? ORDER BY created_at DESC LIMIT 1",
+                            (player_id, drop_no)).fetchone()
         return dict(row) if row else None
+
+
+def lobby_results(lobby_id):
+    """Every debrief at this table, oldest first (the operation's missions in order)."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM result WHERE lobby_id=? ORDER BY COALESCE(drop_no,1), created_at", (lobby_id,)).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ---------------------------------------------------------------- feedback
@@ -846,10 +887,14 @@ def set_lobby_folded(lobby_id, folded: bool):
         c.execute("UPDATE lobby SET folded=?, updated_at=? WHERE id=?", (time.time() if folded else None, time.time(), lobby_id))
 
 
-def lobby_debriefed(lobby_id) -> set:
-    """Player ids at this table with a recorded debrief."""
+def lobby_debriefed(lobby_id, drop_no=None) -> set:
+    """Player ids at this table with a recorded debrief (for one mission of the operation, if given)."""
     with _lock, _conn() as c:
-        rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=?", (lobby_id,)).fetchall()
+        if drop_no is None:
+            rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=?", (lobby_id,)).fetchall()
+        else:
+            rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=? AND COALESCE(drop_no,1)=?",
+                             (lobby_id, drop_no)).fetchall()
     return {r["player_id"] for r in rows}
 
 

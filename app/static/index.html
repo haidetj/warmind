@@ -729,6 +729,12 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .swapmark{position:absolute;top:4px;right:5px;font-size:12px;color:var(--muted);line-height:1;pointer-events:none}
   .sslot.swappable .swapmark{top:2px;right:3px}
   .swaphint{margin:8px 0 0;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .opstrip{margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--amber)}
+  .opstrip .oprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px} .opstrip .oprow b{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase}
+  .opdots{display:inline-flex;gap:4px} .opdots i{width:10px;height:10px;border:1px solid var(--amber);display:inline-block}
+  .opdots i.d{background:var(--amber)} .opdots i.c{background:repeating-linear-gradient(45deg,var(--amber) 0 2px,transparent 2px 4px)}
+  .oppanel{margin-bottom:6px} .opstand{padding:6px 0;border-bottom:1px solid var(--line)} .opstand .chips{margin-top:4px}
+  .opdiver{padding:4px 0;font-size:14px} .opdrop summary{flex-wrap:wrap}
   .logdlg .grid2{gap:8px 10px} .logdlg select{width:100%} .logdlg .blk{margin-top:12px}
   .logcols{display:grid;gap:8px;margin-top:10px} .logcols .btn{justify-content:flex-start;text-align:left}
   .swapdlg input[type=search]{width:100%;margin:6px 0 10px}

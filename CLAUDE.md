@@ -108,6 +108,15 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   stay unverified there (nobody to vouch). Log drops only replace an identical scoreboard (`_same_drop(log=True)`).
   A logged drop can name one of the diver's war rooms (`result.room_id`, members only): `db.room_results` takes it in, so it
   counts toward standing orders (one drop each, its own difficulty / planet) and goes in the ship's log.
+- Operations (`lobby.drop_no` / `drop_at` / `op_done`, `result.drop_no`): a war table runs the planet's operation, 1–3
+  missions (`_op_len` by difficulty: D1–2 one, D3–4 two, D5+ three; tables from before operations have `drop_no` NULL and
+  stay one mission). Status: open → debriefing → `between` (mission debriefed, more to go) → done (last mission debriefed,
+  or the creator's `POST /endop`). `POST /api/lobby/{lid}/next` (creator) keeps planet / front / difficulty / mode / oaths,
+  takes a new `mission_id`, bumps the mission number (`mission.drop` is in `mind.brief_key`, so every mission gets fresh
+  kits), clears quick swaps and Go / No-Go. The table shows only this mission's debriefs; `state.op` has earlier missions
+  and the whole-operation oaths (`mission.op_oaths`, judged live on the summed numbers, `_op_sum`). When the operation
+  ends, `_finish_op` appends them (`scope: "operation"`, medal seeded `<lid>:op`) to each diver's last debrief, so
+  medals / records / rooms count them; their endorsements are keyed `op:<oath>`. Room tallies count each mission a drop.
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

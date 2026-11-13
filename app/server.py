@@ -309,7 +309,7 @@ def _resolve(lobby) -> dict:
     players_out = []
     for i, p in enumerate(players_rows):
         a = by_pid.get(p["id"])
-        res = db.latest_result(p["id"])
+        res = db.latest_result(p["id"], _cur_drop(lobby))   # this mission's debrief (earlier ones: "op")
         snap = _snap_of(p)   # the career read plus debriefs since, when the seat has a profile
         rates = _round(stats.derive(snap)) if snap else None
         players_out.append({
@@ -346,6 +346,7 @@ def _resolve(lobby) -> dict:
         "room": _room_brief(lobby.get("room_id")),
         "status": _table_status(lobby, players_rows),
         "ended_at": _ended_at(lobby, players_rows),   # the mission clock stops when the table folds or is done
+        "op": _op_out(lobby, players_rows),   # the operation: which mission, how many, earlier missions, whole-op oaths
     }
 
 
@@ -359,7 +360,7 @@ def _ended_at(lobby, players_rows):
         f = lobby.get("folded")
         return float(f) if isinstance(f, (int, float)) and f > 1 else lobby.get("updated_at")
     if st == "done":
-        last = [r["created_at"] for p in players_rows for r in [db.latest_result(p["id"])] if r]
+        last = [r["created_at"] for r in db.lobby_results(lobby["id"])]
         return max(last) if last else lobby.get("updated_at")
     return None
 
@@ -491,6 +492,11 @@ def _readiness(lobby, players_rows, mission) -> dict:
             "final": ready or briefed}
 
 
+def _end_key(v) -> str:
+    """Endorsements are kept per oath, and a whole-operation oath apart from the same oath on one mission."""
+    return ("op:" if v.get("scope") == "operation" else "") + str(v.get("oath") or "")
+
+
 def _with_endorsements(res, players_rows):
     """Verdicts plus, for the ones the table can endorse, who has and how many are needed."""
     vs = _verdicts_of(res.get("verdict_json"))
@@ -503,7 +509,7 @@ def _with_endorsements(res, players_rows):
             continue
         v = dict(v)
         if v.get("endorsable") or v.get("passed") is None or v.get("endorsed_by"):
-            ids = got.get(v["oath"], [])
+            ids = got.get(_end_key(v), [])
             v["endorsers"] = [names.get(i, "?") for i in ids]
             v["endorser_ids"] = ids
             v["needed"] = need
@@ -572,13 +578,15 @@ def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     if not res:
         raise HTTPException(400, "no debrief to endorse yet")
     oath = str(payload.get("oath") or "")
+    scope = "operation" if payload.get("scope") == "operation" else None
     verdicts = _verdicts_of(res.get("verdict_json"))
-    v = next((x for x in verdicts if x and x.get("oath") == oath), None)
+    v = next((x for x in verdicts if x and x.get("oath") == oath and x.get("scope") == scope), None)
     if not v or v.get("passed") is False:
         raise HTTPException(400, "nothing to endorse for that oath")
-    db.add_endorsement(res["id"], oath, who["id"])
+    ekey = _end_key(v)
+    db.add_endorsement(res["id"], ekey, who["id"])
     players = db.list_players(lid)
-    ids = db.endorsements(res["id"]).get(oath, [])
+    ids = db.endorsements(res["id"]).get(ekey, [])
     if v.get("passed") is None and len(ids) >= oaths.needed_endorsements(len(players)):
         names = {p["id"]: p["callsign"] for p in players}
         lobby = db.get_lobby(lid)
@@ -586,7 +594,8 @@ def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
         v.update(passed=True, endorsed_by=[names.get(i, "?") for i in ids], reason_key="v.endorsed",
                  reason_params={"names": ", ".join(names.get(i, "?") for i in ids)},
                  reason="Endorsed by " + ", ".join(names.get(i, "?") for i in ids) + ".")
-        v["medal"] = oaths.medal(v, lobby_id=lid, player_id=pid, result=json.loads(res["result_json"] or "{}"), mode=mission.get("mode"))
+        v["medal"] = oaths.medal(v, lobby_id=lid + (":op" if scope else ""), player_id=pid,
+                                 result=json.loads(res["result_json"] or "{}"), mode=mission.get("mode"))
         db.set_result_verdicts(res["id"], verdicts)
         if lobby.get("room_id") and v.get("medal"):
             db.room_log(lobby["room_id"], "medal", json.dumps({"k": "log.endorsed", "p": {"who": subject["callsign"], "medal": v["medal"]["name"],
@@ -594,17 +603,131 @@ def endorse(lid: str, pid: str, payload: dict, x_token: str = Header(None)):
     return _resolve(db.get_lobby(lid))
 
 
+_OP_SUM = ("kills", "deaths", "shots_fired", "shots_hit", "accidentals", "samples_extracted", "stratagems_used",
+           "stims_used", "times_reinforcing", "friendly_fire_dmg", "melee_kills", "objectives_completed", "objectives_total")
+
+
+def _op_sum(results: list) -> dict:
+    """One diver's whole operation as one scoreboard: numbers added up, accuracy from the shots."""
+    out = {}
+    for res in results:
+        for k in _OP_SUM:
+            v = res.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                out[k] = out.get(k, 0) + v
+    if out.get("shots_fired"):
+        out["accuracy_pct"] = round(100.0 * out.get("shots_hit", 0) / out["shots_fired"], 1)
+    else:
+        accs = [r["accuracy_pct"] for r in results if isinstance(r.get("accuracy_pct"), (int, float))]
+        if accs:
+            out["accuracy_pct"] = round(sum(accs) / len(accs), 1)
+    out["missions"] = len(results)
+    return out
+
+
+def _op_verdicts(lobby, pid, results) -> list:
+    """The whole-operation oaths for one diver, judged on the operation's summed numbers."""
+    mission = _mission_from(lobby) or {}
+    summed = _op_sum(results)
+    out = []
+    for key in [k for k in (mission.get("op_oaths") or []) if k in oaths.OATHS]:
+        v = oaths.evaluate(key, summed)
+        if v:
+            v["scope"] = "operation"
+            v["missions"] = len(results)
+            out.append(v)
+    return out
+
+
+def _op_out(lobby, players_rows):
+    """The operation at a war table: mission n of m, every earlier mission's debriefs, and how the
+    whole-operation oaths stand (judged live; kept for good when the operation ends)."""
+    cur, n = _cur_drop(lobby), _op_len(lobby)
+    names = {p["id"]: p["callsign"] for p in players_rows}
+    by_drop, by_pid = {}, {}
+    for r in db.lobby_results(lobby["id"]):
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        dn = int(r.get("drop_no") or 1)
+        d = by_drop.setdefault(dn, {"n": dn, "mission": None, "at": r["created_at"], "divers": []})
+        d["mission"] = d["mission"] or _result_mission(r)
+        vs = [v for v in _verdicts_of(r.get("verdict_json")) if v and v.get("scope") != "operation"]
+        d["divers"].append({"callsign": names.get(r["player_id"], "?"), "kills": res.get("kills"), "deaths": res.get("deaths"),
+                            "accuracy_pct": res.get("accuracy_pct"),
+                            "oaths": [{"oath": v.get("oath"), "name": v.get("name"), "passed": v.get("passed"),
+                                       "medal": (v.get("medal") or {}).get("name")} for v in vs]})
+        by_pid.setdefault(r["player_id"], []).append(res)
+    mission = _mission_from(lobby) or {}
+    op_oaths = [k for k in (mission.get("op_oaths") or []) if k in oaths.OATHS]
+    standing = []
+    if op_oaths:
+        for p in players_rows:
+            rs = by_pid.get(p["id"]) or []
+            standing.append({"player_id": p["id"], "callsign": p["callsign"], "missions": len(rs), "totals": _op_sum(rs) if rs else None,
+                             "verdicts": _op_verdicts(lobby, p["id"], rs) if rs else []})
+    return {"drop": cur, "of": max(n, cur), "planned": n, "legacy": lobby.get("drop_no") is None,
+            "done": bool(lobby.get("op_done")) or _table_status(lobby, players_rows) == "done",
+            "drops": [by_drop[k] for k in sorted(by_drop) if k != cur or lobby.get("op_done")],
+            "op_oaths": op_oaths, "standing": standing}
+
+
+def _finish_op(lobby):
+    """The operation is over: each diver's whole-operation oaths are judged on their summed numbers and kept
+    (with medals) on their last debrief, so medals, records and rooms count them like any oath."""
+    db.end_op(lobby["id"])
+    lobby = db.get_lobby(lobby["id"]) or lobby
+    mission = _mission_from(lobby) or {}
+    if not mission.get("op_oaths"):
+        return
+    by_pid = {}
+    for r in db.lobby_results(lobby["id"]):
+        by_pid.setdefault(r["player_id"], []).append(r)
+    for pid, rows in by_pid.items():
+        last = rows[-1]
+        vs = [v for v in _verdicts_of(last.get("verdict_json")) if v and v.get("scope") != "operation"]
+        ops = _op_verdicts(lobby, pid, [json.loads(r["result_json"]) if r.get("result_json") else {} for r in rows])
+        for v in ops:
+            v["medal"] = oaths.medal(v, lobby_id=lobby["id"] + ":op", player_id=pid, result=_op_sum(
+                [json.loads(r["result_json"]) if r.get("result_json") else {} for r in rows]), mode=mission.get("mode"))
+        db.set_result_verdicts(last["id"], vs + ops)
+        if lobby.get("room_id"):
+            for v in ops:
+                if v.get("medal"):
+                    db.room_log(lobby["room_id"], "medal", json.dumps({"k": "log.opmedal", "p": {
+                        "who": (db.get_player(pid) or {}).get("callsign"), "medal": v["medal"]["name"]}}))
+    if lobby.get("room_id"):
+        db.room_log(lobby["room_id"], "op", json.dumps({"k": "log.opdone", "p": {"name": lobby.get("name"), "n": _cur_drop(lobby)}}))
+
+
+def _cur_drop(lobby) -> int:
+    """Which mission of the table's operation is on (1 for tables from before operations)."""
+    return int(lobby.get("drop_no") or 1)
+
+
+def _op_len(lobby) -> int:
+    """Missions in this operation, as the game sets them by difficulty (1 for tables from before
+    operations). The creator can still end the operation early or add a mission."""
+    if lobby.get("drop_no") is None:
+        return 1
+    d = int((_mission_from(lobby) or {}).get("difficulty") or 7)
+    return 1 if d <= 2 else 2 if d <= 4 else 3
+
+
 def _table_status(lobby, players=None) -> str:
-    """open -> debriefing (some divers debriefed) -> done (every diver has); folded overrides."""
+    """open -> debriefing (some divers debriefed this mission) -> between (every diver has, more missions
+    to go in the operation) -> done (the operation is over); folded overrides."""
     if lobby.get("folded"):
         return "folded"
+    if lobby.get("op_done"):
+        return "done"
     players = players if players is not None else db.list_players(lobby["id"])
     if not players:
         return "open"
-    got = db.lobby_debriefed(lobby["id"])
+    got = db.lobby_debriefed(lobby["id"], _cur_drop(lobby) if lobby.get("drop_no") is not None else None)
     if not got:
         return "open"
-    return "done" if all(p["id"] in got for p in players) else "debriefing"
+    if not all(p["id"] in got for p in players):
+        return "debriefing"
+    return "done" if _cur_drop(lobby) >= _op_len(lobby) else "between"
 
 
 @app.post("/api/lobby/{lid}/fold")
@@ -938,6 +1061,43 @@ def set_mission(lid: str, payload: dict, x_token: str = Header(None)):
     return _resolve(db.get_lobby(lid))
 
 
+@app.post("/api/lobby/{lid}/next")
+def next_mission(lid: str, payload: dict, x_token: str = Header(None)):
+    """The operation's next mission (creator): same planet, front and settings unless changed; a new mission
+    number, fresh kits for the new mission, Go / No-Go and the clock for that mission start over."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    _not_folded(lobby)
+    if lobby.get("op_done"):
+        raise HTTPException(409, "this operation is over: start a new war table for the next one")
+    if lobby.get("drop_no") is None:
+        db.set_lobby_drop1(lid)
+    cur = _mission_from(lobby) or {}
+    m = _clean_mission(dict(cur, **(payload.get("mission") or {})))
+    m["drop"] = _cur_drop(db.get_lobby(lid)) + 1   # part of what the kits are for: each mission gets its own set
+    n = db.next_drop(lid, m)
+    if lobby.get("briefed"):
+        db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
+    if lobby.get("room_id"):
+        db.room_log(lobby["room_id"], "op", json.dumps({"k": "log.nextmission", "p": {"name": lobby.get("name"), "n": n,
+                                                                                    "mission": (_mission_name(json.dumps(m)) or {}).get("name")}}))
+    return _resolve(db.get_lobby(lid))
+
+
+@app.post("/api/lobby/{lid}/endop")
+def end_operation(lid: str, x_token: str = Header(None)):
+    """End the operation here (creator): whole-operation oaths are judged on the missions played."""
+    lobby = db.get_lobby(lid)
+    if not lobby:
+        raise HTTPException(404, "lobby not found")
+    _require_creator(lobby, x_token)
+    if not lobby.get("op_done"):
+        _finish_op(lobby)
+    return _resolve(db.get_lobby(lid))
+
+
 def _clean_mission(raw) -> dict:
     m = dict(raw or {})
     from warmind.modes import MODES
@@ -947,6 +1107,12 @@ def _clean_mission(raw) -> dict:
     picked = m.get("oaths") if isinstance(m.get("oaths"), list) else ([m.get("oath")] if m.get("oath") else [])
     m["oaths"] = [k for i, k in enumerate(picked) if k in oaths.OATHS and k not in picked[:i]][:3]
     m["oath"] = m["oaths"][0] if m["oaths"] else None
+    try:
+        m["drop"] = max(1, min(9, int(m.get("drop") or 1)))
+    except (TypeError, ValueError):
+        m["drop"] = 1
+    op = m.get("op_oaths") if isinstance(m.get("op_oaths"), list) else []   # judged across the whole operation
+    m["op_oaths"] = [k for i, k in enumerate(op) if k in oaths.OATHS and k not in op[:i]][:3]
     m["stealth"] = bool(m.get("stealth"))
     m["roles"] = _clean_roles(m.get("roles"))
     m["think"] = m.get("think") is not False   # WARMIND's planner on unless the creator turned it off
@@ -1034,6 +1200,14 @@ def _room_tally(results, since=0.0):
             except Exception:
                 res0 = {}
             m = {"planet_name": res0.get("planet"), "mode": res0.get("table_mode"), "difficulty": res0.get("table_difficulty")}
+        elif r.get("drop_no"):   # an operation: each mission is a drop
+            key = f"{key}#{r['drop_no']}"
+            try:
+                res0 = json.loads(r["result_json"]) if r.get("result_json") else {}
+            except Exception:
+                res0 = {}
+            if res0.get("table_difficulty"):
+                m = dict(m, difficulty=res0["table_difficulty"], mode=res0.get("table_mode") or m.get("mode"))
         r = dict(r, lobby_id=key)
         drops.add(r["lobby_id"])
         if m.get("planet_name"):
@@ -1698,13 +1872,19 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang, room
     result = dict(result, table_mission=mission.get("mission_id"), table_faction=mission.get("faction"),
                   table_difficulty=mission.get("difficulty"), table_mode=mission.get("mode"),
                   role=(ctx.get("role") or None))
-    replaced = [r for r in db.player_results(pid) if _same_drop(r, result, log=str(lid).startswith("log:"))]
+    lobby0 = db.get_lobby(lid) or {}
+    drop_no = _cur_drop(lobby0) if lobby0.get("drop_no") is not None else None
+    replaced = [r for r in db.player_results(pid) if _same_drop(r, result, log=str(lid).startswith("log:"))
+                and (drop_no is None or int(r.get("drop_no") or 1) == drop_no)]
     for r in replaced:
         db.delete_result(r["id"])
     loadout_id = (db.get_player(pid) or {}).get("kit_choice")
     if loadout_id:
         result = dict(result, loadout=next((o["name"] for o in db.list_loadouts(p.get("locker_id") or "") if o["id"] == loadout_id), None))
-    db.save_result(_id(5), lid, pid, result, aar, verdicts or None, lesson=lesson, loadout_id=loadout_id, room_id=room_id)
+    db.save_result(_id(5), lid, pid, result, aar, verdicts or None, lesson=lesson, loadout_id=loadout_id, room_id=room_id,
+                   drop_no=drop_no)
+    if lobby0 and drop_no is not None and not lobby0.get("op_done") and _table_status(lobby0) == "done":
+        _finish_op(lobby0)   # the operation's last mission is debriefed: whole-op oaths are judged and kept
     lobby = db.get_lobby(lid) or ({"room_id": room_id, "name": (_mission_name(json.dumps(mission)) or {}).get("name")} if room_id else {})
     if lobby.get("room_id") and not replaced:   # the ship's log (once per drop)
         medals = [v["medal"]["name"] for v in (verdicts or []) if v and v.get("medal")]
