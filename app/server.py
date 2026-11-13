@@ -82,6 +82,23 @@ def _owned_of(p) -> list | None:
 _CAREER: dict = {}   # locker id -> (db.GEN, career)
 
 
+def _result_mission(r):
+    """The mission a recorded result was fought on: stored with the result since career stats,
+    else the war table's (current) mission."""
+    try:
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+    except Exception:
+        res = {}
+    lm = _mission_name(r.get("mission_json"))
+    rec = loader.missions().get(res.get("table_mission")) if res.get("table_mission") else None
+    if not rec and not res.get("table_faction"):
+        return lm
+    lm = lm or {}
+    return {"name": (rec["display_name"] if rec else None) or res.get("mission_name") or lm.get("name"),
+            "mode": res.get("table_mode") or lm.get("mode"), "difficulty": res.get("table_difficulty") or lm.get("difficulty"),
+            "faction": res.get("table_faction") or lm.get("faction")}
+
+
 def _career_rows(lid):
     """A locker's debriefs for the career totals: when, the numbers, where (the mission at upload
     time; older results fall back to the table's mission) and the oath verdicts."""
@@ -1672,7 +1689,7 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
     result = dict(result, table_mission=mission.get("mission_id"), table_faction=mission.get("faction"),
                   table_difficulty=mission.get("difficulty"), table_mode=mission.get("mode"),
                   role=(ctx.get("role") or None))
-    replaced = [r for r in db.player_results(pid) if _same_drop(r, result)]
+    replaced = [r for r in db.player_results(pid) if _same_drop(r, result, log=str(lid).startswith("log:"))]
     for r in replaced:
         db.delete_result(r["id"])
     loadout_id = (db.get_player(pid) or {}).get("kit_choice")
@@ -1692,7 +1709,7 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
 _DROP_KEYS = ("kills", "deaths", "accuracy_pct", "shots_fired", "samples_extracted", "stratagems_used")
 
 
-def _same_drop(old_row, new):
+def _same_drop(old_row, new, log=False):
     """Is this upload the same mission as an earlier one at this table? The screenshot's mission
     name decides when both have one; otherwise the same numbers mean the same scoreboard; and
     with no mission name on either, a re-upload at the same table replaces the last read."""
@@ -1705,6 +1722,8 @@ def _same_drop(old_row, new):
         return a == b and (_norm_name(old.get("planet") or "") == _norm_name(new.get("planet") or "")
                            or not old.get("planet") or not new.get("planet"))
     same_numbers = all(old.get(k) == new.get(k) for k in _DROP_KEYS if k in old or k in new)
+    if log:   # the Profile's drop log has no table: only the same scoreboard is the same drop
+        return same_numbers and any(k in old or k in new for k in _DROP_KEYS)
     # no names to go on: the same table mission is the same drop (a new mission is a new one)
     same_mission = (old.get("table_mission") or None) == (new.get("table_mission") or None)
     return same_numbers or (not (a or b) and same_mission)
@@ -2310,8 +2329,9 @@ def _record_of(lid):
     base_at = _career(lid)["base_at"]
     for r in db.locker_record(lid):
         verdicts = _verdicts_of(r.get("verdict_json"))
-        row = {"at": r["created_at"], "lobby": r.get("lobby_name"), "lobby_id": r.get("lobby_id"),
-               "callsign": r.get("callsign"), "mission": _mission_name(r.get("mission_json")),
+        is_log = str(r.get("lobby_id") or "").startswith("log:")
+        row = {"at": r["created_at"], "lobby": r.get("lobby_name"), "lobby_id": None if is_log else r.get("lobby_id"),
+               "log": is_log, "callsign": r.get("callsign"), "mission": _result_mission(r),
                "result": json.loads(r["result_json"]) if r.get("result_json") else {},
                "verdicts": verdicts, "aar": r.get("aar_text") or "", "lesson": r.get("lesson"),
                # added on top of the career read, or already inside it (dated by that read)
@@ -2434,6 +2454,94 @@ async def locker_career(lid: str, request: Request, images: list[UploadFile] = F
     if not lk.get("callsign") and parsed.get("callsign"):
         db.update_locker(lid, callsign=parsed["callsign"][:24])
     return {"ok": True, "play_style": parsed["play_style"], "style_note": parsed["style_note"]}
+
+
+# ---------------------------------------------------------------- log a drop from the Profile
+_log_reads: dict = {}   # read id -> {"lid", "rows", "data", "mission", "loadout_id", "lang", "at"}
+
+
+def _log_mission(form: dict) -> dict:
+    mid = str(form.get("mission_id") or "")[:60]
+    if mid and mid not in loader.missions():
+        mid = ""
+    fac = str(form.get("faction") or "").lower()
+    try:
+        diff = max(1, min(10, int(form.get("difficulty") or 0))) if form.get("difficulty") else None
+    except Exception:
+        diff = None
+    mode = str(form.get("mode") or "")[:20] or None
+    ks = [k for k in str(form.get("oaths") or "").split(",") if k in oaths.OATHS][:3]
+    return {"mission_id": mid or None, "faction": fac if fac in ("terminids", "automatons", "illuminate") else None,
+            "difficulty": diff, "mode": mode, "oaths": ks}
+
+
+async def _log_record(lid, lk, row, data, mission, loadout_id, lang):
+    seat = db.log_seat(lid, lk.get("callsign") or "Diver", lk.get("play_style") or "by_the_book")
+    if loadout_id and not any(o["id"] == loadout_id for o in db.list_loadouts(lid)):
+        loadout_id = None
+    db.set_kit_choice(seat["id"], loadout_id)
+    kit = next((o["kit"] for o in db.list_loadouts(lid) if o["id"] == loadout_id), None) if loadout_id else None
+    snap = _snap_of(seat)
+    ctx = {"role": (kit or {}).get("role"), "play_style": seat["play_style"], "mode": mission.get("mode"),
+           "kit": {"primary": kit.get("primary"), "stratagems": kit.get("stratagems")} if kit else {},
+           "baseline": stats.derive(snap) if snap else {}}
+    result = {k: v for k, v in row.items() if k in vision.RESULT_FIELDS or k in ("mission_name", "planet")}
+    r = await _record_result("log:" + lid, seat["id"], seat, ctx, mission, result, data, None, lang)
+    return {"ok": True, "verdicts": r["verdicts"], "aar": r["aar"], "lesson": r["lesson"], "replaced": r["replaced"],
+            "result": {k: r["result"].get(k) for k in ("kills", "deaths", "accuracy_pct", "samples_extracted", "mission_name")}}
+
+
+@app.post("/api/locker/{lid}/log")
+async def locker_log(lid: str, request: Request, images: list[UploadFile] = File(default=[]),
+                     mission_id: str = Form(""), faction: str = Form(""), difficulty: str = Form(""), mode: str = Form(""),
+                     oaths_: str = Form("", alias="oaths"), loadout_id: str = Form(""), lang: str = Form("en"),
+                     x_locker: str = Header(None)):
+    """Log a drop from the Profile, no war table needed: 1-4 screenshots of one mission's end
+    screens. Your column is found by callsign (or you pick it); then it's recorded like a debrief:
+    oaths judged, medals, the review, the saved-loadout record and the career totals."""
+    lk = _require_locker(lid, x_locker)
+    data = (await _read_images(list(images or [])))[:4]
+    if not data:
+        raise HTTPException(400, "no screenshot provided")
+    mission = _log_mission({"mission_id": mission_id, "faction": faction, "difficulty": difficulty, "mode": mode, "oaths": oaths_})
+    try:
+        _charge(request, "locker:" + lid, 2)
+        rows = await run_in_threadpool(vision.read_squad_results, data, None, [lk.get("callsign") or ""])
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"could not read the screenshot: {e}")
+    if not rows:
+        raise HTTPException(422, "no player columns found on that screenshot")
+    match = _match_rows(rows, [{"id": "me", "callsign": lk.get("callsign") or ""}])
+    mine = next(iter(match), None) if match else (0 if len(rows) == 1 else None)
+    if mine is not None:
+        return await _log_record(lid, lk, rows[mine], data, mission, loadout_id, str(lang)[:8])
+    now = time.time()
+    for k in [k for k, v in _log_reads.items() if now - v["at"] > SQUAD_READ_TTL]:
+        del _log_reads[k]
+    rid = _id(6)
+    _log_reads[rid] = {"lid": lid, "rows": rows, "data": data, "mission": mission, "loadout_id": loadout_id,
+                       "lang": str(lang)[:8], "at": now}
+    return {"ok": True, "pick": True, "read_id": rid,
+            "rows": [{"i": i, "name": r.get("name"), "kills": r.get("kills"), "deaths": r.get("deaths"),
+                      "accuracy_pct": r.get("accuracy_pct")} for i, r in enumerate(rows)]}
+
+
+@app.post("/api/locker/{lid}/log/{rid}")
+async def locker_log_pick(lid: str, rid: str, payload: dict, x_locker: str = Header(None)):
+    """Step 2 when your callsign wasn't on the scoreboard: you pick your column."""
+    lk = _require_locker(lid, x_locker)
+    read = _log_reads.get(rid)
+    if not read or read["lid"] != lid:
+        raise HTTPException(410, "that scoreboard read expired, upload it again")
+    try:
+        i = int(payload.get("i"))
+        row = read["rows"][i]
+    except Exception:
+        raise HTTPException(400, "pick your column")
+    _log_reads.pop(rid, None)
+    return await _log_record(lid, lk, row, read["data"], read["mission"], read["loadout_id"], read["lang"])
 
 
 _KIT_KEYS = ("primary", "secondary", "grenade", "armor", "booster")

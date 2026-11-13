@@ -101,6 +101,11 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   difficulty, modes, roles, oaths kept / broken, medals) come from every debrief and survive re-grounding; results now
   record `table_faction`, `table_difficulty`, `table_mode` and `role` at upload. Cached per `db.GEN` (bumped on result /
   stat writes).
+- Log a drop from the Profile (`POST /api/locker/{lid}/log`, then `/log/{read_id}` with `{i}` when the callsign isn't on the
+  scoreboard): 1–4 screenshots plus optional front / mission / difficulty / mode / oaths / saved loadout. Recorded through
+  `_record_result` on the profile's log seat (`db.log_seat`: a player row at lobby id `log:<locker>`, no lobby row, hidden
+  from `locker_players`), so oaths, medals, the review, the kit record and career totals all apply. Endorse-only oaths
+  stay unverified there (nobody to vouch). Log drops only replace an identical scoreboard (`_same_drop(log=True)`).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

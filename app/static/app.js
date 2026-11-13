@@ -3222,8 +3222,94 @@
     }
     return panel("LKR-02", t("lk.tab.stats"), {}, kids);
   }
+  // log a drop from the Profile: a scoreboard from any mission, no war table needed; it counts
+  // toward oaths and medals, the saved kit's record, the career totals and the enriched stats
+  const LOG_MODES = ["optimize", "fun", "challenge", "improvement", "d100"];
+  function logDialog(after) {
+    const dlg = el("dialog", { class: "modal logdlg", "aria-label": t("slog.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const body = el("div", { class: "mbody" });
+    const opt = (v, label) => el("option", { value: v }, [label]);
+    const fac = el("select", {}, [opt("", t("slog.any")), ...["terminids", "automatons", "illuminate"].map(f => opt(f, t("faction." + f)))]);
+    const mis = el("select", {});
+    const fillMis = () => { const cur = mis.value; mis.innerHTML = ""; mis.appendChild(opt("", t("slog.fromshot")));
+      (META.missions || []).filter(m => !fac.value || !m.factions || !m.factions.length || m.factions.indexOf(fac.value) >= 0)
+        .forEach(m => mis.appendChild(opt(m.id, m.name))); mis.value = cur; if (mis.value !== cur) mis.value = ""; };
+    fac.onchange = fillMis; fillMis();
+    const dif = el("select", {}, [opt("", "—"), ...Array.from({ length: 10 }, (_, i) => opt(String(i + 1), "D" + (i + 1)))]);
+    const mode = el("select", {}, [opt("", "—"), ...LOG_MODES.map(m => opt(m, t("mode." + m)))]);
+    const kit = el("select", {}, [opt("", t("slog.nokit")), ...((LK && LK.loadouts) || []).map(o => opt(o.id, o.name))]);
+    let sworn = [];
+    const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
+    const paintOaths = () => { oathRow.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.k ? sworn.indexOf(c.dataset.k) >= 0 : !sworn.length)));
+      oathHint.innerHTML = ""; if (sworn.length) oathHint.appendChild(medalPreview(sworn, mode.value === "d100")); };
+    [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => { if (!k) sworn = []; else if (sworn.indexOf(k) >= 0) sworn = sworn.filter(z => z !== k);
+        else if (sworn.length < 3) sworn = sworn.concat([k]); else { toast(t("mis.oaths.max")); return; } paintOaths(); };
+      oathRow.appendChild(c); });
+    mode.onchange = paintOaths; paintOaths();
+    let files = [];
+    const pick = fileBtn("", "🖼 " + t("slog.shots"), true);
+    const shotsN = el("span", { class: "hint", style: "margin:0" });
+    pick.querySelector("input").onchange = ev => { files = Array.from(ev.target.files || []).slice(0, 4); shotsN.textContent = files.length ? t("slog.nshots", { n: files.length }) : ""; go.disabled = !files.length; };
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    const go = el("button", { type: "button", class: "btn primary", disabled: "" }, ["✓ " + t("slog.go")]);
+    const field = (key, node) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(key)]), node]);
+    const L = store.locker();
+    const done = r => {
+      body.innerHTML = "";
+      const vs = (r.verdicts || []).filter(Boolean);
+      const res = r.result || {};
+      body.append(...[el("div", { class: "sub-h first" }, [t("slog.saved")]),
+        el("div", {}, [[res.mission_name, res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
+          res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ")]),
+        vs.length ? el("div", { class: "chips", style: "margin-top:8px" }, vs.map(v => tag(v.passed ? "green" : v.passed === false ? "red" : "",
+          (v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath) + (v.medal ? " · 🎖 " + v.medal.name : "")))) : null,
+        vs.some(v => v.passed == null) ? el("div", { class: "hint" }, [t("slog.unver")]) : null,
+        r.replaced ? el("div", { class: "hint" }, [t("slog.replaced")]) : null,
+        r.aar ? el("div", { class: "hint", style: "margin-top:10px" }, [r.aar]) : null,
+        r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null].filter(Boolean));
+      const ok = el("button", { type: "button", class: "btn primary" }, [t("gf.done")]); ok.onclick = () => dlg.close();
+      body.appendChild(el("div", { class: "btnrow" }, [ok]));
+      dlg.addEventListener("close", () => { if (after) after(); });
+    };
+    go.onclick = async () => {
+      if (!files.length) return; go.disabled = true; const stop = workTicker(status, lines("tick.read.", 10));
+      try {
+        const fd = new FormData(); files.forEach(f => fd.append("images", f));
+        [["mission_id", mis.value], ["faction", fac.value], ["difficulty", dif.value], ["mode", mode.value], ["oaths", sworn.join(",")],
+          ["loadout_id", kit.value], ["lang", LANG]].forEach(([k, v]) => fd.append(k, v || ""));
+        const r = await lfd("/api/locker/" + L.id + "/log", fd); stop();
+        if (!r.pick) { done(r); return; }
+        // the callsign isn't on the scoreboard: which column is you?
+        body.innerHTML = "";
+        body.append(el("div", { class: "sub-h first" }, [t("slog.which")]), el("div", { class: "hint" }, [t("slog.which.hint")]));
+        const list = el("div", { class: "logcols" });
+        r.rows.forEach(c => { const b = el("button", { type: "button", class: "btn" }, [el("b", {}, [c.name || "?"]),
+          " · " + [c.kills != null ? t("lk.r.kills", { n: nf(c.kills) }) : null, c.deaths != null ? t("lk.r.deaths", { n: nf(c.deaths) }) : null].filter(Boolean).join(" · ")]);
+          b.onclick = async () => { list.querySelectorAll("button").forEach(z => z.disabled = true);
+            try { done(await lpost("/api/locker/" + L.id + "/log/" + r.read_id, { i: c.i })); } catch (e) { toast(e.message); list.querySelectorAll("button").forEach(z => z.disabled = false); } };
+          list.appendChild(b); });
+        body.appendChild(list);
+      } catch (e) { stop(); setStatus(status, "err", e.message); go.disabled = false; } finally { stop(); }
+    };
+    body.append(el("div", { class: "hint", style: "margin:0 0 10px" }, [t("slog.explain")]),
+      el("div", { class: "btnrow", style: "margin:0 0 6px;align-items:center" }, [pick, shotsN]),
+      el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", mis), field("slog.diff", dif), field("slog.mode", mode)]),
+      field("slog.kit", kit),
+      el("div", { class: "blk" }, [el("span", { class: "label" }, [t("slog.oaths")]), oathRow, oathHint]),
+      status, el("div", { class: "btnrow" }, [go]));
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("slog.title")]), x]), body);
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   function lkRecord() {
     const kids = [];
+    if (store.locker()) { const lg = el("button", { type: "button", class: "btn primary sm" }, ["＋ " + t("slog.btn")]);
+      lg.onclick = () => logDialog(LOCKER_PAGE ? loadLocker : async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); });
+      kids.push(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("slog.hint")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [lg])); }
     kids.push(...awardList(LK.awards));
     if (LK.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, LK.medals.map(m =>
       el("div", { class: "lkmedal", title: m.medal.id }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
@@ -3233,7 +3319,7 @@
       const bits = [res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
         res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ");
       const vs = (r.verdicts || []).filter(Boolean).map(v => el("span", { class: "tag " + (v.passed ? "green" : v.passed === false ? "red" : "") }, [(v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath)]));
-      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("span", { class: "rsum" }, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]), countedTag(r, LK.career)]),
+      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("span", { class: "rsum" }, [el("b", {}, [mi.name || (r.log ? t("slog.drop") : r.lobby) || "—"]), " · " + dt(r.at) + (r.log ? " · " + t("slog.tag") : "") + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]), countedTag(r, LK.career)]),
         el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
           r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
           r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null,

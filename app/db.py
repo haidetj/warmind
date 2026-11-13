@@ -598,8 +598,25 @@ def link_player_locker(pid, lid):
 
 def locker_players(lid):
     with _lock, _conn() as c:
-        rows = c.execute("SELECT * FROM player WHERE locker_id=? ORDER BY joined_at DESC", (lid,)).fetchall()
+        rows = c.execute("SELECT * FROM player WHERE locker_id=? AND lobby_id NOT LIKE 'log:%' ORDER BY joined_at DESC",
+                         (lid,)).fetchall()
     return [dict(r) for r in rows]
+
+
+def log_seat(lid, callsign, play_style):
+    """The profile's own drop log: a seat at no war table (lobby id `log:<locker>`), so drops
+    logged from the Profile are recorded, judged and counted like any debrief."""
+    lobby_id = "log:" + lid
+    with _lock, _conn() as c:
+        row = c.execute("SELECT * FROM player WHERE lobby_id=? AND locker_id=?", (lobby_id, lid)).fetchone()
+        if row:
+            c.execute("UPDATE player SET callsign=?, play_style=? WHERE id=?", (callsign, play_style, row["id"]))
+            return dict(row, callsign=callsign, play_style=play_style)
+    import secrets as _s
+    pid = "lg" + _s.token_hex(4)
+    add_or_update_player(pid, lobby_id, _s.token_urlsafe(12), callsign, play_style, "locker", None, None)
+    link_player_locker(pid, lid)
+    return get_player(pid)
 
 
 def locker_record(lid, limit=100):
