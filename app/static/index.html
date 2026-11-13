@@ -747,6 +747,12 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .logcols{display:grid;gap:8px;margin-top:10px} .logcols .btn{justify-content:flex-start;text-align:left}
   .swapdlg input[type=search]{width:100%;margin:6px 0 10px}
   .swaplist{display:grid;gap:6px;max-height:50vh;overflow:auto}
+  input.gearq{width:100%;margin:0 0 8px}
+  .pickwrap{position:relative;min-width:0} .pickwrap select.srsel{position:absolute;inset:0;opacity:0;pointer-events:none;width:100%}
+  .pickbtn{display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:6px 10px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+  .pickbtn .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .pickbtn .chev{color:var(--cyan);flex:none}
+  .pickbtn .pv{width:40px;height:28px;flex:none;display:grid;place-items:center} .pickbtn .pv img{max-width:40px;max-height:28px}
+  .pickdlg input[type=search]{width:100%;margin:0 0 10px} .swapitem.on{border-color:var(--cyan)}
   .swapitem{display:flex;gap:10px;align-items:center;text-align:left;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:6px 10px;cursor:pointer;font:inherit}
   .swapitem:hover,.swapitem:focus-visible{border-color:var(--line-3);outline:none}
   .swapitem .pv{width:56px;height:40px;flex:none;display:grid;place-items:center} .swapitem .pv img{max-width:56px;max-height:40px}

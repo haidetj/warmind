@@ -1368,7 +1368,7 @@
       catch (e) { toast(e.message); go.disabled = false; } };
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("op.next")]), x]), el("div", { class: "mbody" }, [
       el("div", { class: "hint", style: "margin:0 0 10px" }, [t("op.next.hint", { planet: m.planet_name || t("op.planet") })]),
-      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), sel]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), searchable(sel, { title: t("slog.mission") })]),
       el("div", { class: "btnrow" }, [go])]));
     dlg.addEventListener("close", () => dlg.remove());
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
@@ -1786,6 +1786,12 @@
       clear.hidden = !n;
     }
     fbtn.onclick = () => openFilter();
+    // type to find: always on top of the list, so ticking what you own is search, tap, search, tap
+    const qq = el("input", { type: "search", class: "gearq", placeholder: t("gf.search.ph"), value: F.q, autocomplete: "off", "aria-label": t("gf.search.ph") });
+    let qT = null;
+    qq.oninput = () => { clearTimeout(qT); qT = setTimeout(() => { F.q = qq.value.trim(); keep(); paintAll(); }, 120); };
+    clear.addEventListener("click", () => { qq.value = ""; });
+    body.appendChild(qq);
     body.appendChild(el("div", { class: "filterbar" }, [fbtn, fsum, clear]));
 
     function openFilter() {
@@ -1797,7 +1803,7 @@
         showSeg.appendChild(b);
       });
       const q = el("input", { type: "search", placeholder: t("gf.search.ph"), value: F.q, autocomplete: "off" });
-      q.oninput = () => { F.q = q.value.trim(); changed(); };
+      q.oninput = () => { F.q = q.value.trim(); qq.value = F.q; changed(); };
       const chips = el("div", { class: "chips srcchips" });
       const kinds = [["base", t("gf.k.base")], ["warbond", t("gf.k.warbond")], ["superstore", "Superstore"], ["special", t("gear.special")]];
       const chipEls = [];
@@ -2454,6 +2460,50 @@
     im.onerror = () => im.replaceWith(el("span", { class: "nopic", "aria-hidden": "true" }, ["◇"]));
     return im;
   };
+  // type to search: a long <select> becomes a button that opens a searchable sheet (pictures for gear).
+  // The select stays underneath (hidden), so code reading or setting .value and "change" keep working.
+  function searchable(sel, o) {
+    o = o || {};
+    if (sel._searchable) return sel._searchable;
+    const btn = el("button", { type: "button", class: "pickbtn", "aria-haspopup": "dialog" });
+    if (sel.getAttribute("aria-label")) btn.setAttribute("aria-label", sel.getAttribute("aria-label"));
+    const label = () => { const op = sel.options[sel.selectedIndex]; btn.innerHTML = "";
+      if (o.pic && sel.value) btn.appendChild(el("span", { class: "pv" }, [pic(sel.value, o.pic)]));
+      btn.appendChild(el("span", { class: "t" }, [op ? op.textContent : "—"])); btn.appendChild(el("span", { class: "chev", "aria-hidden": "true" }, ["⌕"])); };
+    sel.classList.add("srsel"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
+    const wrap = el("div", { class: "pickwrap" }, [btn, sel]);
+    new MutationObserver(label).observe(sel, { childList: true, subtree: true });
+    sel.addEventListener("change", label);
+    // programmatic value changes don't fire "change": keep the label honest anyway
+    const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+    Object.defineProperty(sel, "value", { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); label(); } });
+    btn.onclick = () => {
+      const dlg = el("dialog", { class: "modal swapdlg pickdlg", "aria-label": o.title || btn.getAttribute("aria-label") || t("pick.title") });
+      const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+      const q = el("input", { type: "search", placeholder: t("pick.search"), autocomplete: "off", "aria-label": t("pick.search") });
+      const list = el("div", { class: "swaplist" });
+      const opts = Array.from(sel.options).filter(op => !op.disabled).map(op => ({ v: op.value, t: op.textContent,
+        g: op.parentNode && op.parentNode.tagName === "OPTGROUP" ? op.parentNode.label : "" }));
+      const paint = () => { list.innerHTML = ""; const f = q.value.trim().toLowerCase(); let lastG = null, n = 0;
+        opts.filter(z => !f || z.t.toLowerCase().includes(f) || z.g.toLowerCase().includes(f)).forEach(z => {
+          if (n++ > 150) return;
+          if (z.g && z.g !== lastG) { lastG = z.g; list.appendChild(el("div", { class: "sub-h first", style: "margin:6px 0 0" }, [z.g])); }
+          const b = el("button", { type: "button", class: "swapitem" + (z.v === sel.value ? " on" : "") }, [
+            o.pic ? el("span", { class: "pv" }, [z.v ? pic(z.v, o.pic) : el("span", { class: "nopic" }, ["—"])]) : null,
+            el("span", { class: "t" }, [el("b", {}, [z.t])])]);
+          b.onclick = () => { sel.value = z.v; sel.dispatchEvent(new Event("change", { bubbles: true })); dlg.close(); };
+          list.appendChild(b); });
+        if (!n) list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("pick.none")])); };
+      q.oninput = paint; paint();
+      q.addEventListener("keydown", e => { if (e.key === "Enter") { const first = list.querySelector(".swapitem"); if (first) { e.preventDefault(); first.click(); } } });
+      dlg.append(el("div", { class: "mhead" }, [el("b", {}, [o.title || t("pick.title")]), x]), el("div", { class: "mbody" }, [q, list]));
+      dlg.addEventListener("close", () => { dlg.remove(); btn.focus(); });
+      dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+      document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+      q.focus(); setTimeout(() => { if (document.activeElement !== q) q.focus(); }, 30);
+    };
+    label(); sel._searchable = wrap; return wrap;
+  }
   function itemStats(n) { for (const tb of META.armory || []) for (const g of tb.groups) for (const i of g.items) if (i.name === n) return i.stats; return null; }
   // grenades carried: the grenade's base count plus the armour passive's extra throwables
   // (Engineering Kit, Grenadier, Integrated Explosives); ship upgrades are left out
@@ -2761,7 +2811,7 @@
         return el("div", { class: "grid2 prefpick", style: "margin-top:10px" }, [
           el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.style")]), ss.sel, ss.hint]),
           el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint])]); })(),
-      el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
+      el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), searchable(arm, { pic: "img", title: t("arm.pick") })]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
     const tun = lkTuning(); if (tun) body.appendChild(tun);
@@ -3399,7 +3449,7 @@
     };
     body.append(el("div", { class: "hint", style: "margin:0 0 10px" }, [t("slog.explain")]),
       el("div", { class: "btnrow", style: "margin:0 0 6px;align-items:center" }, [pick, shotsN]),
-      el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", mis), field("slog.diff", dif), field("slog.mode", mode)]),
+      el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", searchable(mis, { title: t("slog.mission") })), field("slog.diff", dif), field("slog.mode", mode)]),
       el("div", { class: "grid2" }, [field("slog.kit", kit), myRooms.length ? field("slog.room", room) : null].filter(Boolean)),
       myRooms.length ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t("slog.room.hint")]) : null,
       el("div", { class: "blk" }, [el("span", { class: "label" }, [t("slog.oaths")]), oathRow, oathHint]),
@@ -3503,11 +3553,12 @@
     };
     no.onclick = () => dlg.close();
     const field = (lab, ctl) => el("div", { class: "field" }, [el("span", { class: "label" }, [lab]), ctl]);
+    const srch = (s, lab, kind) => searchable(s, { pic: kind, title: lab });
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t(existing ? "lk.edit.kit" : "lk.new")])]),
       el("div", { class: "mbody" }, [field(t("lk.name"), name),
         el("label", { class: "lkmine" }, [mine, " " + t("lk.onlymine")])]
-        .concat(slots.map(([k, , lab]) => field(t(lab), S[k])))
-        .concat([field(t("card.strats"), el("div", { class: "lkstrats" }, strat)), field(t("lk.note"), note)])),
+        .concat(slots.map(([k, , lab]) => field(t(lab), srch(S[k], t(lab), "img"))))
+        .concat([field(t("card.strats"), el("div", { class: "lkstrats" }, strat.map((s2, i) => srch(s2, t("card.strats") + " " + (i + 1), "icon")))), field(t("lk.note"), note)])),
       el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, no])]));
     dlg.addEventListener("close", () => dlg.remove());
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");

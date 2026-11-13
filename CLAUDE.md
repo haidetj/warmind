@@ -127,6 +127,10 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   null when there's nothing for future kits). Notes live in the Profile's Tuning panel (edit / delete,
   `POST /api/locker/{lid}/tune/{id}`), and go to the planner as each diver's `tuning` (every-front + this faction,
   newest first; they outrank debrief lessons). New notes shape kits from the next brief (the next mission of an operation).
+- Type to search (`searchable(select, {pic, title})`): a long select becomes a button that opens a search sheet (with gear
+  pictures); the real select stays underneath (hidden), so `.value` / "change" code keeps working. Used in the loadout
+  builder (every slot), the Profile's armour pin, Log a drop's and Next mission's mission pickers. The gear checklist has a
+  search box always on top (`input.gearq`, same filter as the ⚲ dialog; it jumps to the tab with matches).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
