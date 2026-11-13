@@ -139,6 +139,17 @@ CREATE TABLE IF NOT EXISTS callsign_stats (
   style_note TEXT,
   updated_at REAL
 );
+CREATE TABLE IF NOT EXISTS locker_tune (
+  id TEXT PRIMARY KEY,
+  locker_id TEXT,
+  note TEXT,
+  said TEXT,
+  applies TEXT,
+  context_json TEXT,
+  lobby_id TEXT,
+  at REAL
+);
+CREATE INDEX IF NOT EXISTS idx_ltune ON locker_tune(locker_id);
 CREATE TABLE IF NOT EXISTS feedback_image (
   feedback_id TEXT,
   n INTEGER,
@@ -644,6 +655,29 @@ def locker_players(lid):
         rows = c.execute("SELECT * FROM player WHERE locker_id=? AND lobby_id NOT LIKE 'log:%' ORDER BY joined_at DESC",
                          (lid,)).fetchall()
     return [dict(r) for r in rows]
+
+
+def add_tune(tid, lid, note, said, applies, context, lobby_id):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO locker_tune(id,locker_id,note,said,applies,context_json,lobby_id,at) VALUES(?,?,?,?,?,?,?,?)",
+                  (tid, lid, note, said, applies, json.dumps(context) if context else None, lobby_id, time.time()))
+
+
+def list_tunes(lid, limit=40):
+    """A profile's tuning notes for WARMIND, newest first."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM locker_tune WHERE locker_id=? ORDER BY at DESC LIMIT ?", (lid, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_tune(lid, tid, note):
+    with _lock, _conn() as c:
+        return c.execute("UPDATE locker_tune SET note=? WHERE id=? AND locker_id=?", (note, tid, lid)).rowcount
+
+
+def delete_tune(lid, tid):
+    with _lock, _conn() as c:
+        return c.execute("DELETE FROM locker_tune WHERE id=? AND locker_id=?", (tid, lid)).rowcount
 
 
 def log_seat(lid, callsign, play_style):

@@ -235,6 +235,84 @@ def _prefs_of(locker_id) -> dict:
     return out
 
 
+def _tuning_for(locker_id, faction=None, n=8) -> list:
+    """The diver's Tuning notes that hold here: every-front notes and ones for this faction, newest first."""
+    if not locker_id:
+        return []
+    return [x["note"] for x in db.list_tunes(locker_id) if x.get("note") and x.get("applies") in (None, "all", faction)][:n]
+
+
+def _tune_out(x):
+    try:
+        ctx = json.loads(x["context_json"]) if x.get("context_json") else {}
+    except Exception:
+        ctx = {}
+    return {"id": x["id"], "note": x["note"], "said": x.get("said"), "applies": x.get("applies") or "all", "at": x["at"],
+            "mission": ctx.get("mission"), "drop": ctx.get("drop"), "lobby_id": x.get("lobby_id")}
+
+
+async def _tune_add(request, lid_budget, locker_id, said, ctx, lang, lobby_id=None):
+    said = " ".join(str(said or "").split())[:800]
+    if len(said) < 3:
+        raise HTTPException(400, "say a little more")
+    try:
+        _charge(request, lid_budget, 1)
+        out = await run_in_threadpool(vision.distill_tune, said, ctx, lang)
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"WARMIND couldn't take that in: {e}")
+    if not out.get("note"):
+        return {"ok": True, "note": None}
+    tid = _id(6)
+    db.add_tune(tid, locker_id, out["note"], said, out["applies"], ctx, lobby_id)
+    return {"ok": True, "tune": _tune_out(db.list_tunes(locker_id, 1)[0])}
+
+
+@app.post("/api/lobby/{lid}/player/{pid}/tune")
+async def table_tune(lid: str, pid: str, payload: dict, request: Request, x_token: str = Header(None)):
+    """A diver tells WARMIND, at the debrief or between missions, what worked and what didn't. One small call
+    turns it into the note to keep (in their profile's Tuning); it shapes their next kits from the next mission on."""
+    p = _require_player(pid, x_token)
+    if p["lobby_id"] != lid:
+        raise HTTPException(404, "not at this war table")
+    if not p.get("locker_id"):
+        raise HTTPException(400, "sign in to a profile so WARMIND can keep it")
+    lobby = db.get_lobby(lid) or {}
+    mission = _mission_from(lobby) or {}
+    res = db.latest_result(pid)
+    state = _resolve(lobby)
+    me = next((x for x in state["players"] if x["id"] == pid), None)
+    a = me and me["assignment"]
+    ctx = {"mission": (_mission_name(lobby.get("mission_json")) or {}).get("name"), "faction": mission.get("faction"),
+           "difficulty": mission.get("difficulty"), "mode": mission.get("mode"), "drop": _cur_drop(lobby),
+           "kit": a and {k: a.get(k) for k in ("role", "primary", "secondary", "grenade", "armor", "booster", "stratagems")},
+           "numbers": {k: v for k, v in (json.loads(res["result_json"]) if res and res.get("result_json") else {}).items()
+                       if k in vision.RESULT_FIELDS}}
+    return await _tune_add(request, lid, p["locker_id"], payload.get("text"), ctx, str(payload.get("lang") or "en")[:8], lid)
+
+
+@app.post("/api/locker/{lid}/tune")
+async def locker_tune_add(lid: str, payload: dict, request: Request, x_locker: str = Header(None)):
+    """Add to your Tuning from the Profile (no mission context)."""
+    _require_locker(lid, x_locker)
+    return await _tune_add(request, "locker:" + lid, lid, payload.get("text"), {}, str(payload.get("lang") or "en")[:8])
+
+
+@app.post("/api/locker/{lid}/tune/{tid}")
+def locker_tune_edit(lid: str, tid: str, payload: dict, x_locker: str = Header(None)):
+    """Edit a Tuning note's words, or delete it (`delete: true`)."""
+    _require_locker(lid, x_locker)
+    if payload.get("delete"):
+        db.delete_tune(lid, tid)
+    else:
+        note = " ".join(str(payload.get("note") or "").split())[:240]
+        if not note:
+            raise HTTPException(400, "the note can't be empty")
+        db.update_tune(lid, tid, note)
+    return {"ok": True, "tuning": [_tune_out(x) for x in db.list_tunes(lid)]}
+
+
 def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
@@ -252,6 +330,7 @@ def _resolve(lobby) -> dict:
             if p.get("locker_id") else [],
             prefs=_prefs_of(p.get("locker_id")),
             lessons=[x["lesson"] for x in db.locker_lessons(p["locker_id"])] if p.get("locker_id") else [],
+            tuning=_tuning_for(p.get("locker_id"), (mission or {}).get("faction")),
         ))
     directive = None
     by_pid = {}
@@ -2599,6 +2678,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
             "career": _career_out(car),
             "rooms": [{"id": r["id"], "name": r["name"], "ship": r.get("ship")} for r in db.locker_rooms(lid)],
+            "tuning": [_tune_out(x) for x in db.list_tunes(lid)],
             "loadouts": _with_records(lid, [_with_armor(o) for o in db.list_loadouts(lid)]), "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 

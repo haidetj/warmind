@@ -121,6 +121,12 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   and the whole-operation oaths (`mission.op_oaths`, judged live on the summed numbers, `_op_sum`). When the operation
   ends, `_finish_op` appends them (`scope: "operation"`, medal seeded `<lid>:op`) to each diver's last debrief, so
   medals / records / rooms count them; their endorsements are keyed `op:<oath>`. Room tallies count each mission a drop.
+- Tell WARMIND / Tuning (`locker_tune`): on your own debrief a diver writes what worked and what didn't
+  (`POST /api/lobby/{lid}/player/{pid}/tune`, or from the Profile `POST /api/locker/{lid}/tune`). One small call
+  (`vision.distill_tune`, kind `tune`) turns it into the one note worth keeping (≤25 words, `applies`: all or a faction;
+  null when there's nothing for future kits). Notes live in the Profile's Tuning panel (edit / delete,
+  `POST /api/locker/{lid}/tune/{id}`), and go to the planner as each diver's `tuning` (every-front + this faction,
+  newest first; they outrank debrief lessons). New notes shape kits from the next brief (the next mission of an operation).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

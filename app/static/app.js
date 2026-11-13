@@ -2764,6 +2764,7 @@
       el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
+    const tun = lkTuning(); if (tun) body.appendChild(tun);
     const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
@@ -2890,6 +2891,7 @@
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
     // up top: a carousel of saved loadouts, then the stats
     app.appendChild(lkCarousel(null, { editable: true }));
+    { const tun = lkTuning(); if (tun) app.appendChild(tun); }
     app.appendChild(lkStats());
     // sub-tabs
     const tabs = [["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
@@ -3671,6 +3673,60 @@
     dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
   }
 
+  // tell WARMIND what worked and what didn't: one small call keeps the note that helps your next kits (your Tuning)
+  function tellBox(p) {
+    const wrap = el("div", { class: "tellbox" });
+    const ta = el("textarea", { rows: "2", maxlength: "800", placeholder: t("tune.ph") });
+    const send = el("button", { type: "button", class: "btn sm primary" }, ["◈ " + t("tune.send")]);
+    const out = el("div", { class: "tellout" });
+    if (!p.locker) { send.disabled = true; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.needprofile")])); }
+    send.onclick = async () => {
+      const v = ta.value.trim(); if (v.length < 3) { ta.focus(); return; }
+      send.disabled = true; out.innerHTML = ""; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.thinking")]));
+      try {
+        const r = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/tune", { text: v, lang: LANG }, meRec().token);
+        out.innerHTML = "";
+        if (!r.tune) { out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.nothing")])); send.disabled = false; return; }
+        ta.value = "";
+        const undo = el("button", { type: "button", class: "btn sm" }, ["↶ " + t("tune.undo")]);
+        undo.onclick = async () => { undo.disabled = true; try { await lpost("/api/locker/" + store.locker().id + "/tune/" + r.tune.id, { delete: true }); out.innerHTML = ""; toast(t("tune.removed")); } catch (e) { toast(e.message); undo.disabled = false; } };
+        out.appendChild(el("div", { class: "tunesaved" }, [el("b", {}, [t("tune.saved")]), " " + r.tune.note,
+          r.tune.applies && r.tune.applies !== "all" ? tag("", t("faction." + r.tune.applies)) : null, el("div", { class: "btnrow", style: "margin:6px 0 0" }, [undo])]));
+        send.disabled = false;
+      } catch (e) { out.innerHTML = ""; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [e.message])); send.disabled = false; }
+    };
+    wrap.append(el("div", { class: "label", style: "margin:10px 0 4px" }, ["◈ " + t("tune.title")]), ta,
+      el("div", { class: "btnrow", style: "margin:6px 0 0" }, [send]), el("div", { class: "hint", style: "margin:4px 0 0" }, [t("tune.hint")]), out);
+    return wrap;
+  }
+  // the profile's Tuning: every note WARMIND keeps for this diver's kits; edit or remove any
+  function lkTuning(after) {
+    const L = store.locker(); if (!L) return null;
+    const list = el("div", { class: "tunelist" });
+    const paint = items => { list.innerHTML = "";
+      if (!items.length) list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.none")]));
+      items.forEach(x => {
+        const ed = el("button", { type: "button", class: "btn sm", "aria-label": t("lk.edit") }, ["✎"]);
+        const del = el("button", { type: "button", class: "btn sm red", "aria-label": t("lk.delete") }, ["✕"]);
+        del.onclick = async () => { if (!confirm(t("tune.del.q"))) return; try { const r = await lpost("/api/locker/" + L.id + "/tune/" + x.id, { delete: true }); LK.tuning = r.tuning; paint(r.tuning); } catch (e) { toast(e.message); } };
+        ed.onclick = async () => { const v = prompt(t("tune.edit"), x.note); if (v == null || !v.trim()) return;
+          try { const r = await lpost("/api/locker/" + L.id + "/tune/" + x.id, { note: v.trim() }); LK.tuning = r.tuning; paint(r.tuning); } catch (e) { toast(e.message); } };
+        list.appendChild(el("div", { class: "tunerow" }, [el("div", { class: "tn" }, [x.note,
+          el("small", {}, [[x.applies && x.applies !== "all" ? t("faction." + x.applies) : t("tune.allfronts"), x.mission ? x.mission + (x.drop > 1 ? " · " + t("op.mission.n", { n: x.drop }) : "") : null, dt(x.at)].filter(Boolean).join(" · ")]),
+          x.said ? el("small", { class: "said" }, ["“" + x.said + "”"]) : null]), el("div", { class: "ta" }, [ed, del])]));
+      }); };
+    paint(LK.tuning || []);
+    const ta = el("textarea", { rows: "2", maxlength: "800", placeholder: t("tune.ph.profile") });
+    const add = el("button", { type: "button", class: "btn sm primary" }, ["◈ " + t("tune.send")]);
+    add.onclick = async () => { const v = ta.value.trim(); if (v.length < 3) { ta.focus(); return; } add.disabled = true;
+      try { const r = await lpost("/api/locker/" + L.id + "/tune", { text: v, lang: LANG });
+        if (!r.tune) toast(t("tune.nothing")); else { ta.value = ""; LK.tuning = [r.tune].concat(LK.tuning || []); paint(LK.tuning); toast(t("tune.saved")); } }
+      catch (e) { toast(e.message); } finally { add.disabled = false; } };
+    return panel("ME-02", t("tune.panel"), { status: (LK.tuning || []).length ? String(LK.tuning.length) : "" }, [
+      el("div", { class: "hint", style: "margin:0 0 8px" }, [t("tune.panel.hint")]), list,
+      el("div", { class: "field", style: "margin-top:10px" }, [ta]), el("div", { class: "btnrow", style: "margin:6px 0 0" }, [add])]);
+  }
+
   function debriefPanel() {
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
@@ -3746,6 +3802,7 @@
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
         if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));
         if (r.loadout) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.withkit", { name: r.loadout })]));
+        if (me && me.id === p.id) inner.push(tellBox(p));
       }
       const row = el("div", { class: "hrow" }, [el("div", { class: "stripe" }), el("div", { class: "in" }, inner)]);
       row.style.setProperty("--acc", p.accent);
