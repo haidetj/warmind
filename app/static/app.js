@@ -298,13 +298,13 @@
     return (p.mo ? "★ " : "") + p.name + " · " + t("faction." + p.enemy) + (p.defense ? " · " + t("war.defense") : "") +
       " · " + t("war.divers", { n: nf(p.players) });
   }
-  function warPanel(full) {
+  function warPanel(full, noMO) {
     const body = el("div", { class: "stack", style: "gap:10px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
     const card = panel("SYS-00", t("war.title"), { status: t("war.live"), statusKind: "ok" }, [body]);
     loadWar().then(w => {
       if (!w || (!w.orders.length && !w.planets.length)) { card.remove(); return; }
       body.innerHTML = "";
-      w.orders.forEach(o => body.appendChild(moStrip(o)));
+      if (!noMO) w.orders.forEach(o => body.appendChild(moStrip(o)));
       const top = full ? w.planets : w.planets.slice(0, 8);
       if (top.length) body.appendChild(el("div", { class: "fronts" }, [el("span", { class: "label" }, [t("war.fronts")])].concat(top.map(p =>
         el("div", { class: "front f-" + p.enemy }, [
@@ -416,7 +416,8 @@
     if (ROSTER_PAGE) return "roster";
     if (ROOM_ID) return "rooms";
     if (COSTS_PAGE) return "";
-    return new URLSearchParams(location.search).get("tab") || "me";
+    const k = new URLSearchParams(location.search).get("tab") || "home";
+    return k === "front" ? "home" : k;
   }
   function appNav() {
     let old = document.querySelector(".appnav"); if (old) old.remove();
@@ -424,17 +425,18 @@
     const tableId = LID || (last && last.id), tableName = LID ? (STATE && STATE.name) || (last && last.name) : last && last.name;
     const here = navHere();
     const items = [
-      ["me", "◉", t("ht.me"), "/"],
+      ["home", "⌂", t("nav.home"), "/"],
       ["table", "⚔", t("nav.table"), tableId ? "/?l=" + tableId : "/?tab=tables", tableId ? tableName || "" : t("nav.table.none")],
-      ["tables", "▦", t("ht.tables"), "/?tab=tables"],
-      ["rooms", "⚓", t("ht.rooms"), "/?tab=rooms"],
+      ["me", "◉", t("ht.me"), "/?tab=me"],
+      ["tables", "▦", t("nav.tables"), "/?tab=tables"],
+      ["rooms", "⚓", t("nav.rooms"), "/?tab=rooms"],
       ["roster", "☰", t("ros.title"), "/?tab=roster"],
     ];
     const nav = el("nav", { class: "appnav", "aria-label": t("nav.label") }, items.map(([k, ic, label, href, sub]) => {
       const a = el("a", { href: href, class: "an-" + k, "aria-current": k === here ? "page" : null }, [
         el("span", { class: "ic", "aria-hidden": "true" }, [ic]), el("b", {}, [label]), sub != null ? el("small", {}, [sub]) : null]);
       a.onclick = e => {   // on home, the home tabs switch in place
-        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["me", "tables", "rooms", "roster"].includes(k)) {
+        if (homeShow && !LID && !LOCKER_PAGE && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && ["home", "me", "tables", "rooms", "roster"].includes(k)) {
           e.preventDefault(); homeShow(k); window.scrollTo(0, 0); markNav(k); }
       };
       return a; }));
@@ -552,10 +554,11 @@
     const term = el("div", { class: "term", "aria-hidden": "true" });
     // Home in three tabs: Welcome (who you are, how it works) / Front (the live war) / War tables
     // you land on your profile; the war, your rooms, your tables and the welcome sit beside it
-    const HT = [["me", "◉ " + t("ht.me")], ["front", "✦ " + t("ht.front")], ["rooms", "⚓ " + t("ht.rooms")], ["tables", "▦ " + t("ht.tables")],
-                ["roster", "☰ " + t("ros.title")], ["home", "⌂ " + t("ht.home")]];
-    let ht = new URLSearchParams(location.search).get("tab") || "me";
-    if (!HT.some(x => x[0] === ht)) ht = "me";
+    // the bottom nav is the only nav: Home (the war, your rooms' orders, medals in play), Profile, War tables, War rooms, Roster
+    const HT = [["home", t("nav.home")], ["me", t("ht.me")], ["tables", t("ht.tables")], ["rooms", t("ht.rooms")], ["roster", t("ros.title")]];
+    let ht = new URLSearchParams(location.search).get("tab") || "home";
+    if (ht === "front") ht = "home";
+    if (!HT.some(x => x[0] === ht)) ht = "home";
     const tabs = el("div", { class: "seg hometabs", role: "tablist" });
     const panes = {};
     HT.forEach(([k, label]) => {
@@ -566,39 +569,26 @@
     let rosterLoaded = false;
     const show = k => { ht = k; try { localStorage.setItem("wm_hometab", k); } catch (e) {}
       markNav(k);
-      try { history.replaceState(null, "", k === "me" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
+      try { history.replaceState(null, "", k === "home" ? "/" : "/?tab=" + k); } catch (e) {}   // back links return to this tab
       tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
       Object.keys(panes).forEach(x => { panes[x].hidden = x !== k; });
       if (k === "roster" && !rosterLoaded) { rosterLoaded = true; rosterPane(panes.roster); } };
-    app.appendChild(tabs); HT.forEach(([k]) => app.appendChild(panes[k]));
+    HT.forEach(([k]) => app.appendChild(panes[k]));
     homeShow = show;
 
-    // --- Welcome
+    // --- Home: the Major Order, your war rooms' standing orders, the medals in play at your tables, the front
     const how = el("button", { class: "btn sm", type: "button" }, ["? " + t("home.how")]);
     how.onclick = howModal;
-    const cv = el("canvas", { class: "rain", "aria-hidden": "true" });
-    panes.home.appendChild(el("section", { class: "hero" }, [cv,
-      el("div", { class: "fx rings" }), el("div", { class: "fx radar" }),
-      el("div", { class: "hero-body" }, [
-        el("div", { class: "eyebrow" }, [t("app.eyebrow")]),
-        el("h1", { class: "wordmark", style: "font-size:inherit;margin:0" }, [el("div", { class: "wordmark" }, ["WARMIND"])]),
-        el("div", { class: "tag-line" }, [t("app.tagline")]),
-        term,
-        el("div", { class: "btnrow", style: "justify-content:center" }, [
-          el("button", { class: "btn primary", type: "button", onclick: null, "data-go": "tables" }, ["▶ " + t("ht.go.tables")]),
-          el("button", { class: "btn", type: "button", "data-go": "front" }, ["✦ " + t("ht.go.front")]), how]),
-      ]),
-    ]));
-    panes.home.querySelectorAll("[data-go]").forEach(b => { b.onclick = () => { show(b.dataset.go); window.scrollTo(0, 0); }; });
+    homePane(panes.home);
     profilePane(panes.me);
-    const fmFold = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
-    fmFold.addEventListener("toggle", () => { if (fmFold.open && fmFold.children.length < 2) fmFold.appendChild(manualBody()); });
-    panes.home.appendChild(fmFold);
-    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
-    if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
 
-    // --- Front: the live war, each planet one tap from a war table
-    panes.front.appendChild(warPanel(true));
+    // --- the front, under Home: each planet one tap from a war table
+    panes.home.appendChild(warPanel(true, true));
+    const fmFold2 = el("details", { class: "fold panel fmfold", style: "padding:0" }, [el("summary", {}, ["▤ " + t("gl.title") + " — " + t("gl.teaser")])]);
+    fmFold2.addEventListener("toggle", () => { if (fmFold2.open && fmFold2.children.length < 2) fmFold2.appendChild(manualBody()); });
+    panes.home.appendChild(fmFold2);
+    panes.home.appendChild(el("div", { class: "btnrow", style: "justify-content:center" }, [how, feedbackBtn(), el("a", { class: "btn sm", href: "/?costs" }, ["⛽ " + t("cost.title")])]));
+    if (META.vision && META.vision.mock) panes.home.appendChild(el("div", { class: "alert" }, [el("b", {}, [t("alert.mock.t")]), t("alert.mock")]));
 
     // --- War rooms: the squad's lasting homes
     roomsPane(panes.rooms);
@@ -627,8 +617,38 @@
     const tablesSlot = el("div", { class: "slot" }); panes.tables.appendChild(tablesSlot);
     renderMyLobbies(tablesSlot);
     show(ht);
-    rain(cv);
-    bootSequence(term);
+  }
+  // Home's briefing: what's in play for you right now
+  function homePane(pane) {
+    const body = el("div", { class: "stack", style: "gap:12px" }, [el("div", { class: "hint", style: "margin:0" }, [t("home.loading")])]);
+    pane.appendChild(panel("HQ-01", t("hm.title"), { tone: "amber" }, [body]));
+    const L = store.locker();
+    Promise.all([loadWar(), L ? lget("/api/locker/" + L.id + "/home").catch(() => null) : Promise.resolve(null)]).then(([w, h]) => {
+      body.innerHTML = "";
+      (w && w.orders || []).forEach(o => body.appendChild(moStrip(o)));
+      if (!w || !(w.orders || []).length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.nomo")]));
+      body.appendChild(el("div", { class: "sub-h" }, [t("hm.orders")]));
+      const ords = (h && h.orders) || [];
+      if (!ords.length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.orders.none")]));
+      ords.forEach(o => body.appendChild(el("a", { class: "hmorder", href: "/?room=" + o.room_id + fromHere() }, [
+        el("div", { class: "t" }, [el("b", {}, [o.title]), el("small", {}, [" · ⚓ " + o.room])]),
+        el("div", { class: "p" }, [meter(Math.round(100 * o.progress / (o.target || 1))), el("span", {}, [nf(o.progress) + " / " + nf(o.target)])])])));
+      body.appendChild(el("div", { class: "sub-h" }, [t("hm.medals")]));
+      const ip = (h && h.inplay) || [];
+      if (!ip.length) body.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("hm.medals.none")]));
+      ip.forEach(x => {
+        const chips = (x.mission_oaths || []).map(o => tag("cyan", "★ " + t("oath." + o.oath + ".medal") + " · " + t("hm.thismission")))
+          .concat((x.op_oaths || []).map(o => tag(o.passed === false ? "red" : "amber", (o.passed === false ? "✗ " : "● ") + t("oath." + o.oath + ".medal") + " · " +
+            (o.passed === false ? t("hm.lost") : t("hm.opprog", { n: o.missions || 0, m: x.of })))));
+        body.appendChild(el("a", { class: "hmplay", href: "/?l=" + x.lobby_id }, [
+          el("div", {}, [el("b", {}, [x.name]), el("small", {}, [" · " + [(x.mission && x.mission.name), x.legacy ? null : t("op.of", { n: x.drop, m: x.of })].filter(Boolean).join(" · ")])]),
+          el("div", { class: "chips" }, chips)]));
+      });
+      const md = (h && h.medals) || [];
+      if (md.length) body.appendChild(el("div", { class: "hmrecent" }, [el("span", { class: "label", style: "margin:0" }, [t("hm.recent")]),
+        ...md.map(m => tag("", "🎖 " + m.medal.name + (m.mission ? " · " + m.mission : "")))]));
+      if (!L) body.appendChild(el("div", { class: "hint" }, [t("hm.signin")]));
+    });
   }
 
   // a new war table; `planet` (a war-feed planet name) pre-picks the mission's planet in the editor
@@ -774,7 +794,7 @@
     const row = x => el("a", { class: "roomrow st-" + x.status, href: "/?l=" + x.id + fromHere() }, [
       el("div", {}, [el("b", {}, [x.name]), el("small", {}, [dt(x.at)])]),
       el("div", { class: "rm" }, [statusTag(x.status), " " + (x.mission ? x.mission.name + " · D" + x.mission.difficulty : t("home.meta.nomission")) + " · " + x.players + "/" + (x.squad_size || 4)])]);
-    const groups = [["open", R0.tables.filter(x => x.status === "open" || x.status === "debriefing")], ["done", R0.tables.filter(x => x.status === "done")],
+    const groups = [["open", R0.tables.filter(x => x.status === "open" || x.status === "debriefing" || x.status === "between")], ["done", R0.tables.filter(x => x.status === "done")],
       ["folded", R0.tables.filter(x => x.status === "folded")]];
     const tk = [];
     if (!R0.tables.length) tk.push(el("div", { class: "hint", style: "margin:0" }, [t("room.notables")]));
@@ -1306,12 +1326,77 @@
           if (!end) metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
-      foldRow(), roomChip(), STATE.status === "folded" ? null : goStrip(),
+      foldRow(), opStrip(), roomChip(), STATE.status === "folded" ? null : goStrip(),
       ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
     ]);
   }
 
-  const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" ? "amber" : "cyan", t("tbl." + (st || "open")));
+  const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" || st === "between" ? "amber" : "cyan", t("tbl." + (st || "open")));
+  // the operation: mission n of m on this planet; between missions the creator calls the next one (fresh kits
+  // for it) or ends the operation here, and the whole-operation oaths are judged
+  function opStrip() {
+    const op = STATE.op; if (!op || (op.legacy && STATE.status !== "between")) return null;
+    const dots = el("span", { class: "opdots", "aria-hidden": "true" }, Array.from({ length: op.of }, (_, i) =>
+      el("i", { class: i + 1 < op.drop || ((op.done || STATE.status === "between") && i + 1 === op.drop) ? "d" : i + 1 === op.drop ? "c" : "" })));
+    const kids = [el("span", { class: "label", style: "margin:0" }, [t("op.label")]), dots,
+      el("b", {}, [op.done ? t("op.done", { n: op.drop }) : t("op.of", { n: op.drop, m: op.of })])];
+    if (isCreator() && !op.done && STATE.status !== "folded") {
+      const nx = el("button", { class: "btn sm" + (STATE.status === "between" ? " primary" : ""), type: "button" }, ["▶ " + t("op.next")]);
+      nx.onclick = () => nextMissionDialog();
+      const end = el("button", { class: "btn sm", type: "button" }, ["■ " + t("op.end")]);
+      end.onclick = async () => { if (!confirm(t("op.end.q"))) return; end.disabled = true;
+        try { STATE = await jpost("/api/lobby/" + LID + "/endop", {}, store.creator(LID)); lastSig = JSON.stringify(STATE); render(); toast(t("op.ended")); }
+        catch (e) { toast(e.message); end.disabled = false; } };
+      if (STATE.status === "between" || STATE.status === "debriefing") kids.push(nx);
+      if (STATE.status === "between") kids.push(end);
+    }
+    const hint = STATE.status === "between" && !op.done ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t(isCreator() ? "op.between.c" : "op.between")]) : null;
+    return el("div", { class: "opstrip" }, [el("div", { class: "oprow" }, kids), hint]);
+  }
+  function nextMissionDialog() {
+    const m = STATE.mission || {}, played = new Set(((STATE.op || {}).drops || []).map(d => d.mission && d.mission.name).concat([(META.missions || []).find(x => x.id === m.mission_id)].filter(Boolean).map(x => x.name)));
+    const dv = m.difficulty || 7;
+    const list = (META.missions || []).filter(x => (!x.factions || !x.factions.length || x.factions.indexOf(m.faction) >= 0) && (x.dmin == null || (dv >= x.dmin && dv <= x.dmax)));
+    const dlg = el("dialog", { class: "modal", "aria-label": t("op.next") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const sel = el("select", {}, list.map(z => el("option", { value: z.id }, [z.name + (played.has(z.name) ? " ✓" : "")])));
+    const fresh = list.find(z => !played.has(z.name)); if (fresh) sel.value = fresh.id;
+    const go = el("button", { type: "button", class: "btn primary" }, ["▶ " + t("op.next.go", { n: ((STATE.op || {}).drop || 1) + 1 })]);
+    go.onclick = async () => { go.disabled = true;
+      try { const req = jpost("/api/lobby/" + LID + "/next", { mission: { mission_id: sel.value } }, store.creator(LID));
+        dlg.close(); STATE = STATE.directive ? await regenScreen(req, 1500) : await req; lastSig = JSON.stringify(STATE); render(); toast(t("op.next.done")); }
+      catch (e) { toast(e.message); go.disabled = false; } };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("op.next")]), x]), el("div", { class: "mbody" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("op.next.hint", { planet: m.planet_name || t("op.planet") })]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), searchable(sel, { title: t("slog.mission") })]),
+      el("div", { class: "btnrow" }, [go])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+  // earlier missions of the operation, and how each diver stands on the whole-operation oaths
+  function opPanel() {
+    const op = STATE.op; if (!op || op.legacy) return null;
+    const kids = [];
+    if ((op.op_oaths || []).length) {
+      kids.push(el("div", { class: "sub-h first" }, [t("op.oaths")]), el("div", { class: "hint" }, [t(op.done ? "op.oaths.final" : "op.oaths.live")]));
+      (op.standing || []).forEach(sd => {
+        const tot = sd.totals || {};
+        kids.push(el("div", { class: "opstand" }, [el("b", {}, [sd.callsign]),
+          el("small", {}, [" · " + t("op.missions", { n: sd.missions }) + (tot.deaths != null ? " · " + t("lk.r.deaths", { n: nf(tot.deaths) }) : "") + (tot.kills != null ? " · " + t("lk.r.kills", { n: nf(tot.kills) }) : "")]),
+          el("div", { class: "chips" }, (sd.verdicts.length ? sd.verdicts : op.op_oaths.map(k => ({ oath: k, passed: undefined }))).map(v =>
+            tag(v.passed ? "green" : v.passed === false ? "red" : "", (v.passed ? (op.done ? "✓ " : "● ") : v.passed === false ? "✗ " : "? ") + t("oath." + v.oath + ".name"))))]));
+      });
+    }
+    if ((op.drops || []).length) {
+      kids.push(el("div", { class: "sub-h" + (kids.length ? "" : " first") }, [t("op.earlier")]));
+      op.drops.forEach(d => kids.push(el("details", { class: "fold opdrop" }, [el("summary", {}, [el("span", { class: "rsum" }, [
+        el("b", {}, [t("op.mission.n", { n: d.n }) + " · " + ((d.mission && d.mission.name) || "—")]), " · " + d.divers.length + "/" + STATE.players.length])]),
+        el("div", { class: "body" }, d.divers.map(dv => el("div", { class: "opdiver" }, [el("b", {}, [dv.callsign]),
+          " " + [dv.kills != null ? t("lk.r.kills", { n: nf(dv.kills) }) : null, dv.deaths != null ? t("lk.r.deaths", { n: nf(dv.deaths) }) : null].filter(Boolean).join(" · ") + " ",
+          ...(dv.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + (o.name || o.oath) + (o.medal ? " · 🎖" : "")))])))])));
+    }
+    return kids.length ? el("div", { class: "oppanel" }, kids) : null;
+  }
   function foldRow() {
     const st = STATE.status || "open", kids = [statusTag(st)];
     if (isCreator()) {
@@ -1701,6 +1786,12 @@
       clear.hidden = !n;
     }
     fbtn.onclick = () => openFilter();
+    // type to find: always on top of the list, so ticking what you own is search, tap, search, tap
+    const qq = el("input", { type: "search", class: "gearq", placeholder: t("gf.search.ph"), value: F.q, autocomplete: "off", "aria-label": t("gf.search.ph") });
+    let qT = null;
+    qq.oninput = () => { clearTimeout(qT); qT = setTimeout(() => { F.q = qq.value.trim(); keep(); paintAll(); }, 120); };
+    clear.addEventListener("click", () => { qq.value = ""; });
+    body.appendChild(qq);
     body.appendChild(el("div", { class: "filterbar" }, [fbtn, fsum, clear]));
 
     function openFilter() {
@@ -1712,7 +1803,7 @@
         showSeg.appendChild(b);
       });
       const q = el("input", { type: "search", placeholder: t("gf.search.ph"), value: F.q, autocomplete: "off" });
-      q.oninput = () => { F.q = q.value.trim(); changed(); };
+      q.oninput = () => { F.q = q.value.trim(); qq.value = F.q; changed(); };
       const chips = el("div", { class: "chips srcchips" });
       const kinds = [["base", t("gf.k.base")], ["warbond", t("gf.k.warbond")], ["superstore", "Superstore"], ["special", t("gear.special")]];
       const chipEls = [];
@@ -2091,6 +2182,17 @@
     });
     setHint();
     body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("mis.oath.label")]), oathRow, oathHint]));
+    // whole-operation oaths: judged on the operation's missions added up (e.g. Unbroken across all three)
+    draft.op_oaths = Array.isArray(draft.op_oaths) ? draft.op_oaths.slice() : [];
+    const opRow = el("div", { class: "chips" });
+    const paintOp = () => opRow.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.k ? draft.op_oaths.indexOf(x.dataset.k) >= 0 : !draft.op_oaths.length)));
+    [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => { if (!k) draft.op_oaths = []; else if (draft.op_oaths.indexOf(k) >= 0) draft.op_oaths = draft.op_oaths.filter(z => z !== k);
+        else if (draft.op_oaths.length < 3) draft.op_oaths = draft.op_oaths.concat([k]); else { toast(t("mis.oaths.max")); return; } paintOp(); };
+      opRow.appendChild(c); });
+    paintOp();
+    body.appendChild(el("div", { class: "blk" }, [el("span", { class: "label" }, [t("op.oaths.label")]), opRow, el("div", { class: "hint" }, [t("op.oaths.hint")])]));
 
     // actions
     const save = el("button", { class: "btn primary", type: "button" }, [t("mis.save")]);
@@ -2358,6 +2460,50 @@
     im.onerror = () => im.replaceWith(el("span", { class: "nopic", "aria-hidden": "true" }, ["◇"]));
     return im;
   };
+  // type to search: a long <select> becomes a button that opens a searchable sheet (pictures for gear).
+  // The select stays underneath (hidden), so code reading or setting .value and "change" keep working.
+  function searchable(sel, o) {
+    o = o || {};
+    if (sel._searchable) return sel._searchable;
+    const btn = el("button", { type: "button", class: "pickbtn", "aria-haspopup": "dialog" });
+    if (sel.getAttribute("aria-label")) btn.setAttribute("aria-label", sel.getAttribute("aria-label"));
+    const label = () => { const op = sel.options[sel.selectedIndex]; btn.innerHTML = "";
+      if (o.pic && sel.value) btn.appendChild(el("span", { class: "pv" }, [pic(sel.value, o.pic)]));
+      btn.appendChild(el("span", { class: "t" }, [op ? op.textContent : "—"])); btn.appendChild(el("span", { class: "chev", "aria-hidden": "true" }, ["⌕"])); };
+    sel.classList.add("srsel"); sel.tabIndex = -1; sel.setAttribute("aria-hidden", "true");
+    const wrap = el("div", { class: "pickwrap" }, [btn, sel]);
+    new MutationObserver(label).observe(sel, { childList: true, subtree: true });
+    sel.addEventListener("change", label);
+    // programmatic value changes don't fire "change": keep the label honest anyway
+    const desc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+    Object.defineProperty(sel, "value", { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v); label(); } });
+    btn.onclick = () => {
+      const dlg = el("dialog", { class: "modal swapdlg pickdlg", "aria-label": o.title || btn.getAttribute("aria-label") || t("pick.title") });
+      const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+      const q = el("input", { type: "search", placeholder: t("pick.search"), autocomplete: "off", "aria-label": t("pick.search") });
+      const list = el("div", { class: "swaplist" });
+      const opts = Array.from(sel.options).filter(op => !op.disabled).map(op => ({ v: op.value, t: op.textContent,
+        g: op.parentNode && op.parentNode.tagName === "OPTGROUP" ? op.parentNode.label : "" }));
+      const paint = () => { list.innerHTML = ""; const f = q.value.trim().toLowerCase(); let lastG = null, n = 0;
+        opts.filter(z => !f || z.t.toLowerCase().includes(f) || z.g.toLowerCase().includes(f)).forEach(z => {
+          if (n++ > 150) return;
+          if (z.g && z.g !== lastG) { lastG = z.g; list.appendChild(el("div", { class: "sub-h first", style: "margin:6px 0 0" }, [z.g])); }
+          const b = el("button", { type: "button", class: "swapitem" + (z.v === sel.value ? " on" : "") }, [
+            o.pic ? el("span", { class: "pv" }, [z.v ? pic(z.v, o.pic) : el("span", { class: "nopic" }, ["—"])]) : null,
+            el("span", { class: "t" }, [el("b", {}, [z.t])])]);
+          b.onclick = () => { sel.value = z.v; sel.dispatchEvent(new Event("change", { bubbles: true })); dlg.close(); };
+          list.appendChild(b); });
+        if (!n) list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("pick.none")])); };
+      q.oninput = paint; paint();
+      q.addEventListener("keydown", e => { if (e.key === "Enter") { const first = list.querySelector(".swapitem"); if (first) { e.preventDefault(); first.click(); } } });
+      dlg.append(el("div", { class: "mhead" }, [el("b", {}, [o.title || t("pick.title")]), x]), el("div", { class: "mbody" }, [q, list]));
+      dlg.addEventListener("close", () => { dlg.remove(); btn.focus(); });
+      dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+      document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+      q.focus(); setTimeout(() => { if (document.activeElement !== q) q.focus(); }, 30);
+    };
+    label(); sel._searchable = wrap; return wrap;
+  }
   function itemStats(n) { for (const tb of META.armory || []) for (const g of tb.groups) for (const i of g.items) if (i.name === n) return i.stats; return null; }
   // grenades carried: the grenade's base count plus the armour passive's extra throwables
   // (Engineering Kit, Grenadier, Integrated Explosives); ship upgrades are left out
@@ -2665,9 +2811,10 @@
         return el("div", { class: "grid2 prefpick", style: "margin-top:10px" }, [
           el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.style")]), ss.sel, ss.hint]),
           el("div", { class: "field" }, [el("span", { class: "label" }, [t("me.role")]), rs.sel, rs.hint])]); })(),
-      el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), arm]),
+      el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), searchable(arm, { pic: "img", title: t("arm.pick") })]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
+    const tun = lkTuning(); if (tun) body.appendChild(tun);
     const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
@@ -2794,6 +2941,7 @@
     if (editing && !LK.callsign) setTimeout(() => nameIn.focus(), 0);
     // up top: a carousel of saved loadouts, then the stats
     app.appendChild(lkCarousel(null, { editable: true }));
+    { const tun = lkTuning(); if (tun) app.appendChild(tun); }
     app.appendChild(lkStats());
     // sub-tabs
     const tabs = [["record", t("lk.tab.record") + (LK.medals.length ? " 🎖" + LK.medals.length : "")],
@@ -3156,20 +3304,56 @@
     if (d.scorecard && d.scorecard.length) kids.push(el("div", { class: "statgrid rosstats" }, d.scorecard.map(row => el("div", { class: "stat" }, [
       el("div", { class: "k" }, [has("sc." + row.key) ? t("sc." + row.key) : row.label]), el("div", { class: "v" }, [row.value])]))));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    const cl = careerLine(d.career, false); if (cl) kids.push(cl);
+    const en = enrichedPanel(d.career); if (en) kids.push(en);
     kids.push(...awardList(d.awards));
     if (d.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, d.medals.map(m =>
       el("div", { class: "lkmedal" }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
     if (d.recent.length) kids.push(el("div", { class: "sub-h" }, [t("ros.recentdrops")]), el("ul", { class: "rosrecent" }, d.recent.map(r => el("li", {}, [
       el("b", {}, [(r.mission && r.mission.name) || "—"]), " · " + dt(r.at),
       r.kills != null ? " · " + t("lk.r.kills", { n: nf(r.kills) }) : "", r.deaths != null ? " · " + t("lk.r.deaths", { n: nf(r.deaths) }) : "",
-      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name))]))));
+      " ", ...(r.oaths || []).map(o => tag(o.passed ? "green" : o.passed === false ? "red" : "", (o.passed ? "✓ " : o.passed === false ? "✗ " : "? ") + o.name)),
+      " ", countedTag(r, d.career)]))));
     app.appendChild(panel("ROS-03", t("lk.tab.stats"), {}, kids));
   }
+
+  // where the career numbers come from: the latest career read (dated) plus the debriefs since,
+  // and what only WARMIND tracks (mission types, factions, difficulty, roles, oaths)
+  function careerLine(c, own) {
+    if (!c || !c.career_at) return null;
+    const kids = [el("div", {}, [c.added ? t("car.since", { d: dt(c.career_at), n: nf(c.added) }) : t("car.read", { d: dt(c.career_at) })])];
+    const s = c.since;
+    if (s) kids.push(el("div", { class: "carplus" }, [[s.missions_played ? t("car.p.missions", { n: nf(s.missions_played) }) : null,
+      s.enemy_kills != null ? t("car.p.kills", { n: nf(s.enemy_kills) }) : null, s.deaths != null ? t("car.p.deaths", { n: nf(s.deaths) }) : null]
+      .filter(Boolean).join(" · ")]));
+    if (c.added) kids.push(el("div", { class: "hint" }, [t(own ? "car.est" : "car.est.pub")]));
+    return el("div", { class: "carline" }, kids);
+  }
+  function enrichedPanel(c) {
+    const e = c && c.enriched;
+    if (!e || !e.drops) return null;
+    const top = (o, lab, n) => Object.entries(o || {}).slice(0, n || 6).map(([k, v]) => el("span", { class: "tag" }, [lab(k) + " · " + nf(v)]));
+    const row = (key, chips) => chips.length ? el("div", { class: "enrrow" }, [el("div", { class: "k" }, [t(key)]), el("div", { class: "chips" }, chips)]) : null;
+    const fac = k => has("faction." + k) ? t("faction." + k) : k, mode = k => has("mode." + k) ? t("mode." + k) : k;
+    const o = e.oaths || {};
+    return el("div", { class: "enriched" }, [
+      el("div", { class: "sub-h" }, [t("car.enr")]),
+      el("div", { class: "hint" }, [t("car.enr.hint", { n: nf(e.drops) })]),
+      row("car.missions", top(e.missions, x => x, 8)), row("car.factions", top(e.factions, fac)),
+      row("car.diff", Object.entries(e.difficulty || {}).sort((a, b) => parseInt(a[0].slice(1)) - parseInt(b[0].slice(1))).map(([k, v]) => el("span", { class: "tag" }, [k + " · " + nf(v)]))), row("car.modes", top(e.modes, mode)), row("car.roles", top(e.roles, roleName)),
+      (o.kept || o.broken) ? row("car.oaths", [el("span", { class: "tag green" }, ["✓ " + t("car.kept", { n: nf(o.kept) })]),
+        el("span", { class: "tag red" }, ["✗ " + t("car.broken", { n: nf(o.broken) })]), e.medals ? el("span", { class: "tag" }, ["🎖 " + nf(e.medals)]) : null].filter(Boolean)) : null,
+    ]);
+  }
+  const countedTag = (r, c) => r.counted === "career" && c && c.career_at ? tag("", t("car.dated", { d: dt(c.career_at) }), t("car.dated.tip"))
+    : r.counted === "added" && c && c.career_at ? tag("green", "+ " + t("car.added"), t("car.added.tip")) : null;
 
   function lkStats() {
     const kids = [];
     if (LK.stats) kids.push(statBlock({ scorecard: LK.scorecard, stats: LK.stats, confidence: null }));
     else kids.push(el("div", { class: "hint" }, [t("lk.stats.none")]));
+    const cl = careerLine(LK.career, true); if (cl) kids.push(cl);
+    const en = enrichedPanel(LK.career); if (en) kids.push(en);
     const h = (LK.history || []).slice();
     if (h.length) {
       const pct = v => v == null ? "—" : (v * 100).toFixed(1) + "%", num = (v, d) => v == null ? "—" : Number(v).toFixed(d);
@@ -3186,8 +3370,100 @@
     }
     return panel("LKR-02", t("lk.tab.stats"), {}, kids);
   }
+  // log a drop from the Profile: a scoreboard from any mission, no war table needed; it counts
+  // toward oaths and medals, the saved kit's record, the career totals and the enriched stats
+  const LOG_MODES = ["optimize", "fun", "challenge", "improvement", "d100"];
+  function logDialog(after) {
+    const dlg = el("dialog", { class: "modal logdlg", "aria-label": t("slog.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const body = el("div", { class: "mbody" });
+    const opt = (v, label) => el("option", { value: v }, [label]);
+    const fac = el("select", {}, [opt("", t("slog.any")), ...["terminids", "automatons", "illuminate"].map(f => opt(f, t("faction." + f)))]);
+    const mis = el("select", {});
+    const fillMis = () => { const cur = mis.value; mis.innerHTML = ""; mis.appendChild(opt("", t("slog.fromshot")));
+      (META.missions || []).filter(m => !fac.value || !m.factions || !m.factions.length || m.factions.indexOf(fac.value) >= 0)
+        .forEach(m => mis.appendChild(opt(m.id, m.name))); mis.value = cur; if (mis.value !== cur) mis.value = ""; };
+    fac.onchange = fillMis; fillMis();
+    const dif = el("select", {}, [opt("", "—"), ...Array.from({ length: 10 }, (_, i) => opt(String(i + 1), "D" + (i + 1)))]);
+    const mode = el("select", {}, [opt("", "—"), ...LOG_MODES.map(m => opt(m, t("mode." + m)))]);
+    const kit = el("select", {}, [opt("", t("slog.nokit")), ...((LK && LK.loadouts) || []).map(o => opt(o.id, o.name))]);
+    const myRooms = (LK && LK.rooms) || [];
+    let lastRoom = ""; try { lastRoom = localStorage.getItem("wm_logroom") || ""; } catch (e) {}
+    const room = el("select", {}, [opt("", t("slog.noroom")), ...myRooms.map(r => opt(r.id, r.name))]);
+    if (myRooms.some(r => r.id === lastRoom)) room.value = lastRoom;
+    let sworn = [];
+    const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
+    const paintOaths = () => { oathRow.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.k ? sworn.indexOf(c.dataset.k) >= 0 : !sworn.length)));
+      oathHint.innerHTML = ""; if (sworn.length) oathHint.appendChild(medalPreview(sworn, mode.value === "d100")); };
+    [null].concat((META.oaths || []).map(o => o.key)).forEach(k => {
+      const c = el("button", { type: "button", class: "chip", "data-k": k || "" }, [k ? t("oath." + k + ".name") : t("mis.oath.none")]);
+      c.onclick = () => { if (!k) sworn = []; else if (sworn.indexOf(k) >= 0) sworn = sworn.filter(z => z !== k);
+        else if (sworn.length < 3) sworn = sworn.concat([k]); else { toast(t("mis.oaths.max")); return; } paintOaths(); };
+      oathRow.appendChild(c); });
+    mode.onchange = paintOaths; paintOaths();
+    let files = [];
+    const pick = fileBtn("", "🖼 " + t("slog.shots"), true);
+    const shotsN = el("span", { class: "hint", style: "margin:0" });
+    pick.querySelector("input").onchange = ev => { files = Array.from(ev.target.files || []).slice(0, 4); shotsN.textContent = files.length ? t("slog.nshots", { n: files.length }) : ""; go.disabled = !files.length; };
+    const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    const go = el("button", { type: "button", class: "btn primary", disabled: "" }, ["✓ " + t("slog.go")]);
+    const field = (key, node) => el("div", { class: "field" }, [el("span", { class: "label" }, [t(key)]), node]);
+    const L = store.locker();
+    const done = r => {
+      body.innerHTML = "";
+      const vs = (r.verdicts || []).filter(Boolean);
+      const res = r.result || {};
+      body.append(...[el("div", { class: "sub-h first" }, [t("slog.saved")]),
+        el("div", {}, [[res.mission_name, res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
+          res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ")]),
+        vs.length ? el("div", { class: "chips", style: "margin-top:8px" }, vs.map(v => tag(v.passed ? "green" : v.passed === false ? "red" : "",
+          (v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath) + (v.medal ? " · 🎖 " + v.medal.name : "")))) : null,
+        vs.some(v => v.passed == null) ? el("div", { class: "hint" }, [t("slog.unver")]) : null,
+        r.replaced ? el("div", { class: "hint" }, [t("slog.replaced")]) : null,
+        r.aar ? el("div", { class: "hint", style: "margin-top:10px" }, [r.aar]) : null,
+        r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null].filter(Boolean));
+      const ok = el("button", { type: "button", class: "btn primary" }, [t("gf.done")]); ok.onclick = () => dlg.close();
+      body.appendChild(el("div", { class: "btnrow" }, [ok]));
+      dlg.addEventListener("close", () => { if (after) after(); });
+    };
+    go.onclick = async () => {
+      if (!files.length) return; go.disabled = true; const stop = workTicker(status, lines("tick.read.", 10));
+      try {
+        const fd = new FormData(); files.forEach(f => fd.append("images", f));
+        [["mission_id", mis.value], ["faction", fac.value], ["difficulty", dif.value], ["mode", mode.value], ["oaths", sworn.join(",")],
+          ["loadout_id", kit.value], ["room_id", room.value], ["lang", LANG]].forEach(([k, v]) => fd.append(k, v || ""));
+        try { localStorage.setItem("wm_logroom", room.value); } catch (e) {}
+        const r = await lfd("/api/locker/" + L.id + "/log", fd); stop();
+        if (!r.pick) { done(r); return; }
+        // the callsign isn't on the scoreboard: which column is you?
+        body.innerHTML = "";
+        body.append(el("div", { class: "sub-h first" }, [t("slog.which")]), el("div", { class: "hint" }, [t("slog.which.hint")]));
+        const list = el("div", { class: "logcols" });
+        r.rows.forEach(c => { const b = el("button", { type: "button", class: "btn" }, [el("b", {}, [c.name || "?"]),
+          " · " + [c.kills != null ? t("lk.r.kills", { n: nf(c.kills) }) : null, c.deaths != null ? t("lk.r.deaths", { n: nf(c.deaths) }) : null].filter(Boolean).join(" · ")]);
+          b.onclick = async () => { list.querySelectorAll("button").forEach(z => z.disabled = true);
+            try { done(await lpost("/api/locker/" + L.id + "/log/" + r.read_id, { i: c.i })); } catch (e) { toast(e.message); list.querySelectorAll("button").forEach(z => z.disabled = false); } };
+          list.appendChild(b); });
+        body.appendChild(list);
+      } catch (e) { stop(); setStatus(status, "err", e.message); go.disabled = false; } finally { stop(); }
+    };
+    body.append(el("div", { class: "hint", style: "margin:0 0 10px" }, [t("slog.explain")]),
+      el("div", { class: "btnrow", style: "margin:0 0 6px;align-items:center" }, [pick, shotsN]),
+      el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", searchable(mis, { title: t("slog.mission") })), field("slog.diff", dif), field("slog.mode", mode)]),
+      el("div", { class: "grid2" }, [field("slog.kit", kit), myRooms.length ? field("slog.room", room) : null].filter(Boolean)),
+      myRooms.length ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t("slog.room.hint")]) : null,
+      el("div", { class: "blk" }, [el("span", { class: "label" }, [t("slog.oaths")]), oathRow, oathHint]),
+      status, el("div", { class: "btnrow" }, [go]));
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("slog.title")]), x]), body);
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+  }
+
   function lkRecord() {
     const kids = [];
+    if (store.locker()) { const lg = el("button", { type: "button", class: "btn primary sm" }, ["＋ " + t("slog.btn")]);
+      lg.onclick = () => logDialog(LOCKER_PAGE ? loadLocker : async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); });
+      kids.push(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("slog.hint")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [lg])); }
     kids.push(...awardList(LK.awards));
     if (LK.medals.length) kids.push(el("div", { class: "sub-h" }, [t("lk.medals")]), el("div", { class: "lkmedals" }, LK.medals.map(m =>
       el("div", { class: "lkmedal", title: m.medal.id }, [el("b", {}, ["🎖 " + m.medal.name]), el("small", {}, [(m.mission || "") + " · " + dt(m.at)])]))));
@@ -3197,7 +3473,7 @@
       const bits = [res.kills != null ? t("lk.r.kills", { n: nf(res.kills) }) : null, res.deaths != null ? t("lk.r.deaths", { n: nf(res.deaths) }) : null,
         res.accuracy_pct != null ? t("lk.r.acc", { n: res.accuracy_pct }) : null].filter(Boolean).join(" · ");
       const vs = (r.verdicts || []).filter(Boolean).map(v => el("span", { class: "tag " + (v.passed ? "green" : v.passed === false ? "red" : "") }, [(v.passed ? "✓ " : v.passed === false ? "✗ " : "? ") + (v.name || v.oath)]));
-      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("b", {}, [mi.name || r.lobby || "—"]), " · " + dt(r.at) + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]),
+      kids.push(el("details", { class: "fold lkrec" }, [el("summary", {}, [el("span", { class: "rsum" }, [el("b", {}, [mi.name || (r.log ? t("slog.drop") : r.lobby) || "—"]), " · " + dt(r.at) + (r.log ? " · " + t("slog.tag") : "") + (mi.mode ? " · " + t("mode." + mi.mode) : "") + (mi.difficulty ? " · D" + mi.difficulty : "")]), countedTag(r, LK.career)]),
         el("div", { class: "body" }, [bits ? el("div", {}, [bits]) : null, vs.length ? el("div", { class: "chips" }, vs) : null,
           r.aar ? el("div", { class: "hint" }, [r.aar]) : null,
           r.lesson ? el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + r.lesson]) : null,
@@ -3277,11 +3553,12 @@
     };
     no.onclick = () => dlg.close();
     const field = (lab, ctl) => el("div", { class: "field" }, [el("span", { class: "label" }, [lab]), ctl]);
+    const srch = (s, lab, kind) => searchable(s, { pic: kind, title: lab });
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t(existing ? "lk.edit.kit" : "lk.new")])]),
       el("div", { class: "mbody" }, [field(t("lk.name"), name),
         el("label", { class: "lkmine" }, [mine, " " + t("lk.onlymine")])]
-        .concat(slots.map(([k, , lab]) => field(t(lab), S[k])))
-        .concat([field(t("card.strats"), el("div", { class: "lkstrats" }, strat)), field(t("lk.note"), note)])),
+        .concat(slots.map(([k, , lab]) => field(t(lab), srch(S[k], t(lab), "img"))))
+        .concat([field(t("card.strats"), el("div", { class: "lkstrats" }, strat.map((s2, i) => srch(s2, t("card.strats") + " " + (i + 1), "icon")))), field(t("lk.note"), note)])),
       el("div", { class: "mfoot" }, [el("div", { class: "btnrow", style: "margin:0" }, [go, no])]));
     dlg.addEventListener("close", () => dlg.remove());
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
@@ -3379,7 +3656,7 @@
     if (me && meR && subject && me.id !== subject.id && !(v.endorser_ids || []).includes(me.id)) {
       const b = el("button", { class: "btn sm primary", type: "button" }, [t("end.vouch.oath", { oath: t("oath." + v.oath + ".name"), name: subject.callsign })]);
       b.onclick = async () => { b.disabled = true;
-        try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
+        try { STATE = await jpost("/api/lobby/" + LID + "/player/" + subject.id + "/endorse", { oath: v.oath, scope: v.scope || null, by: me.id }, meR.token); lastSig = JSON.stringify(STATE); renderLive(); toast(t("end.done")); }
         catch (e) { toast(e.message); b.disabled = false; } };
       kids.push(b);
     } else if (me && subject && me.id === subject.id) kids.push(el("span", { class: "hint", style: "margin:0" }, [t("end.ask")]));
@@ -3387,7 +3664,7 @@
   }
   function verdictBlock(v, callsign, subject) {
     if (!v) return null;
-    const name = t("oath." + v.oath + ".name"), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
+    const name = t("oath." + v.oath + ".name") + (v.scope === "operation" ? " · " + t("op.whole") : ""), reason = tp({ k: v.reason_key, p: v.reason_params }, v.reason);
     if (v.passed === true && v.medal) {
       const base = t("oath." + v.oath + ".medal"), mname = v.medal.d100 ? t("medal.d100", { name: base }) : base;
       const shareBtn = el("button", { class: "btn sm share", type: "button" }, ["⇪ " + t("share.btn")]);
@@ -3447,11 +3724,67 @@
     dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
   }
 
+  // tell WARMIND what worked and what didn't: one small call keeps the note that helps your next kits (your Tuning)
+  function tellBox(p) {
+    const wrap = el("div", { class: "tellbox" });
+    const ta = el("textarea", { rows: "2", maxlength: "800", placeholder: t("tune.ph") });
+    const send = el("button", { type: "button", class: "btn sm primary" }, ["◈ " + t("tune.send")]);
+    const out = el("div", { class: "tellout" });
+    if (!p.locker) { send.disabled = true; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.needprofile")])); }
+    send.onclick = async () => {
+      const v = ta.value.trim(); if (v.length < 3) { ta.focus(); return; }
+      send.disabled = true; out.innerHTML = ""; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.thinking")]));
+      try {
+        const r = await jpost("/api/lobby/" + LID + "/player/" + p.id + "/tune", { text: v, lang: LANG }, meRec().token);
+        out.innerHTML = "";
+        if (!r.tune) { out.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.nothing")])); send.disabled = false; return; }
+        ta.value = "";
+        const undo = el("button", { type: "button", class: "btn sm" }, ["↶ " + t("tune.undo")]);
+        undo.onclick = async () => { undo.disabled = true; try { await lpost("/api/locker/" + store.locker().id + "/tune/" + r.tune.id, { delete: true }); out.innerHTML = ""; toast(t("tune.removed")); } catch (e) { toast(e.message); undo.disabled = false; } };
+        out.appendChild(el("div", { class: "tunesaved" }, [el("b", {}, [t("tune.saved")]), " " + r.tune.note,
+          r.tune.applies && r.tune.applies !== "all" ? tag("", t("faction." + r.tune.applies)) : null, el("div", { class: "btnrow", style: "margin:6px 0 0" }, [undo])]));
+        send.disabled = false;
+      } catch (e) { out.innerHTML = ""; out.appendChild(el("div", { class: "hint", style: "margin:0" }, [e.message])); send.disabled = false; }
+    };
+    wrap.append(el("div", { class: "label", style: "margin:10px 0 4px" }, ["◈ " + t("tune.title")]), ta,
+      el("div", { class: "btnrow", style: "margin:6px 0 0" }, [send]), el("div", { class: "hint", style: "margin:4px 0 0" }, [t("tune.hint")]), out);
+    return wrap;
+  }
+  // the profile's Tuning: every note WARMIND keeps for this diver's kits; edit or remove any
+  function lkTuning(after) {
+    const L = store.locker(); if (!L) return null;
+    const list = el("div", { class: "tunelist" });
+    const paint = items => { list.innerHTML = "";
+      if (!items.length) list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("tune.none")]));
+      items.forEach(x => {
+        const ed = el("button", { type: "button", class: "btn sm", "aria-label": t("lk.edit") }, ["✎"]);
+        const del = el("button", { type: "button", class: "btn sm red", "aria-label": t("lk.delete") }, ["✕"]);
+        del.onclick = async () => { if (!confirm(t("tune.del.q"))) return; try { const r = await lpost("/api/locker/" + L.id + "/tune/" + x.id, { delete: true }); LK.tuning = r.tuning; paint(r.tuning); } catch (e) { toast(e.message); } };
+        ed.onclick = async () => { const v = prompt(t("tune.edit"), x.note); if (v == null || !v.trim()) return;
+          try { const r = await lpost("/api/locker/" + L.id + "/tune/" + x.id, { note: v.trim() }); LK.tuning = r.tuning; paint(r.tuning); } catch (e) { toast(e.message); } };
+        list.appendChild(el("div", { class: "tunerow" }, [el("div", { class: "tn" }, [x.note,
+          el("small", {}, [[x.applies && x.applies !== "all" ? t("faction." + x.applies) : t("tune.allfronts"), x.mission ? x.mission + (x.drop > 1 ? " · " + t("op.mission.n", { n: x.drop }) : "") : null, dt(x.at)].filter(Boolean).join(" · ")]),
+          x.said ? el("small", { class: "said" }, ["“" + x.said + "”"]) : null]), el("div", { class: "ta" }, [ed, del])]));
+      }); };
+    paint(LK.tuning || []);
+    const ta = el("textarea", { rows: "2", maxlength: "800", placeholder: t("tune.ph.profile") });
+    const add = el("button", { type: "button", class: "btn sm primary" }, ["◈ " + t("tune.send")]);
+    add.onclick = async () => { const v = ta.value.trim(); if (v.length < 3) { ta.focus(); return; } add.disabled = true;
+      try { const r = await lpost("/api/locker/" + L.id + "/tune", { text: v, lang: LANG });
+        if (!r.tune) toast(t("tune.nothing")); else { ta.value = ""; LK.tuning = [r.tune].concat(LK.tuning || []); paint(LK.tuning); toast(t("tune.saved")); } }
+      catch (e) { toast(e.message); } finally { add.disabled = false; } };
+    return panel("ME-02", t("tune.panel"), { status: (LK.tuning || []).length ? String(LK.tuning.length) : "" }, [
+      el("div", { class: "hint", style: "margin:0 0 8px" }, [t("tune.panel.hint")]), list,
+      el("div", { class: "field", style: "margin-top:10px" }, [ta]), el("div", { class: "btnrow", style: "margin:6px 0 0" }, [add])]);
+  }
+
   function debriefPanel() {
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
     const kids = [];
-    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
+    const opb = opPanel(); if (opb) kids.push(opb);
+    if (oathsOf(m).length) kids.push(el("div", { class: "sub-h", style: opb ? null : "margin-top:0" }, [t("deb.stakes")]), medalPreview(oathsOf(m), m.mode === "d100"));
+    if ((m.op_oaths || []).length && !(STATE.op || {}).done) kids.push(el("div", { class: "sub-h" }, [t("op.stakes")]), medalPreview(m.op_oaths, m.mode === "d100"));
     // result upload: the diver for themself, or the creator for any diver (a diver on another device)
     function uploader(target, label, primary) {
       const status = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
@@ -3520,6 +3853,7 @@
         if (aar.text) inner.push(el("div", { class: "aartext" }, [aar.text]));
         if (aar.lesson) inner.push(el("div", { class: "lesson" }, [el("b", {}, [t("deb.lesson")]), " " + aar.lesson]));
         if (r.loadout) inner.push(el("div", { class: "hint", style: "margin:4px 0 0" }, [t("deb.withkit", { name: r.loadout })]));
+        if (me && me.id === p.id) inner.push(tellBox(p));
       }
       const row = el("div", { class: "hrow" }, [el("div", { class: "stripe" }), el("div", { class: "in" }, inner)]);
       row.style.setProperty("--acc", p.accent);

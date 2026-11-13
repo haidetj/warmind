@@ -142,6 +142,33 @@ def _whole_sentences(text: str) -> str:
     return text[:ends[-1]].rstrip() if ends and ends[-1] > len(text) * 0.4 else text.rstrip() + "…"
 
 
+TUNE_PROMPT = (
+    "A Helldivers 2 player is telling WARMIND, their squad's loadout coach, something after a mission. In their words:\n"
+    "<<<{said}>>>\n"
+    "What WARMIND knows about that drop (may be empty): {ctx}\n\n"
+    "Write the ONE note WARMIND should keep so its next loadout suggestions for this player get better. Rules:\n"
+    "- A standing instruction about gear, roles, squad jobs or play (what to give / avoid / lean into), not a summary or a thank-you.\n"
+    "- Keep the player's own item and role names; be concrete; at most 25 words; written in {lang}.\n"
+    "- Say whether it holds on every front (\"all\") or only against one faction (\"terminids\", \"automatons\", \"illuminate\").\n"
+    "- If nothing in it helps future loadouts (chit-chat, a bug report, a complaint about the game), the note is null.\n"
+    "Return only JSON: {{\"note\": <string or null>, \"applies\": \"all\" | \"terminids\" | \"automatons\" | \"illuminate\"}}"
+)
+
+
+def distill_tune(said: str, ctx: dict | None = None, lang: str = "en") -> dict:
+    """What the player told WARMIND -> {"note", "applies"}: the one durable note that helps their next kits."""
+    said = " ".join(str(said or "").split())[:800]
+    if MOCK:
+        fac = (ctx or {}).get("faction")
+        return {"note": ("Mock note: " + said)[:160] if said else None, "applies": fac if fac in ("terminids", "automatons", "illuminate") else "all"}
+    prompt = TUNE_PROMPT.format(said=said, ctx=json.dumps(ctx or {}, ensure_ascii=False)[:1500], lang=LANG_NAMES.get(lang, "English"))
+    out = _extract_json(_call([], prompt, max_tokens=300, kind="tune"))
+    note = out.get("note") if isinstance(out, dict) else None
+    note = " ".join(str(note).split())[:240] if note else None
+    ap = out.get("applies") if isinstance(out, dict) else None
+    return {"note": note, "applies": ap if ap in ("terminids", "automatons", "illuminate") else "all"}
+
+
 def split_lesson(text: str):
     """(review, lesson): the review's last line 'LESSON: …' is the kit lesson for next time."""
     m = re.search(r"(?im)^\s*\**\s*LESSON\s*\**\s*[:：]\s*(.+?)\s*$", text or "")

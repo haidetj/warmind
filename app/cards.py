@@ -19,7 +19,7 @@ FONTS = pathlib.Path(__file__).parent / "fonts"
 BG, PANEL, LINE, LINE2 = (4, 6, 4), (9, 14, 10), (34, 64, 44), (64, 120, 84)
 INK, INK2, MUTED = (223, 245, 223), (165, 195, 166), (110, 140, 112)
 GREEN, AMBER, RED, LIME, VIOLET = (120, 255, 170), (255, 154, 60), (255, 56, 100), (184, 255, 107), (180, 140, 255)
-STATUS = {"open": GREEN, "debriefing": AMBER, "done": LIME, "folded": MUTED}
+STATUS = {"open": GREEN, "debriefing": AMBER, "between": AMBER, "done": LIME, "folded": MUTED}
 
 
 @lru_cache(maxsize=32)

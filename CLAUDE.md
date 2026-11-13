@@ -48,8 +48,11 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
   one ("did you mean"). Pre-PIN profiles take the first PIN entered. Callsigns are unique.
   Tables record `lobby.creator_locker`; `/api/locker/{id}/tables` hands a signed-in device its
   creator tokens and seats, so a diver's tables, creator rights and seat follow them to any device.
-  Home lands on the Profile tab (Profile / Front / War rooms / War tables / Roster / Welcome); the tab is
-  kept in the URL (`?tab=`) so back links return to it.
+  Home lands on the Home tab (Home / Profile / War tables / War rooms / Roster, switched only from the bottom nav;
+  no top tabs). The tab is kept in the URL (`?tab=`, Home is `/`, Profile `?tab=me`; old `?tab=front` opens Home).
+  Home (`homePane`, `GET /api/locker/{id}/home`): the Major Order, the open standing orders of your war rooms with
+  progress, the medals in play at your open tables (this mission's oaths until you debrief, whole-operation oaths and how
+  they stand), your latest medals, then the front (planets, "War table here"), the field manual and how-it-works.
 - `?roster` lists public lockers (opt-out switch in the locker); `?roster=<id>` is a public profile.
 - `?room=<id>` is a war room: the squad's lasting home. Tables created with `room_id` open on the
   room's mission; standing orders (`room_order`) are tracked from every debrief in the room's tables
@@ -79,7 +82,8 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - No stratagem twice in a squad (`kitrules.squad_excludes`, and the planner is told); only a diver who owns nothing
   else legal ends up with a double. Democracy Space Station actions that don't act on a mission (`war.DSS_NOT_MISSION`:
   Operational Support, Exosuit Reserves) are dropped from missions and the briefing.
-- App nav (`appNav`): fixed at the bottom of every page: Profile, your current / last table, War tables, War rooms, Roster.
+- App nav (`appNav`): fixed at the bottom of every page, the only nav: Home, your current / last table, Profile, War tables,
+  War rooms, Roster (short labels `nav.*` so six fit at 360 px in every language).
 - Debrief uploads (yours, or the whole squad's scoreboard) take 1–4 screenshots of the same mission (`images`), read together.
 - Endorse-only oaths (Side Sweep, Sample Run…) can still be ruled out by the scoreboard: each lists `dq` rules in
   `oaths.OATHS` (a field at or under a max, or objectives left undone), checked by `oaths.disqualified` whenever that
@@ -92,6 +96,41 @@ Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
 - Re-uploads (`_same_drop`): the screenshot's mission name (read with the numbers) decides; without names the
   table's mission at upload time does, and identical numbers are always the same scoreboard. Same drop = replaced
   (endorsements too); a different mission is a new drop.
+- Career stats (`app/enrich.py`, `server._career`): the latest career read (`locker_stats`, dated) is the baseline; every
+  debrief after it adds its numbers on top (kills, deaths, shots, accidentals → friendly kills, samples, stratagems,
+  objectives, +1 mission); wins, extractions, time in mission and stratagem types are added at the diver's own career
+  rate. A new career read re-grounds: earlier debriefs are marked `counted: "career"` ("in read of {date}") and never
+  added twice; later ones `"added"`. Rates, the planner's `derived` / accuracy, the roster and the diver card all use
+  these totals (`_snap_of`); the stored `snapshot_json` stays the raw read. Enriched stats (mission types, fronts,
+  difficulty, modes, roles, oaths kept / broken, medals) come from every debrief and survive re-grounding; results now
+  record `table_faction`, `table_difficulty`, `table_mode` and `role` at upload. Cached per `db.GEN` (bumped on result /
+  stat writes).
+- Log a drop from the Profile (`POST /api/locker/{lid}/log`, then `/log/{read_id}` with `{i}` when the callsign isn't on the
+  scoreboard): 1–4 screenshots plus optional front / mission / difficulty / mode / oaths / saved loadout. Recorded through
+  `_record_result` on the profile's log seat (`db.log_seat`: a player row at lobby id `log:<locker>`, no lobby row, hidden
+  from `locker_players`), so oaths, medals, the review, the kit record and career totals all apply. Endorse-only oaths
+  stay unverified there (nobody to vouch). Log drops only replace an identical scoreboard (`_same_drop(log=True)`).
+  A logged drop can name one of the diver's war rooms (`result.room_id`, members only): `db.room_results` takes it in, so it
+  counts toward standing orders (one drop each, its own difficulty / planet) and goes in the ship's log.
+- Operations (`lobby.drop_no` / `drop_at` / `op_done`, `result.drop_no`): a war table runs the planet's operation, 1–3
+  missions (`_op_len` by difficulty: D1–2 one, D3–4 two, D5+ three; tables from before operations have `drop_no` NULL and
+  stay one mission). Status: open → debriefing → `between` (mission debriefed, more to go) → done (last mission debriefed,
+  or the creator's `POST /endop`). `POST /api/lobby/{lid}/next` (creator) keeps planet / front / difficulty / mode / oaths,
+  takes a new `mission_id`, bumps the mission number (`mission.drop` is in `mind.brief_key`, so every mission gets fresh
+  kits), clears quick swaps and Go / No-Go. The table shows only this mission's debriefs; `state.op` has earlier missions
+  and the whole-operation oaths (`mission.op_oaths`, judged live on the summed numbers, `_op_sum`). When the operation
+  ends, `_finish_op` appends them (`scope: "operation"`, medal seeded `<lid>:op`) to each diver's last debrief, so
+  medals / records / rooms count them; their endorsements are keyed `op:<oath>`. Room tallies count each mission a drop.
+- Tell WARMIND / Tuning (`locker_tune`): on your own debrief a diver writes what worked and what didn't
+  (`POST /api/lobby/{lid}/player/{pid}/tune`, or from the Profile `POST /api/locker/{lid}/tune`). One small call
+  (`vision.distill_tune`, kind `tune`) turns it into the one note worth keeping (≤25 words, `applies`: all or a faction;
+  null when there's nothing for future kits). Notes live in the Profile's Tuning panel (edit / delete,
+  `POST /api/locker/{lid}/tune/{id}`), and go to the planner as each diver's `tuning` (every-front + this faction,
+  newest first; they outrank debrief lessons). New notes shape kits from the next brief (the next mission of an operation).
+- Type to search (`searchable(select, {pic, title})`): a long select becomes a button that opens a search sheet (with gear
+  pictures); the real select stays underneath (hidden), so `.value` / "change" code keeps working. Used in the loadout
+  builder (every slot), the Profile's armour pin, Log a drop's and Next mission's mission pickers. The gear checklist has a
+  search box always on top (`input.gearq`, same filter as the ⚲ dialog; it jumps to the tab with matches).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.

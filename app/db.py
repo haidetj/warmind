@@ -13,6 +13,7 @@ import time
 
 DB_PATH = os.environ.get("WARMIND_DB", "/data/warmind.db")
 _lock = threading.Lock()
+GEN = [0]   # bumped on every write to results or stat reads (career totals are cached on it)
 
 
 def _conn():
@@ -138,6 +139,17 @@ CREATE TABLE IF NOT EXISTS callsign_stats (
   style_note TEXT,
   updated_at REAL
 );
+CREATE TABLE IF NOT EXISTS locker_tune (
+  id TEXT PRIMARY KEY,
+  locker_id TEXT,
+  note TEXT,
+  said TEXT,
+  applies TEXT,
+  context_json TEXT,
+  lobby_id TEXT,
+  at REAL
+);
+CREATE INDEX IF NOT EXISTS idx_ltune ON locker_tune(locker_id);
 CREATE TABLE IF NOT EXISTS feedback_image (
   feedback_id TEXT,
   n INTEGER,
@@ -230,6 +242,10 @@ def init():
             c.execute("ALTER TABLE lobby ADD COLUMN creator_locker TEXT")
         if "room_id" not in lcols:   # the war room this table belongs to
             c.execute("ALTER TABLE lobby ADD COLUMN room_id TEXT")
+        if "drop_no" not in lcols:   # an operation: which mission the table is on (NULL = a table from before operations)
+            c.execute("ALTER TABLE lobby ADD COLUMN drop_no INTEGER")
+            c.execute("ALTER TABLE lobby ADD COLUMN drop_at REAL")
+            c.execute("ALTER TABLE lobby ADD COLUMN op_done REAL")
         if "go" not in cols:          # Go / No-Go poll before the drop
             c.execute("ALTER TABLE player ADD COLUMN go INTEGER DEFAULT 0")
         ccols = {r["name"] for r in c.execute("PRAGMA table_info(callsign_stats)").fetchall()}
@@ -254,6 +270,10 @@ def init():
             c.execute("ALTER TABLE result ADD COLUMN lesson TEXT")
         if "loadout_id" not in rcols:   # the saved loadout the diver fought with, if any
             c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
+        if "room_id" not in rcols:      # a drop logged from the Profile for a war room (its tables carry their own)
+            c.execute("ALTER TABLE result ADD COLUMN room_id TEXT")
+        if "drop_no" not in rcols:      # which mission of the table's operation (NULL = the first)
+            c.execute("ALTER TABLE result ADD COLUMN drop_no INTEGER")
         if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
             c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
         if "kit_edits" not in cols:     # quick swaps on this table's kit: {slot or "strat:<old>": item}
@@ -353,8 +373,31 @@ def set_squad_size(lobby_id, n):
 def create_lobby(lobby_id, name, creator_token, squad_size=4):
     now = time.time()
     with _lock, _conn() as c:
-        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,squad_size,created_at,updated_at)"
-                  " VALUES(?,?,?,?,?,?,?)", (lobby_id, name, creator_token, None, squad_size, now, now))
+        c.execute("INSERT INTO lobby(id,name,creator_token,mission_json,squad_size,created_at,updated_at,drop_no,drop_at)"
+                  " VALUES(?,?,?,?,?,?,?,1,?)", (lobby_id, name, creator_token, None, squad_size, now, now, now))
+
+
+def next_drop(lobby_id, mission: dict) -> int:
+    """The operation's next mission: a new mission number, its own clock, Go / No-Go and quick swaps start over."""
+    GEN[0] += 1
+    now = time.time()
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET drop_no=COALESCE(drop_no,1)+1, drop_at=?, mission_json=?, updated_at=? WHERE id=?",
+                  (now, json.dumps(mission), now, lobby_id))
+        c.execute("UPDATE player SET kit_edits=NULL, go=0 WHERE lobby_id=?", (lobby_id,))
+        return c.execute("SELECT drop_no FROM lobby WHERE id=?", (lobby_id,)).fetchone()["drop_no"]
+
+
+def set_lobby_drop1(lobby_id):
+    """A table from before operations joins one: its first mission is mission 1."""
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET drop_no=1, drop_at=COALESCE(drop_at, created_at) WHERE id=? AND drop_no IS NULL", (lobby_id,))
+        c.execute("UPDATE result SET drop_no=1 WHERE lobby_id=? AND drop_no IS NULL", (lobby_id,))
+
+
+def end_op(lobby_id):
+    with _lock, _conn() as c:
+        c.execute("UPDATE lobby SET op_done=?, updated_at=? WHERE id=? AND op_done IS NULL", (time.time(), time.time(), lobby_id))
 
 
 def get_lobby(lobby_id):
@@ -406,11 +449,13 @@ def remove_player(pid):
 
 
 def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None,
-                lesson: str | None = None, loadout_id: str | None = None):
+                lesson: str | None = None, loadout_id: str | None = None, room_id: str | None = None,
+                drop_no: int | None = None):
+    GEN[0] += 1
     with _lock, _conn() as c:
-        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id)"
-                  " VALUES(?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
-                                                 json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id))
+        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id,room_id,drop_no)"
+                  " VALUES(?,?,?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
+                                                     json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id, room_id, drop_no))
 
 
 def player_results(player_id):
@@ -421,6 +466,7 @@ def player_results(player_id):
 
 def delete_result(rid):
     """A re-upload of the same mission replaces the earlier read (and its endorsements)."""
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("DELETE FROM endorsement WHERE result_id=?", (rid,))
         c.execute("DELETE FROM result WHERE id=?", (rid,))
@@ -445,11 +491,22 @@ def set_kit_edits(pid, edits: dict | None):
         c.execute("UPDATE player SET kit_edits=?, updated_at=? WHERE id=?", (json.dumps(edits) if edits else None, time.time(), pid))
 
 
-def latest_result(player_id):
+def latest_result(player_id, drop_no=None):
+    """The diver's latest debrief (at one mission of the operation, if `drop_no` is given)."""
     with _lock, _conn() as c:
-        row = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC LIMIT 1",
-                        (player_id,)).fetchone()
+        if drop_no is None:
+            row = c.execute("SELECT * FROM result WHERE player_id=? ORDER BY created_at DESC LIMIT 1", (player_id,)).fetchone()
+        else:
+            row = c.execute("SELECT * FROM result WHERE player_id=? AND COALESCE(drop_no,1)=? ORDER BY created_at DESC LIMIT 1",
+                            (player_id, drop_no)).fetchone()
         return dict(row) if row else None
+
+
+def lobby_results(lobby_id):
+    """Every debrief at this table, oldest first (the operation's missions in order)."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM result WHERE lobby_id=? ORDER BY COALESCE(drop_no,1), created_at", (lobby_id,)).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ---------------------------------------------------------------- feedback
@@ -547,7 +604,10 @@ def add_locker_stats(lid, snapshot, source):
     with _lock, _conn() as c:
         last = c.execute("SELECT snapshot_json FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT 1",
                          (lid,)).fetchone()
-        if last and last["snapshot_json"] == blob:
+        GEN[0] += 1
+        if last and last["snapshot_json"] == blob:   # the same numbers read again: the career read is now dated today
+            c.execute("UPDATE locker_stats SET at=? WHERE id=(SELECT id FROM locker_stats WHERE locker_id=? ORDER BY at DESC LIMIT 1)",
+                      (time.time(), lid))
             return
         c.execute("INSERT INTO locker_stats(locker_id,at,snapshot_json,source) VALUES(?,?,?,?)",
                   (lid, time.time(), blob, source))
@@ -592,8 +652,48 @@ def link_player_locker(pid, lid):
 
 def locker_players(lid):
     with _lock, _conn() as c:
-        rows = c.execute("SELECT * FROM player WHERE locker_id=? ORDER BY joined_at DESC", (lid,)).fetchall()
+        rows = c.execute("SELECT * FROM player WHERE locker_id=? AND lobby_id NOT LIKE 'log:%' ORDER BY joined_at DESC",
+                         (lid,)).fetchall()
     return [dict(r) for r in rows]
+
+
+def add_tune(tid, lid, note, said, applies, context, lobby_id):
+    with _lock, _conn() as c:
+        c.execute("INSERT INTO locker_tune(id,locker_id,note,said,applies,context_json,lobby_id,at) VALUES(?,?,?,?,?,?,?,?)",
+                  (tid, lid, note, said, applies, json.dumps(context) if context else None, lobby_id, time.time()))
+
+
+def list_tunes(lid, limit=40):
+    """A profile's tuning notes for WARMIND, newest first."""
+    with _lock, _conn() as c:
+        rows = c.execute("SELECT * FROM locker_tune WHERE locker_id=? ORDER BY at DESC LIMIT ?", (lid, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def update_tune(lid, tid, note):
+    with _lock, _conn() as c:
+        return c.execute("UPDATE locker_tune SET note=? WHERE id=? AND locker_id=?", (note, tid, lid)).rowcount
+
+
+def delete_tune(lid, tid):
+    with _lock, _conn() as c:
+        return c.execute("DELETE FROM locker_tune WHERE id=? AND locker_id=?", (tid, lid)).rowcount
+
+
+def log_seat(lid, callsign, play_style):
+    """The profile's own drop log: a seat at no war table (lobby id `log:<locker>`), so drops
+    logged from the Profile are recorded, judged and counted like any debrief."""
+    lobby_id = "log:" + lid
+    with _lock, _conn() as c:
+        row = c.execute("SELECT * FROM player WHERE lobby_id=? AND locker_id=?", (lobby_id, lid)).fetchone()
+        if row:
+            c.execute("UPDATE player SET callsign=?, play_style=? WHERE id=?", (callsign, play_style, row["id"]))
+            return dict(row, callsign=callsign, play_style=play_style)
+    import secrets as _s
+    pid = "lg" + _s.token_hex(4)
+    add_or_update_player(pid, lobby_id, _s.token_urlsafe(12), callsign, play_style, "locker", None, None)
+    link_player_locker(pid, lid)
+    return get_player(pid)
 
 
 def locker_record(lid, limit=100):
@@ -655,11 +755,13 @@ def set_lobby_room(lid, rid):
 
 
 def room_results(rid):
-    """Every recorded result in the room's war tables, oldest first, with the table's mission."""
+    """Every recorded result in the room's war tables, plus drops logged from a Profile for the room,
+    oldest first, with the table's mission (none for a logged drop: it carries its own)."""
     with _lock, _conn() as c:
         rows = c.execute("SELECT r.*, l.mission_json AS mission_json, p.callsign AS callsign FROM result r "
-                         "JOIN lobby l ON l.id=r.lobby_id LEFT JOIN player p ON p.id=r.player_id "
-                         "WHERE l.room_id=? ORDER BY r.created_at", (rid,)).fetchall()
+                         "LEFT JOIN lobby l ON l.id=r.lobby_id LEFT JOIN player p ON p.id=r.player_id "
+                         "WHERE l.room_id=? OR (r.room_id=? AND r.lobby_id LIKE 'log:%') ORDER BY r.created_at",
+                         (rid, rid)).fetchall()
     return [dict(r) for r in rows]
 
 
@@ -785,6 +887,7 @@ def lobby_has_results(lobby_id) -> bool:
 
 # ---------------------------------------------------------------- oath endorsements
 def add_endorsement(result_id, oath, endorser_id):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("INSERT OR IGNORE INTO endorsement(result_id,oath,endorser_id,at) VALUES(?,?,?,?)",
                   (result_id, oath, endorser_id, time.time()))
@@ -801,12 +904,14 @@ def endorsements(result_id):
 
 
 def fix_result(result_id, result: dict, verdicts):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("UPDATE result SET result_json=?, verdict_json=? WHERE id=?",
                   (json.dumps(result), json.dumps(verdicts) if verdicts else None, result_id))
 
 
 def set_result_verdicts(result_id, verdicts):
+    GEN[0] += 1
     with _lock, _conn() as c:
         c.execute("UPDATE result SET verdict_json=? WHERE id=?", (json.dumps(verdicts), result_id))
 
@@ -816,10 +921,14 @@ def set_lobby_folded(lobby_id, folded: bool):
         c.execute("UPDATE lobby SET folded=?, updated_at=? WHERE id=?", (time.time() if folded else None, time.time(), lobby_id))
 
 
-def lobby_debriefed(lobby_id) -> set:
-    """Player ids at this table with a recorded debrief."""
+def lobby_debriefed(lobby_id, drop_no=None) -> set:
+    """Player ids at this table with a recorded debrief (for one mission of the operation, if given)."""
     with _lock, _conn() as c:
-        rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=?", (lobby_id,)).fetchall()
+        if drop_no is None:
+            rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=?", (lobby_id,)).fetchall()
+        else:
+            rows = c.execute("SELECT DISTINCT player_id FROM result WHERE lobby_id=? AND COALESCE(drop_no,1)=?",
+                             (lobby_id, drop_no)).fetchall()
     return {r["player_id"] for r in rows}
 
 

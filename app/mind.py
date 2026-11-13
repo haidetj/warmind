@@ -244,6 +244,9 @@ How to answer:
 - Use ONLY item names that appear in that diver's own lists, copied exactly. Never invent gear.
 - saved_loadouts are kits a diver kept for reference: lean towards their picks when they fit the mission \
 and mode (in Challenge / D100, use them to see the comfort zone to push off).
+- tuning holds standing notes the diver told WARMIND to keep (newest first, for this front or every front): they \
+outrank last_debriefs_said; honour them in every mode, except where Challenge / D100 deliberately push past one \
+(then say so in that diver's why).
 - last_debriefs_said are kit lessons from that diver's own recent debriefs (newest first): act on them \
 unless this mission or mode clearly calls for otherwise, and say so in that diver's why when you do.
 - Keep each diver's engine_plan role when role_locked is true (the squad leader chose it, or the diver asked for it).
@@ -319,6 +322,7 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         # Improvement as long as the mission is still answered; Challenge and D100 push past it.
         "told_us": pl.prefs or None,
         "last_debriefs_said": getattr(pl, "lessons", None) or None,   # #40: what earlier debriefs taught WARMIND
+        "tuning": getattr(pl, "tuning", None) or None,   # standing notes the diver told WARMIND to keep (their Tuning)
         # armour the diver chose to wear: it is fixed (the engine keeps it); build the kit around its passive
         "wears": (pl.prefs or {}).get("armor_set"),
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
