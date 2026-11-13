@@ -366,7 +366,7 @@ ul.notes li.d100::before{border-color:var(--red)}
 @media(max-width:520px){.lrow{grid-template-columns:1fr auto;}.lrow .tag{display:none}}
 
 /* ---------- floating language selector + toast ---------- */
-.langfab{display:flex;justify-content:flex-end;max-width:1080px;margin:0 auto;padding:10px 20px 18px;position:relative;z-index:2}
+.langfab{display:flex;justify-content:space-between;align-items:center;gap:10px;max-width:1080px;margin:0 auto;padding:10px 20px 18px;position:relative;z-index:2}
 /* quiet by default: small, muted, no glow; brightens on hover / focus */
 .langfab select{min-height:30px;width:auto;padding:4px 26px 4px 26px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;
   color:var(--muted);background-color:transparent;border-color:var(--line);box-shadow:none;opacity:.8;transition:opacity .15s,color .15s,border-color .15s;
@@ -737,6 +737,18 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .hmorder .t small,.hmplay small{color:var(--muted)} .hmorder .p{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-family:var(--mono);font-size:12px}
   .hmplay .chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0} .hmplay .tag,.hmrecent .tag{white-space:normal;max-width:100%;text-align:left}
   .hmorder,.hmplay{min-width:0} .hmrecent{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .askbtn{display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:4px 12px;background:rgba(120,255,170,.06);border:1px solid var(--line-2);
+    color:var(--cyan);font-family:var(--mono);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;text-shadow:0 0 6px rgba(120,255,170,.4)}
+  .askbtn b{font-family:var(--head);font-weight:800;letter-spacing:2px} .askbtn span{color:var(--ink-2)}
+  @media (max-width:400px){.askbtn span{display:none}}
+  .askdlg .mbody{display:flex;flex-direction:column} .asklog{max-height:55vh;overflow:auto;display:grid;gap:10px;padding:2px}
+  .askmsg{padding:8px 10px;border:1px solid var(--line)} .askmsg.user{border-left:3px solid var(--amber);background:rgba(255,154,60,.05)}
+  .askmsg.assistant{border-left:3px solid var(--cyan)} .askmsg .who{font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  .askmsg .txt{white-space:pre-wrap;font-size:14.5px;line-height:1.45}
+  .challenge{margin:0 0 10px;padding:10px 12px;border:1px solid var(--red);border-left:4px solid var(--red);background:rgba(255,56,100,.06)}
+  .challenge .ck{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--red)}
+  .challenge .cn{font-family:var(--head);font-size:20px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:2px 0}
+  .challenge .cb{font-size:14px;color:var(--ink-2)}
   .opstrip{margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--amber)}
   .opstrip .oprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px} .opstrip .oprow b{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase}
   .opdots{display:inline-flex;gap:4px} .opdots i{width:10px;height:10px;border:1px solid var(--amber);display:inline-block}

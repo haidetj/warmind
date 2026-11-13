@@ -380,8 +380,59 @@
   const tag = (cls, text, title) => el("span", { class: "tag " + (cls || ""), title: title }, [text]);
   const fileBtn = (cls, text, multiple) => el("label", { class: "btn filebtn " + (cls || "") }, [text, el("input", { type: "file", accept: "image/*", multiple: multiple ? "" : null })]);
 
+  // ======================================================================= Ask WARMIND
+  // top of every page: ask anything about stats, gear and tactics; answered with your numbers, your table
+  // and the app's data. The conversation lives in this tab (sessionStorage) only.
+  function askFab() {
+    const fab = document.querySelector(".langfab"); if (!fab || fab.querySelector(".askbtn")) return;
+    const b = el("button", { type: "button", class: "askbtn", "aria-label": t("ask.title") }, ["◈ ", el("b", {}, ["WARMIND"]), el("span", {}, [" · " + t("ask.short")])]);
+    b.onclick = askDialog; fab.insertBefore(b, fab.firstChild);
+  }
+  function askDialog() {
+    let hist = []; try { hist = JSON.parse(sessionStorage.getItem("wm_ask") || "[]"); } catch (e) {}
+    const dlg = el("dialog", { class: "modal askdlg", "aria-label": t("ask.title") });
+    const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
+    const log = el("div", { class: "asklog", role: "log", "aria-live": "polite" });
+    const q = el("textarea", { rows: "2", maxlength: "600", placeholder: t("ask.ph") });
+    const go = el("button", { type: "button", class: "btn primary" }, ["◈ " + t("ask.send")]);
+    const clear = el("button", { type: "button", class: "btn sm" }, [t("ask.clear")]);
+    const msg = (role, text) => el("div", { class: "askmsg " + role }, [el("div", { class: "who" }, [role === "user" ? t("ask.you") : "WARMIND"]), el("div", { class: "txt" }, [text])]);
+    const paint = () => { log.innerHTML = "";
+      if (!hist.length) {
+        log.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t(store.locker() ? "ask.intro" : "ask.signin")]));
+        const chips = el("div", { class: "chips" });
+        ["ask.s1", "ask.s2", "ask.s3", "ask.s4"].forEach(k => { const c = el("button", { type: "button", class: "chip" }, [t(k)]); c.onclick = () => { q.value = t(k); send(); }; chips.appendChild(c); });
+        log.appendChild(chips);
+      }
+      hist.forEach(h => log.appendChild(msg(h.role, h.text))); log.scrollTop = log.scrollHeight; };
+    const save = () => { try { sessionStorage.setItem("wm_ask", JSON.stringify(hist.slice(-20))); } catch (e) {} };
+    async function send() {
+      const v = q.value.trim(); if (v.length < 2 || go.disabled) return;
+      if (!store.locker()) { toast(t("ask.signin")); return; }
+      const prior = hist.slice(-6);
+      hist.push({ role: "user", text: v }); q.value = ""; paint();
+      const wait = el("div", { class: "askmsg assistant pending" }, [el("div", { class: "who" }, ["WARMIND"]), el("div", { class: "txt" }, [el("span", { class: "spin", "aria-hidden": "true" }), " " + t("ask.thinking")])]);
+      log.appendChild(wait); log.scrollTop = log.scrollHeight; go.disabled = true;
+      try {
+        const r = await rpost("/api/ask", { q: v, history: prior, lobby_id: LID || null, lang: LANG });
+        hist.push({ role: "assistant", text: r.answer }); save();
+      } catch (e) { hist.push({ role: "assistant", text: "⚠ " + e.message }); }
+      finally { go.disabled = false; paint(); q.focus(); }
+    }
+    go.onclick = send;
+    q.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+    clear.onclick = () => { hist = []; save(); paint(); };
+    dlg.append(el("div", { class: "mhead" }, [el("b", {}, ["◈ " + t("ask.title")]), x]),
+      el("div", { class: "mbody" }, [log, el("div", { class: "hint", style: "margin:6px 0" }, [LID ? t("ask.ctx.table") : t("ask.ctx")]), q,
+        el("div", { class: "btnrow", style: "margin:6px 0 0" }, [go, clear])]));
+    dlg.addEventListener("close", () => dlg.remove());
+    document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    paint(); setTimeout(() => q.focus(), 30);
+  }
+
   // ======================================================================= boot
   initLang();
+  askFab();
   // device handoff: a "use on another device" link carries #me=<pid>.<token>
   (function claimFromHash() {
     const m = location.hash.match(/^#me=([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/);
@@ -2277,8 +2328,19 @@
   }
 
   // WARMIND's planner: thinking → its plan (checked by the engine) → or why it didn't land
+  // Challenge / D100: WARMIND's challenge for the drop, and whose final kit holds it
+  function challengeCard(ch) {
+    if (!ch || !ch.name) return null;
+    const names = {}; ((STATE && STATE.players) || []).forEach(p => { names[p.id] = p.callsign; });
+    const held = ch.held || {}, ids = Object.keys(held), off = ids.filter(k => !held[k]).map(k => names[k] || "?");
+    return el("div", { class: "challenge" }, [el("div", { class: "ck" }, ["⚔ " + t("chal.label")]), el("div", { class: "cn" }, [ch.name]),
+      ch.brief ? el("div", { class: "cb" }, [ch.brief]) : null,
+      ids.length ? el("div", { class: "hint", style: "margin:6px 0 0" }, [off.length ? t("chal.loosened", { names: off.join(", ") }) : t("chal.holds")]) : null]);
+  }
   function mindBanner(m) {
     if (!m || m.status === "off") return null;
+    if (m.status === "ready" && m.challenge && m.challenge.name) { const card = challengeCard(m.challenge), rest = mindBanner(Object.assign({}, m, { challenge: null }));
+      return el("div", { class: "mindwrap" }, [card, rest]); }
     if (m.status === "ready") return el("details", { class: "mind ready fold" }, [
       el("summary", {}, ["◈ " + t("mind.ready.short")]),
       el("div", { class: "body" }, [m.summary ? el("div", {}, [m.summary]) : null,

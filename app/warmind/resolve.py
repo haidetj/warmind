@@ -57,6 +57,8 @@ class Player:
     prefs: dict = field(default_factory=dict)       # from the profile chat: {vibe, focus, armor}
     lessons: list = field(default_factory=list)     # kit lessons from this diver's recent debriefs (planner context)
     tuning: list = field(default_factory=list)      # standing notes the diver asked WARMIND to keep (planner context)
+    this_op: list = field(default_factory=list)     # earlier missions of this operation: kit, numbers, lesson (planner)
+    recent_kits: list = field(default_factory=list) # the diver's last kits elsewhere, so the planner can vary them
 
 
 @dataclass

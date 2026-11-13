@@ -40,6 +40,21 @@ Env: `WARMIND_PLANNER=0` turns it off, `WARMIND_PLAN_MODEL` (defaults to
 `WARMIND_PLAN_PER_LOBBY_HOUR` (20) / `WARMIND_PLAN_PER_DAY` (150). `/health` →
 `planner.last` shows the latest plan's status, error and token usage.
 Challenge / D100 "ask" ratings live in `app/warmind/data/ask.yaml`.
+The planner also gets, per diver: `this_operation` (their earlier missions at this table: kit, numbers, oaths, lesson —
+evolve the kit, say what was kept / changed), `recent_kits` (last 5 kits elsewhere — don't hand the same kit back;
+never repeat in Fun), and `tuning`. Debriefs store the kit fought with (`result.kit`, `_kit_of`) to feed both
+(`server._history_for`). In Challenge / D100 the plan carries a `challenge` {name, brief, checks}; checks use a fixed
+vocabulary (`mind.CHECK_KINDS`: max/min stratagems of a category, no backpack, no support weapon, armour weight) and
+`mind.check_kit` reads each final kit, so the briefing's challenge card says whose kit holds it (`held`).
+
+## Ask WARMIND (`app/askwm.py`, `POST /api/ask`)
+The ◈ WARMIND button top-left of every page opens a chat: stats, gear, tactics. One Claude call per question
+(kind `ask`, `WARMIND_ASK_MODEL` defaults to `WARMIND_MODEL`, max 1200 tokens, cached system prompt). Context
+(`server._ask_context`): the diver's career rates / totals / enriched stats, Tuning, lessons, recent and saved kits, owned
+gear; the war table when asked from one (mission, conditions, squad kits, operation); the live war (Major Orders,
+busiest planets); and app data for every item the question names (`askwm._items_named`: full name, model code or a
+distinctive word). Signed-in only; caps `WARMIND_ASK_PER_DIVER_DAY` (30) / `WARMIND_ASK_PER_DAY` (200). The
+conversation stays in the tab (sessionStorage, last 6 turns sent).
 
 ## War rooms, roster, profiles
 - Profile = locker (`x-locker` header). You are your callsign: home, war tables and the locker
