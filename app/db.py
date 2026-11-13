@@ -255,6 +255,8 @@ def init():
             c.execute("ALTER TABLE result ADD COLUMN lesson TEXT")
         if "loadout_id" not in rcols:   # the saved loadout the diver fought with, if any
             c.execute("ALTER TABLE result ADD COLUMN loadout_id TEXT")
+        if "room_id" not in rcols:      # a drop logged from the Profile for a war room (its tables carry their own)
+            c.execute("ALTER TABLE result ADD COLUMN room_id TEXT")
         if "kit_choice" not in cols:    # a saved loadout the diver chose to fight with at this table
             c.execute("ALTER TABLE player ADD COLUMN kit_choice TEXT")
         if "kit_edits" not in cols:     # quick swaps on this table's kit: {slot or "strat:<old>": item}
@@ -407,12 +409,12 @@ def remove_player(pid):
 
 
 def save_result(rid, lobby_id, player_id, result: dict, aar_text: str, verdict: dict | None = None,
-                lesson: str | None = None, loadout_id: str | None = None):
+                lesson: str | None = None, loadout_id: str | None = None, room_id: str | None = None):
     GEN[0] += 1
     with _lock, _conn() as c:
-        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id)"
-                  " VALUES(?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
-                                                 json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id))
+        c.execute("INSERT INTO result(id,lobby_id,player_id,result_json,aar_text,verdict_json,created_at,lesson,loadout_id,room_id)"
+                  " VALUES(?,?,?,?,?,?,?,?,?,?)", (rid, lobby_id, player_id, json.dumps(result), aar_text,
+                                                   json.dumps(verdict) if verdict else None, time.time(), lesson, loadout_id, room_id))
 
 
 def player_results(player_id):
@@ -678,11 +680,13 @@ def set_lobby_room(lid, rid):
 
 
 def room_results(rid):
-    """Every recorded result in the room's war tables, oldest first, with the table's mission."""
+    """Every recorded result in the room's war tables, plus drops logged from a Profile for the room,
+    oldest first, with the table's mission (none for a logged drop: it carries its own)."""
     with _lock, _conn() as c:
         rows = c.execute("SELECT r.*, l.mission_json AS mission_json, p.callsign AS callsign FROM result r "
-                         "JOIN lobby l ON l.id=r.lobby_id LEFT JOIN player p ON p.id=r.player_id "
-                         "WHERE l.room_id=? ORDER BY r.created_at", (rid,)).fetchall()
+                         "LEFT JOIN lobby l ON l.id=r.lobby_id LEFT JOIN player p ON p.id=r.player_id "
+                         "WHERE l.room_id=? OR (r.room_id=? AND r.lobby_id LIKE 'log:%') ORDER BY r.created_at",
+                         (rid, rid)).fetchall()
     return [dict(r) for r in rows]
 
 

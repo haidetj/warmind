@@ -3239,6 +3239,10 @@
     const dif = el("select", {}, [opt("", "—"), ...Array.from({ length: 10 }, (_, i) => opt(String(i + 1), "D" + (i + 1)))]);
     const mode = el("select", {}, [opt("", "—"), ...LOG_MODES.map(m => opt(m, t("mode." + m)))]);
     const kit = el("select", {}, [opt("", t("slog.nokit")), ...((LK && LK.loadouts) || []).map(o => opt(o.id, o.name))]);
+    const myRooms = (LK && LK.rooms) || [];
+    let lastRoom = ""; try { lastRoom = localStorage.getItem("wm_logroom") || ""; } catch (e) {}
+    const room = el("select", {}, [opt("", t("slog.noroom")), ...myRooms.map(r => opt(r.id, r.name))]);
+    if (myRooms.some(r => r.id === lastRoom)) room.value = lastRoom;
     let sworn = [];
     const oathRow = el("div", { class: "chips" }), oathHint = el("div", { class: "hint" });
     const paintOaths = () => { oathRow.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.k ? sworn.indexOf(c.dataset.k) >= 0 : !sworn.length)));
@@ -3279,7 +3283,8 @@
       try {
         const fd = new FormData(); files.forEach(f => fd.append("images", f));
         [["mission_id", mis.value], ["faction", fac.value], ["difficulty", dif.value], ["mode", mode.value], ["oaths", sworn.join(",")],
-          ["loadout_id", kit.value], ["lang", LANG]].forEach(([k, v]) => fd.append(k, v || ""));
+          ["loadout_id", kit.value], ["room_id", room.value], ["lang", LANG]].forEach(([k, v]) => fd.append(k, v || ""));
+        try { localStorage.setItem("wm_logroom", room.value); } catch (e) {}
         const r = await lfd("/api/locker/" + L.id + "/log", fd); stop();
         if (!r.pick) { done(r); return; }
         // the callsign isn't on the scoreboard: which column is you?
@@ -3297,7 +3302,8 @@
     body.append(el("div", { class: "hint", style: "margin:0 0 10px" }, [t("slog.explain")]),
       el("div", { class: "btnrow", style: "margin:0 0 6px;align-items:center" }, [pick, shotsN]),
       el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", mis), field("slog.diff", dif), field("slog.mode", mode)]),
-      field("slog.kit", kit),
+      el("div", { class: "grid2" }, [field("slog.kit", kit), myRooms.length ? field("slog.room", room) : null].filter(Boolean)),
+      myRooms.length ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t("slog.room.hint")]) : null,
       el("div", { class: "blk" }, [el("span", { class: "label" }, [t("slog.oaths")]), oathRow, oathHint]),
       status, el("div", { class: "btnrow" }, [go]));
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("slog.title")]), x]), body);

@@ -1026,6 +1026,15 @@ def _room_tally(results, since=0.0):
     medals = oaths_kept = kills = 0
     for r in rs:
         m = json.loads(r["mission_json"]) if r.get("mission_json") else {}
+        key = r["lobby_id"]
+        if str(key or "").startswith("log:"):   # a drop logged from a Profile: one drop, its own mission
+            key = r["id"]
+            try:
+                res0 = json.loads(r["result_json"]) if r.get("result_json") else {}
+            except Exception:
+                res0 = {}
+            m = {"planet_name": res0.get("planet"), "mode": res0.get("table_mode"), "difficulty": res0.get("table_difficulty")}
+        r = dict(r, lobby_id=key)
         drops.add(r["lobby_id"])
         if m.get("planet_name"):
             planets.setdefault(m["planet_name"], set()).add(r["lobby_id"])
@@ -1667,7 +1676,7 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
     return await _record_result(lid, pid, p, ctx, mission, result, data, mt, lang)
 
 
-async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
+async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang, room_id=None):
     """Verdicts (decided in code), medals, the review, saved for this diver."""
     # oath verdicts are decided in code from the numbers, before any prose is written
     verdicts = []
@@ -1695,12 +1704,13 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang):
     loadout_id = (db.get_player(pid) or {}).get("kit_choice")
     if loadout_id:
         result = dict(result, loadout=next((o["name"] for o in db.list_loadouts(p.get("locker_id") or "") if o["id"] == loadout_id), None))
-    db.save_result(_id(5), lid, pid, result, aar, verdicts or None, lesson=lesson, loadout_id=loadout_id)
-    lobby = db.get_lobby(lid) or {}
+    db.save_result(_id(5), lid, pid, result, aar, verdicts or None, lesson=lesson, loadout_id=loadout_id, room_id=room_id)
+    lobby = db.get_lobby(lid) or ({"room_id": room_id, "name": (_mission_name(json.dumps(mission)) or {}).get("name")} if room_id else {})
     if lobby.get("room_id") and not replaced:   # the ship's log (once per drop)
         medals = [v["medal"]["name"] for v in (verdicts or []) if v and v.get("medal")]
         db.room_log(lobby["room_id"], "drop", json.dumps({"k": "log.drop", "p": {
-            "who": p.get("callsign"), "mission": (_mission_name(lobby.get("mission_json")) or {}).get("name") or lobby.get("name"),
+            "who": p.get("callsign"), "mission": (_mission_name(lobby.get("mission_json")) or {}).get("name") or lobby.get("name")
+            or result.get("mission_name"),
             "kills": (result or {}).get("kills"), "deaths": (result or {}).get("deaths"), "medals": medals}}))
     return {"ok": True, "aar": aar, "lesson": lesson, "result": result, "verdicts": verdicts,
             "verdict": verdicts[0] if verdicts else None, "replaced": len(replaced)}
@@ -2365,6 +2375,7 @@ def get_locker(lid: str, x_locker: str = Header(None)):
             "rates": _round(stats.derive(snap)) if snap else None,
             "history": history, "record": record, "medals": medals, "awards": _awards_of(lid),
             "career": _career_out(car),
+            "rooms": [{"id": r["id"], "name": r["name"], "ship": r.get("ship")} for r in db.locker_rooms(lid)],
             "loadouts": _with_records(lid, [_with_armor(o) for o in db.list_loadouts(lid)]), "tables": tables,
             "public": bool(lk.get("public", 1) if lk.get("public") is not None else 1)}
 
@@ -2475,7 +2486,7 @@ def _log_mission(form: dict) -> dict:
             "difficulty": diff, "mode": mode, "oaths": ks}
 
 
-async def _log_record(lid, lk, row, data, mission, loadout_id, lang):
+async def _log_record(lid, lk, row, data, mission, loadout_id, lang, room_id=None):
     seat = db.log_seat(lid, lk.get("callsign") or "Diver", lk.get("play_style") or "by_the_book")
     if loadout_id and not any(o["id"] == loadout_id for o in db.list_loadouts(lid)):
         loadout_id = None
@@ -2486,7 +2497,7 @@ async def _log_record(lid, lk, row, data, mission, loadout_id, lang):
            "kit": {"primary": kit.get("primary"), "stratagems": kit.get("stratagems")} if kit else {},
            "baseline": stats.derive(snap) if snap else {}}
     result = {k: v for k, v in row.items() if k in vision.RESULT_FIELDS or k in ("mission_name", "planet")}
-    r = await _record_result("log:" + lid, seat["id"], seat, ctx, mission, result, data, None, lang)
+    r = await _record_result("log:" + lid, seat["id"], seat, ctx, mission, result, data, None, lang, room_id=room_id)
     return {"ok": True, "verdicts": r["verdicts"], "aar": r["aar"], "lesson": r["lesson"], "replaced": r["replaced"],
             "result": {k: r["result"].get(k) for k in ("kills", "deaths", "accuracy_pct", "samples_extracted", "mission_name")}}
 
@@ -2494,8 +2505,8 @@ async def _log_record(lid, lk, row, data, mission, loadout_id, lang):
 @app.post("/api/locker/{lid}/log")
 async def locker_log(lid: str, request: Request, images: list[UploadFile] = File(default=[]),
                      mission_id: str = Form(""), faction: str = Form(""), difficulty: str = Form(""), mode: str = Form(""),
-                     oaths_: str = Form("", alias="oaths"), loadout_id: str = Form(""), lang: str = Form("en"),
-                     x_locker: str = Header(None)):
+                     oaths_: str = Form("", alias="oaths"), loadout_id: str = Form(""), room_id: str = Form(""),
+                     lang: str = Form("en"), x_locker: str = Header(None)):
     """Log a drop from the Profile, no war table needed: 1-4 screenshots of one mission's end
     screens. Your column is found by callsign (or you pick it); then it's recorded like a debrief:
     oaths judged, medals, the review, the saved-loadout record and the career totals."""
@@ -2504,6 +2515,9 @@ async def locker_log(lid: str, request: Request, images: list[UploadFile] = File
     if not data:
         raise HTTPException(400, "no screenshot provided")
     mission = _log_mission({"mission_id": mission_id, "faction": faction, "difficulty": difficulty, "mode": mode, "oaths": oaths_})
+    room_id = room_id.strip()[:40] or None
+    if room_id and not any(r["id"] == room_id for r in db.locker_rooms(lid)):
+        raise HTTPException(403, "you're not in that war room")
     try:
         _charge(request, "locker:" + lid, 2)
         rows = await run_in_threadpool(vision.read_squad_results, data, None, [lk.get("callsign") or ""])
@@ -2516,13 +2530,13 @@ async def locker_log(lid: str, request: Request, images: list[UploadFile] = File
     match = _match_rows(rows, [{"id": "me", "callsign": lk.get("callsign") or ""}])
     mine = next(iter(match), None) if match else (0 if len(rows) == 1 else None)
     if mine is not None:
-        return await _log_record(lid, lk, rows[mine], data, mission, loadout_id, str(lang)[:8])
+        return await _log_record(lid, lk, rows[mine], data, mission, loadout_id, str(lang)[:8], room_id)
     now = time.time()
     for k in [k for k, v in _log_reads.items() if now - v["at"] > SQUAD_READ_TTL]:
         del _log_reads[k]
     rid = _id(6)
     _log_reads[rid] = {"lid": lid, "rows": rows, "data": data, "mission": mission, "loadout_id": loadout_id,
-                       "lang": str(lang)[:8], "at": now}
+                       "lang": str(lang)[:8], "room_id": room_id, "at": now}
     return {"ok": True, "pick": True, "read_id": rid,
             "rows": [{"i": i, "name": r.get("name"), "kills": r.get("kills"), "deaths": r.get("deaths"),
                       "accuracy_pct": r.get("accuracy_pct")} for i, r in enumerate(rows)]}
@@ -2541,7 +2555,7 @@ async def locker_log_pick(lid: str, rid: str, payload: dict, x_locker: str = Hea
     except Exception:
         raise HTTPException(400, "pick your column")
     _log_reads.pop(rid, None)
-    return await _log_record(lid, lk, row, read["data"], read["mission"], read["loadout_id"], read["lang"])
+    return await _log_record(lid, lk, row, read["data"], read["mission"], read["loadout_id"], read["lang"], read.get("room_id"))
 
 
 _KIT_KEYS = ("primary", "secondary", "grenade", "armor", "booster")
