@@ -215,7 +215,13 @@ def verify(cat: dict) -> int:
                         row = dict(params, title=title, template=tmpl)
                         print(f"read directly (not in the infobox catalog): {title} [{tmpl}]")
             if not row:
-                problems.append((name, "page", "no wiki page with this exact name — fix the name or set `wiki:`"))
+                try:   # say what the wiki calls it, so the fix is one line
+                    hits = [h["title"] for h in (api(action="query", list="search", srsearch=page_title(rec), srlimit=3)
+                                                .get("query") or {}).get("search", [])]
+                except Exception:   # noqa: BLE001
+                    hits = []
+                problems.append((name, "page", "no wiki page with this exact name — fix the name or set `wiki:`"
+                                 + (f" (wiki search: {', '.join(hits)})" if hits else "")))
                 continue
             checked += 1
             bad = lambda field, have, want: problems.append((name, field, f"ours {have!r} ≠ wiki {want!r}"))
