@@ -32,6 +32,14 @@ rules:
     prefer pairing it with a sustained support weapon, or give it to a diver whose role is strike-heavy.
   sources:
   - https://helldivers.wiki.gg/wiki/EAT-17_Expendable_Anti-Tank
+- id: shield_needs_one_handed
+  scope: diver
+  rule: The SH-51 Directional Shield and SH-20 Ballistic Shield Backpack leave one hand free while raised, so the
+    diver's primary must be one-handed (an SMG, the MP-98 Knight, the CB-9 Exploding Crossbow). Never pair them with a
+    two-handed primary.
+  sources:
+  - https://helldivers.wiki.gg/wiki/SH-51_Directional_Shield
+  - https://helldivers.wiki.gg/wiki/SH-20_Ballistic_Shield_Backpack
 - id: eagle_soft_cap
   scope: diver
   rule: All of a diver's Eagles share one rearm (150 s base, ~120 s upgraded, 108 s if recalled early); while rearming

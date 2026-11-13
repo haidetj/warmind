@@ -36,7 +36,7 @@ import db
 import vision
 from warmind import ask as ask_mod, fronts, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
 from warmind.items import Pool
-from warmind.resolve import COMMANDO_SLOTS, diver_excluded, resolve_squad
+from warmind.resolve import COMMANDO_SLOTS, boosters_banned, diver_excluded, resolve_squad
 
 ENABLED = os.environ.get("WARMIND_PLANNER", "1") != "0"
 MODEL = os.environ.get("WARMIND_PLAN_MODEL", vision.MODEL)
@@ -53,7 +53,9 @@ LAST: dict = {}        # the most recent plan's outcome, for /health (no lobby d
 
 MODE_MEANING = {
     "optimize": "Win this drop. The strongest kit for the mission, on gear the diver knows; no deliberate stretch.",
-    "fun": "Fresh and fun: favour gear the diver hasn't been running, as long as it still answers the mission.",
+    "fun": "Fresh and fun: favour gear the diver hasn't been running, as long as it still answers the mission. "
+           "Novelty picks are welcome here when the squad can still finish (one diver carrying the CQC-1 One True "
+           "Flag, a melee support weapon that rallies the squad, is a classic).",
     "improvement": "Grow the diver: kit inside their strengths, plus exactly one unfamiliar element worth learning.",
     "challenge": "Make it genuinely hard to play WELL, while still answering the mission. Push the diver off their "
                  "comfort zone and onto high-ask gear (precision, timing, reload discipline, no crutches), and "
@@ -200,11 +202,15 @@ def _shortlists(session, players, directive) -> dict:
             "secondary": top(pool.secondaries, N_SECONDARY, [a.secondary]),
             "grenade": top(pool.grenades, N_GRENADE, [a.grenade]),
             "armor": arm,
-            "stratagems": top(strat_cands, N_STRAT, a.stratagems),
-            "boosters": [b for b in pool.boosters if b["name"] not in excl],
+            # Fun mode: the novelty picks get a look-in even when they don't rank (feedback #52: the One True Flag)
+            "stratagems": top(strat_cands, N_STRAT, list(a.stratagems) + (list(FUN_PICKS) if session.mode == "fun" else [])),
+            "boosters": [b for b in pool.boosters if b["name"] not in excl and b["name"] not in boosters_banned(session)],
             "drills": session._drills,
         }
     return out
+
+
+FUN_PICKS = ("CQC-1 One True Flag",)
 
 
 def _system_prompt() -> str:
@@ -568,17 +574,54 @@ def _kept(final, override) -> tuple[int, int]:
 _ALL_NAMES = None
 
 
+_WORDS = None
+# words too common in item names to stand for one item on their own
+_GENERIC = {"cannon", "rifle", "sentry", "strike", "eagle", "orbital", "armor", "armour", "launcher", "grenade",
+            "pistol", "shotgun", "machine", "light", "heavy", "medium", "barrage", "bombs", "mortar", "shield",
+            "generator", "backpack", "guard", "laser", "flamethrower", "precision", "carbine", "rocket", "turret",
+            "station", "booster", "support", "sniper", "assault", "energy", "blast", "napalm", "smoke", "impact",
+            "incendiary", "anti-tank", "anti-materiel", "airstrike", "cluster", "gatling", "walking", "legacy",
+            "concussive", "penetrator", "special", "standard", "seeker", "directional", "ballistic", "plasma",
+            "spray", "dog"}
+
+
+def _distinct_words():
+    """distinctive word -> the item names it stands for ("dynamite" -> TED-63 Dynamite)."""
+    global _WORDS
+    if _WORDS is None:
+        import re
+        _WORDS = {}
+        names = [it.name for it in Pool().all_items()] + [b["name"] for b in Pool().boosters]
+        for n in names:
+            _, _, rest = n.partition(" ")
+            for w in re.split(r"[^a-z0-9-]+", (rest or n).lower()):
+                if len(w) >= 5 and w not in _GENERIC:
+                    _WORDS.setdefault(w, set()).add(n)
+    return _WORDS
+
+
 def _clean_why(lines: list[str], a) -> list[str]:
-    """Drop a line that names gear the diver isn't carrying (the engine replaced it)."""
+    """Drop a line that names gear the diver isn't carrying (the engine replaced it), by its full name or by
+    a word that stands for it (feedback #54: a line about "the dynamite" after the grenade became Thermite)."""
+    import re
     global _ALL_NAMES
     if _ALL_NAMES is None:
         _ALL_NAMES = sorted({it.name for it in Pool().all_items()} | {b["name"] for b in Pool().boosters},
                             key=len, reverse=True)
     carried = {a.primary, a.secondary, a.grenade, a.armor, a.booster, *a.stratagems}
+    words = _distinct_words()
     out = []
     for ln in lines:
         named = [n for n in _ALL_NAMES if n in ln]
-        if all(n in carried for n in named):
+        if not all(n in carried for n in named):
+            continue
+        low = ln.lower()
+        stray = False
+        for w, items in words.items():
+            if not (items & carried) and re.search(r"\b" + re.escape(w) + r"s?\b", low):
+                stray = True
+                break
+        if not stray:
             out.append(ln)
     return out
 

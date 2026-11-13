@@ -422,14 +422,34 @@ _ROLE_BIAS = {"HARDPOINT": "hardpoint", "HAMMER": "hammer", "FORWARD EYE": "forw
               "FIRES": "fires", "LONG ARM": "forward"}
 
 
-def _assign_boosters(divers, pool, seed=0, mode=""):
+# feedback #53: boosters that do nothing on some missions (Localization Confusion delays patrols; defense
+# missions are waves, not patrols)
+BOOSTER_USELESS_ON = {"Localization Confusion": {"objective_defense"}}
+
+
+def boosters_banned(session) -> set:
+    tags = set((loader_mod.missions().get(session.mission_id) or {}).get("tags") or [])
+    return {b for b, bad in BOOSTER_USELESS_ON.items() if bad & tags}
+
+
+# feedback #49: a held / directional shield leaves only one hand free, so the primary must be one-handed
+# (SMGs, the Knight, the Exploding Crossbow). Edit the list after a patch.
+ONE_HANDED_PRIMARIES = {"SMG-37 Defender", "MP-98 Knight", "SMG-72 Pummeler", "SMG-32 Reprimand", "SMG-203 Gallant",
+                        "SMG/FLAM-34 Stoker", "StA-11 SMG", "M7S SMG", "CB-9 Exploding Crossbow"}
+NEEDS_ONE_HANDED = {"SH-51 Directional Shield", "SH-20 Ballistic Shield Backpack"}
+# feedback #49: on a bug front a grenade that isn't a splash closer can't shut a nest's many holes alone:
+# a secondary that closes them (Grenade Pistol, Ultimatum) is worth more
+HOLE_SECONDARIES = {"GP-31 Grenade Pistol": 0.6, "GP-20 Ultimatum": 0.5}
+
+
+def _assign_boosters(divers, pool, seed=0, mode="", banned=frozenset()):
     """divers: [(role_name, excluded_names)] in role order. In the game every diver
     brings a booster from THEIR OWN unlocks, and duplicates don't stack — so each
     diver gets a unique booster they own, preferring the strong picks and their role's
     bias. A diver who owns no unused booster gets none."""
     chosen, used = {}, set()
     for role_name, excluded in divers:
-        avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used]
+        avail = [b for b in pool.boosters if b["name"] not in excluded and b["name"] not in used and b["name"] not in banned]
         if mode == "d100":   # no safety-net boosters, and the quirky ones before the strong ones
             avail = [b for b in avail if b["name"] not in ask_mod.D100_NO_BOOST] or avail
         bias = _ROLE_BIAS.get(role_name, "any")
@@ -552,12 +572,13 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
 
     # boosters: each diver from their own unlocks (not "someone in the squad owns it")
     order = [(roles_mod.ROLES[role_map[pl.id]].name, _diver_excluded(pl)) for pl in players if pl.id in role_map]
-    boosters = _assign_boosters(order, pool, session.seed, session.mode)
+    banned_boost = boosters_banned(session)
+    boosters = _assign_boosters(order, pool, session.seed, session.mode, banned_boost)
     if override:   # the planner's boosters: owned by that diver and not doubled up
         names = {b["name"] for b in pool.boosters}
         for pl in players:
             want, rname = override.get(pl.id, {}).get("booster"), roles_mod.ROLES[role_map[pl.id]].name if pl.id in role_map else None
-            if rname and want in names and want not in _diver_excluded(pl) and want not in \
+            if rname and want in names and want not in banned_boost and want not in _diver_excluded(pl) and want not in \
                     {v for k, v in boosters.items() if k != rname}:
                 boosters[rname] = want
 
@@ -625,18 +646,25 @@ def resolve_squad(session: Session, players: list, history: dict | None = None,
         hfit = lambda it: handling.fit(it.name, sk, session.mode)
         dup = lambda it: -GEAR_DUP_W * gear_used[it.name]
         ov = override.get(pl.id, {})
-        primary = _chosen(pool.primaries, ov.get("primary"), session) or \
-            _pick(pool.primaries, session, pstyle, hist, pref_tags=role.primary_pref,
-                  pref_cover="ch" if has_at else None, cover_weight=0.4,
+        solo = len(phase) == 1   # feedback #54: a lone diver clears their own chaff
+        one_hand = any(s.name in NEEDS_ONE_HANDED for s in strat)
+        prim_pool = [p for p in pool.primaries if p.name in ONE_HANDED_PRIMARIES] if one_hand else pool.primaries
+        if one_hand and not any(p.name not in session_excluded(session) for p in prim_pool):
+            prim_pool = pool.primaries   # owns no one-handed primary: better a shield and a rifle than no primary
+        primary = _chosen(prim_pool, ov.get("primary"), session) or \
+            _pick(prim_pool, session, pstyle, hist, pref_tags=role.primary_pref,
+                  pref_cover="ch" if (has_at or solo) else None, cover_weight=0.9 if solo else 0.4,
                   extra=lambda it: hfit(it) + dup(it), reroll_margin=REROLL_MARGIN["primary"])
-        secondary = _chosen(pool.secondaries, ov.get("secondary"), session) or \
-            _pick(pool.secondaries, session, pstyle, hist, extra=lambda it: hfit(it) + dup(it),
-                  reroll_margin=REROLL_MARGIN["secondary"])
         front_g = lambda it: dup(it) + fronts.grenade_term(it, session.faction, session.mode, mission_tags)
         grenade = _chosen(pool.grenades, ov.get("grenade"), session) or \
             _pick(pool.grenades, session, pstyle, hist, extra=front_g,
                   pref_cover=role.grenade_cover if has_at else "at", cover_weight=0.9,
                   reroll_margin=REROLL_MARGIN["grenade"])
+        prefer = set((fronts.front(session.faction) or {}).get("prefer") or [])
+        weak_closer = (fronts.front(session.faction) or {}).get("structure") == "holes" and grenade.name not in prefer
+        sec_extra = lambda it: hfit(it) + dup(it) + (HOLE_SECONDARIES.get(it.name, 0.0) if weak_closer else 0.0)
+        secondary = _chosen(pool.secondaries, ov.get("secondary"), session) or \
+            _pick(pool.secondaries, session, pstyle, hist, extra=sec_extra, reroll_margin=REROLL_MARGIN["secondary"])
         # phase 4 — armour last, so its passive can answer the finished kit
         # (Inflammable with fire, Gunslinger with a strong sidearm, True Grit with a backpack gun…)
         # quiet: no Heavy; a glass-cannon drill goes a weight class lighter

@@ -147,6 +147,13 @@ conversation stays in the tab (sessionStorage, last 6 turns sent).
   builder (every slot), the Profile's armour pin, Log a drop's and Next mission's mission pickers. The gear checklist has a
   search box always on top (`input.gearq`, same filter as the ⚲ dialog; it jumps to the tab with matches).
 - Go / No-Go: `player.go`, shown in the war table's command panel.
+- Engine rules from feedback (`warmind/resolve.py`): a shield that leaves one hand free (`NEEDS_ONE_HANDED`: Directional
+  Shield, Ballistic Shield) forces a one-handed primary (`ONE_HANDED_PRIMARIES`, edit after a patch; kit rule
+  `shield_needs_one_handed` tells the planner); boosters useless on a mission type are banned (`BOOSTER_USELESS_ON`:
+  Localization Confusion on `objective_defense`); a solo diver's primary must clear chaff; on a bug front a grenade that
+  isn't a splash closer makes a hole-closing secondary (`HOLE_SECONDARIES`) worth more. Why-lines naming gear the diver
+  isn't carrying are dropped by full name or distinctive word (`mind._clean_why`). Debrief reviews state what the
+  numbers show and mark any cause as a guess. Fun mode puts `mind.FUN_PICKS` (One True Flag) on the planner's shortlist.
 - D100 is the hardest kit that still answers the mission: no crutches (`ask.is_crutch`), Light armour,
   no safety-net boosters (`ask.D100_NO_BOOST`); the planner can't override that.
 
