@@ -207,6 +207,13 @@ def verify(cat: dict) -> int:
             name = rec["name"]
             row = by_title.get(norm(page_title(rec)))
             ours.add(norm(page_title(rec)))
+            if not row:   # not in the infobox catalog (a new page, or a template the catalog doesn't scan): read it directly
+                title, text = wikitext(page_title(rec))
+                if title and text:
+                    tmpl, params = infobox(text)
+                    if tmpl:
+                        row = dict(params, title=title, template=tmpl)
+                        print(f"read directly (not in the infobox catalog): {title} [{tmpl}]")
             if not row:
                 problems.append((name, "page", "no wiki page with this exact name — fix the name or set `wiki:`"))
                 continue
