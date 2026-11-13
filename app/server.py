@@ -979,6 +979,32 @@ def meta():
             "vision": vision.status()}
 
 
+@app.get("/api/logic")
+def logic_out():
+    """The Logic tab: WARMIND's decision system and user journeys (warmind/data/logic.yaml), with live
+    numbers: how many rules, items and missions it reasons over, what each kind of Claude call costs
+    (last 30 days) and how the planner's last plan went. No player data."""
+    from warmind import fronts as fronts_mod, modes as modes_mod, roles as roles_mod
+    m = loader._load("logic.yaml")
+    counts = {"roles": len(roles_mod.ROLES), "modes": len(modes_mod.MODES), "oaths": len(oaths.OATHS),
+              "kit_rules": len(loader._load("kit_rules.yaml")["rules"]), "items": len(list(_POOL.all_items())),
+              "boosters": len(_POOL.boosters), "missions": len(loader.missions()), "hazards": len(loader.hazards()),
+              "operation_modifiers": len(loader.operation_modifiers()), "fronts": len(fronts_mod._data().get("fronts") or {}),
+              "axes": len(mind.AXES), "languages": 18}
+    try:
+        rep = costs.report()
+        by_kind = {k: {"calls": v["calls"], "avg_usd": v["avg"], "usd": v["usd"]} for k, v in (rep.get("by_kind") or {}).items()}
+        spend = rep.get("app")
+    except Exception:
+        by_kind, spend = {}, None
+    last = dict(mind.LAST or {})
+    m["live"] = {"counts": counts, "calls_30d": by_kind, "spend": spend, "caps": budget.status(),
+                 "planner": {"enabled": mind.ENABLED, "model": mind.MODEL, "effort": mind.EFFORT, "slow_s": mind.SLOW_S,
+                             "last": {k: last.get(k) for k in ("status", "seconds", "bad_names", "at")} if last else None},
+                 "vision_model": vision.MODEL, "ask_model": askwm.MODEL, "mock": vision.status().get("mock")}
+    return m
+
+
 @app.get("/api/war")
 def war_feed():
     """Active planets + Major Orders from the community war API (cached; no model calls)."""

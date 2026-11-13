@@ -61,13 +61,14 @@
     tri: '<path d="M9 6l6 6-6 6"/>',
     search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>',
     bolt: '<path d="M13 2L5 13h6l-1 9 8-11h-6z"/>',
+    brain: '<path d="M9.5 4A2.8 2.8 0 0 0 6.7 6.6 2.9 2.9 0 0 0 4.5 9.4c0 .9.4 1.7 1 2.2a3 3 0 0 0 .9 4.6A2.8 2.8 0 0 0 9.5 20c1.4 0 2.5-1 2.5-2.4V6.4A2.4 2.4 0 0 0 9.5 4z"/><path d="M14.5 4a2.8 2.8 0 0 1 2.8 2.6 2.9 2.9 0 0 1 2.2 2.8c0 .9-.4 1.7-1 2.2a3 3 0 0 1-.9 4.6A2.8 2.8 0 0 1 14.5 20c-1.4 0-2.5-1-2.5-2.4"/><path d="M8.6 9.6c.9 0 1.6.6 1.6 1.4M15.4 9.6c-.9 0-1.6.6-1.6 1.4M9 15c.8-.2 1.5-.9 1.6-1.8M15 15c-.8-.2-1.5-.9-1.6-1.8"/>',
   };
   const ICON_CHARS = { "🎖": "medal", "🗄": "locker", "★": "star", "☰": "roster", "＋": "plus", "📌": "pin", "⚓": "anchor", "⌂": "home",
     "⇄": "swap", "◇": "diamond", "▶": "play", "✎": "edit", "⟳": "refresh", "↺": "refresh", "➤": "go", "▦": "grid", "✦": "planet",
     "✓": "check", "✗": "cross", "✕": "close", "↗": "external", "⚑": "flag", "⬡": "hex", "◉": "user", "▤": "book", "📍": "marker",
     "▲": "up", "▼": "down", "⚠": "alert", "⛨": "shield", "🔗": "link", "⛽": "gauge", "⧉": "copy", "☠": "skull", "🛰": "satellite",
     "✹": "burst", "≋": "waves", "◈": "mind", "◆": "diamond", "◎": "ring", "⌖": "crosshair", "ⓘ": "info", "⚔": "swords", "🔒": "lock",
-    "⇪": "share", "▸": "tri", "⚲": "search", "🏴": "flag" };
+    "⇪": "share", "▸": "tri", "⚲": "search", "🏴": "flag", "🧠": "brain" };
   ICON_SVG.close = ICON_SVG.cross;
   const ICON_RE = new RegExp("(" + Object.keys(ICON_CHARS).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")️?", "u");
   const ICON_RE_G = new RegExp(ICON_RE.source, "gu");
@@ -117,6 +118,7 @@
   const ROSTER_PAGE = !LID && !LOCKER_PAGE && new URLSearchParams(location.search).has("roster");
   const ROOM_ID = !LID && !LOCKER_PAGE && !ROSTER_PAGE ? new URLSearchParams(location.search).get("room") : null;
   const COSTS_PAGE = !LID && new URLSearchParams(location.search).has("costs");
+  const LOGIC_PAGE = !LID && new URLSearchParams(location.search).has("logic");
   let META = null, STATE = null, pollT = null, busy = false, lastSig = "";
 
   // ======================================================================= i18n
@@ -176,7 +178,7 @@
       LANG = s.value;
       try { localStorage.setItem("wm_lang", LANG); } catch (e) {}
       document.documentElement.lang = LANG; s.setAttribute("aria-label", t("lang.label"));
-      if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (ROOM_ID) renderRoom(); else if (COSTS_PAGE) renderCosts(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
+      if (LOGIC_PAGE) renderLogic(); else if (LOCKER_PAGE) renderLocker(); else if (ROSTER_PAGE) renderRoster(); else if (ROOM_ID) renderRoom(); else if (COSTS_PAGE) renderCosts(); else if (!LID) renderHome(); else if (STATE) { lastSig = ""; render(); }
     };
   }
 
@@ -445,13 +447,14 @@
   (async function boot() {
     META = await api("/api/meta");
     // you are your callsign: home, war tables and the locker need it; roster, rooms and costs are open to look at
-    if (!store.locker() && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE) return renderGate();
+    if (!store.locker() && !ROSTER_PAGE && !ROOM_ID && !COSTS_PAGE && !LOGIC_PAGE) return renderGate();
     if (store.locker()) await syncTables();
     appNav();
     if (LOCKER_PAGE) return renderLocker();
     if (ROSTER_PAGE) return renderRoster();
     if (ROOM_ID) return renderRoom();
     if (COSTS_PAGE) return renderCosts();
+    if (LOGIC_PAGE) return renderLogic();
     if (!LID) return renderHome();
     startPolling();
     loadWar().then(w => { if (w && STATE && !busy) { lastSig = ""; tick(); } });
@@ -465,6 +468,7 @@
     if (LID) return "table";
     if (LOCKER_PAGE) return "me";
     if (ROSTER_PAGE) return "roster";
+    if (LOGIC_PAGE) return "logic";
     if (ROOM_ID) return "rooms";
     if (COSTS_PAGE) return "";
     const k = new URLSearchParams(location.search).get("tab") || "home";
@@ -482,6 +486,7 @@
       ["tables", "▦", t("nav.tables"), "/?tab=tables"],
       ["rooms", "⚓", t("nav.rooms"), "/?tab=rooms"],
       ["roster", "☰", t("ros.title"), "/?tab=roster"],
+      ["logic", "🧠", t("nav.logic"), "/?logic"],
     ];
     const nav = el("nav", { class: "appnav", "aria-label": t("nav.label") }, items.map(([k, ic, label, href, sub]) => {
       const a = el("a", { href: href, class: "an-" + k, "aria-current": k === here ? "page" : null }, [
@@ -3227,6 +3232,150 @@
   // ======================================================================= costs (what Claude costs to run WARMIND)
   let costTimer = null;
   const usd = v => v == null ? "—" : "$" + (v < 1 ? v.toFixed(v < 0.1 ? 3 : 2) : v.toFixed(2));
+  // ======================================================================= Logic: how WARMIND decides
+  // warmind/data/logic.yaml (+ live numbers from /api/logic): the system map, the decision pipelines
+  // (what's LLM, memory, hard-coded rules, outside feeds), the hard-coded concepts, the user journeys
+  // and an architect's read. The same journeys drive tests/journeys.js.
+  const LG_KIND = { user: "amber", llm: "violet", rules: "cyan", db: "green", external: "ink2" };
+  async function renderLogic() {
+    app.innerHTML = ""; app.className = "stack logic";
+    const body = el("div", { class: "stack" }, [el("div", { class: "hint" }, [t("home.loading")])]);
+    app.appendChild(body);
+    let L; try { L = await api("/api/logic"); } catch (e) { body.innerHTML = ""; body.appendChild(el("div", { class: "alert" }, [e.message])); return; }
+    body.innerHTML = "";
+    const live = L.live || {}, cnt = live.counts || {}, calls = live.calls_30d || {};
+    const kindTag = k => el("span", { class: "lg-k lg-" + (LG_KIND[k] || "ink2") }, [(L.kinds[k] || {}).label || k]);
+    const usd = v => v == null ? "—" : "$" + (v < 0.01 ? v.toFixed(4) : v.toFixed(3));
+    const nodeById = {}; (L.layers || []).forEach(ly => ly.nodes.forEach(n => { nodeById[n.id] = n; }));
+    // header: what this is, the legend, live numbers
+    body.appendChild(panel("LGC-00", t("logic.title"), { tone: "amber", status: live.mock ? "MOCK" : "LIVE", statusKind: live.mock ? "warn" : "ok" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.intro")]),
+      el("div", { class: "lg-legend" }, Object.keys(L.kinds).map(k => el("div", {}, [kindTag(k), el("small", {}, [L.kinds[k].desc])]))),
+      el("div", { class: "lg-live" }, [["items", cnt.items], ["missions", cnt.missions], ["kit_rules", cnt.kit_rules], ["modes", cnt.modes], ["roles", cnt.roles], ["oaths", cnt.oaths]]
+        .map(([k, v]) => el("div", { class: "lg-num" }, [el("b", {}, [nf(v)]), el("small", {}, [t("logic.n." + k)])]))),
+    ]));
+    const SECS = [["map", "logic.s.map"], ["decide", "logic.s.decide"], ["rules", "logic.s.rules"], ["journeys", "logic.s.journeys"], ["arch", "logic.s.arch"]];
+    let sec = new URLSearchParams(location.search).get("sec") || "map";
+    const seg = el("div", { class: "seg lg-seg", role: "tablist" }), pane = el("div", { class: "stack" });
+    const show = k => { sec = k; try { history.replaceState(null, "", "/?logic&sec=" + k); } catch (e) {}
+      seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.k === k)));
+      pane.innerHTML = ""; ({ map: lgMap, decide: lgDecide, rules: lgRules, journeys: lgJourneys, arch: lgArch })[k](); iconize(pane); };
+    SECS.forEach(([k, lab]) => { const b = el("button", { type: "button", role: "tab", "data-k": k }, [t(lab)]); b.onclick = () => show(k); seg.appendChild(b); });
+    body.append(seg, pane);
+
+    // --- the system map: inputs → decide → remember → show
+    function lgMap() {
+      const kids = [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.map.hint")])];
+      L.layers.forEach((ly, i) => {
+        if (i) kids.push(el("div", { class: "lg-down", "aria-hidden": "true" }, ["▼"]));
+        kids.push(el("div", { class: "lg-band" }, [el("div", { class: "lg-bandh" }, [ly.name]),
+          el("div", { class: "lg-nodes" }, ly.nodes.map(n => { const d = el("details", { class: "lg-node lg-b-" + (LG_KIND[n.kind] || "ink2") }, [
+            el("summary", {}, [kindTag(n.kind), " ", el("b", {}, [n.name])]), el("div", { class: "lg-nd" }, [n.desc])]); return d; }))]));
+      });
+      pane.appendChild(panel("LGC-01", t("logic.s.map"), {}, kids));
+    }
+    // --- the decision pipelines, step by step
+    function lgDecide() {
+      let cur = (L.pipelines[0] || {}).id;
+      const chips = el("div", { class: "chips lg-pick" }), flow = el("div");
+      const paint = () => { chips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.k === cur)));
+        flow.innerHTML = ""; const p = L.pipelines.find(x => x.id === cur); if (!p) return;
+        flow.appendChild(el("div", { class: "lg-q" }, ["“" + p.question + "”"]));
+        flow.appendChild(lgFlow(p.steps.map(st => ({ kind: st.kind, head: st.title, body: st.detail, code: st.code,
+          extra: st.cost ? el("span", { class: "tag" }, [t("logic.cost", { kind: st.cost, n: nf((calls[st.cost] || {}).calls || 0), avg: usd((calls[st.cost] || {}).avg_usd) })]) : null }))));
+        if ((p.fallbacks || []).length) flow.appendChild(el("div", { class: "lg-fall" }, [el("b", {}, ["⚠ " + t("logic.fallbacks")]),
+          el("ul", {}, p.fallbacks.map(f => el("li", {}, [f])))]));
+        iconize(flow); };
+      L.pipelines.forEach(p => { const c = el("button", { type: "button", class: "chip", "data-k": p.id }, [p.name]); c.onclick = () => { cur = p.id; paint(); }; chips.appendChild(c); });
+      paint();
+      pane.appendChild(panel("LGC-02", t("logic.s.decide"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.decide.hint")]), chips, flow]));
+    }
+    // a vertical flow: rail + cards, coloured by kind
+    function lgFlow(steps) {
+      return el("ol", { class: "lg-flow" }, steps.map((st, i) => el("li", { class: "lg-step lg-b-" + (LG_KIND[st.kind] || "ink2") }, [
+        el("div", { class: "lg-rail", "aria-hidden": "true" }, [el("span", { class: "lg-dot" }, [String(i + 1)])]),
+        el("div", { class: "lg-card" }, [el("div", { class: "lg-sh" }, [kindTag(st.kind), " ", el("b", {}, [st.head])]),
+          st.body ? el("div", { class: "lg-sb" }, [st.body]) : null, st.sub || null,
+          st.code ? el("code", { class: "lg-code" }, [st.code]) : null, st.extra || null])])));
+    }
+    // --- the hard-coded concepts, with live counts
+    function lgRules() {
+      pane.appendChild(panel("LGC-03", t("logic.s.rules"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.rules.hint")]),
+        el("div", { class: "lg-grid" }, L.concepts.map(c => el("div", { class: "lg-concept" }, [
+          el("div", { class: "lg-cn" }, [c.count_key && cnt[c.count_key] != null ? el("b", {}, [nf(cnt[c.count_key])]) : null, el("span", {}, [c.name])]),
+          el("div", { class: "lg-sb" }, [c.desc]), el("code", { class: "lg-code" }, [c.file])])))]));
+      const caps = live.caps || {}, pl = live.planner || {};
+      pane.appendChild(panel("LGC-04", t("logic.models"), {}, [el("ul", { class: "lg-list" }, [
+        el("li", {}, [kindTag("llm"), " " + t("logic.m.plan", { m: pl.model || "—", e: pl.effort || "—", s: pl.slow_s || "—" }) + (pl.enabled ? "" : " · " + t("logic.off"))]),
+        el("li", {}, [kindTag("llm"), " " + t("logic.m.vision", { m: live.vision_model || "—" })]),
+        el("li", {}, [kindTag("llm"), " " + t("logic.m.ask", { m: live.ask_model || "—" })]),
+        el("li", {}, [kindTag("rules"), " " + t("logic.m.caps", { a: caps.per_lobby_hour_cap, b: caps.per_day_cap, c: caps.plans_per_day_cap, d: caps.asks_per_day_cap })]),
+        pl.last && pl.last.status ? el("li", {}, [kindTag("db"), " " + t("logic.m.last", { s: pl.last.status, t: pl.last.seconds != null ? pl.last.seconds + " s" : "—" })]) : null])]));
+    }
+    // --- the user journeys: who, why it matters, the steps (what the diver does, what WARMIND does), friction, ideas
+    function lgJourneys() {
+      let cur = (L.journeys[0] || {}).id;
+      const chips = el("div", { class: "chips lg-pick" }), box = el("div");
+      const paint = () => { chips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.k === cur)));
+        box.innerHTML = ""; const j = L.journeys.find(x => x.id === cur); if (!j) return;
+        box.appendChild(el("div", { class: "lg-jhead" }, [el("div", {}, [el("small", {}, [t("logic.j.who")]), j.persona]), el("div", {}, [el("small", {}, [t("logic.j.goal")]), j.goal]),
+          el("div", {}, [el("small", {}, [t("logic.j.value")]), j.value]), j.metric && j.metric !== "—" ? el("div", {}, [el("small", {}, [t("logic.j.metric")]), j.metric]) : null]));
+        box.appendChild(lgFlow(j.steps.map(st => ({ kind: st.actor, head: st.do, body: st.sees ? "→ " + st.sees : "",
+          sub: (st.nodes || []).length ? el("div", { class: "chips lg-touch" }, st.nodes.map(id => nodeById[id] ? el("span", { class: "lg-k lg-" + (LG_KIND[nodeById[id].kind] || "ink2") }, [nodeById[id].name]) : null)) : null,
+          extra: st.probe ? el("span", { class: "tag green", title: st.probe.expect }, ["✓ " + t("logic.j.probe", { url: st.probe.url })]) : null }))));
+        if (j.friction) box.appendChild(el("div", { class: "lg-fall" }, [el("b", {}, ["⚠ " + t("logic.j.friction")]), el("div", {}, [j.friction])]));
+        if ((j.ux || []).length) box.appendChild(el("div", { class: "lg-ux" }, [el("b", {}, ["✦ " + t("logic.j.ux")]), el("ul", {}, j.ux.map(u => el("li", {}, [u])))]));
+        iconize(box); };
+      L.journeys.forEach(j => { const c = el("button", { type: "button", class: "chip", "data-k": j.id }, [j.name]); c.onclick = () => { cur = j.id; paint(); }; chips.appendChild(c); });
+      paint();
+      pane.appendChild(panel("LGC-05", t("logic.s.journeys"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.journeys.hint")]), chips, box]));
+    }
+    // --- the architect's read: principles, the flywheel, failure modes, unit cost, leverage
+    function lgArch() {
+      pane.appendChild(panel("LGC-06", t("logic.principles"), {}, (L.principles || []).map(p => el("div", { class: "lg-pr" }, [el("b", {}, [p.title]), el("div", { class: "lg-sb" }, [p.body])]))));
+      // the flywheel: a loop of what feeds what
+      const fw = L.flywheel || [], n = fw.length, R = 92, cx = 160, cy = 130;
+      const svg = ['<svg viewBox="-70 -6 460 272" class="lg-fw" role="img" aria-label="' + t("logic.flywheel") + '">',
+        '<defs><marker id="lgar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>',
+        '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="3 5"/>'];
+      fw.forEach((lab, i) => {
+        const a = -Math.PI / 2 + i * 2 * Math.PI / n, a2 = -Math.PI / 2 + (i + 1) * 2 * Math.PI / n;
+        const x = cx + R * Math.cos(a), y = cy + R * Math.sin(a);
+        const mid = (a + a2) / 2, x1 = cx + R * Math.cos(a + .32), y1 = cy + R * Math.sin(a + .32), x2 = cx + R * Math.cos(a2 - .32), y2 = cy + R * Math.sin(a2 - .32);
+        svg.push('<path d="M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A' + R + ' ' + R + ' 0 0 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1) + '" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#lgar)" class="lg-fwarc"/>');
+        svg.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="7" class="lg-fwdot"/>');
+        const lx = cx + (R + 0) * Math.cos(a), ly = cy + (R + 0) * Math.sin(a);
+        const anchor = Math.abs(Math.cos(a)) < .3 ? "middle" : Math.cos(a) > 0 ? "start" : "end";
+        const dx = anchor === "start" ? 12 : anchor === "end" ? -12 : 0, dy = Math.abs(Math.cos(a)) < .3 ? (Math.sin(a) < 0 ? -14 : 22) : 4;
+        const words = lab.split(" "), lines = []; let ln = "";
+        words.forEach(w => { if ((ln + " " + w).trim().length > 16) { lines.push(ln.trim()); ln = w; } else ln += " " + w; }); if (ln.trim()) lines.push(ln.trim());
+        svg.push('<text x="' + (lx + dx).toFixed(1) + '" y="' + (ly + dy - (lines.length - 1) * 6).toFixed(1) + '" text-anchor="' + anchor + '" class="lg-fwt">' +
+          lines.map((l, k) => '<tspan x="' + (lx + dx).toFixed(1) + '" dy="' + (k ? 12 : 0) + '">' + l.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</tspan>").join("") + "</text>");
+      });
+      svg.push('<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" class="lg-fwc">WARMIND</text></svg>');
+      const fwBox = el("div", { class: "lg-fwbox" }); fwBox.innerHTML = svg.join("");
+      pane.appendChild(panel("LGC-07", t("logic.flywheel"), {}, [el("div", { class: "hint", style: "margin:0 0 6px" }, [t("logic.flywheel.hint")]), fwBox]));
+      pane.appendChild(panel("LGC-08", t("logic.failures"), {}, [el("div", { class: "lg-grid" }, (L.failure_modes || []).map(f => el("div", { class: "lg-concept" }, [
+        el("div", { class: "lg-cn" }, [el("span", {}, [f.risk])]), el("div", { class: "lg-sb" }, [el("small", {}, [t("logic.f.effect") + " "]), f.effect]),
+        el("div", { class: "lg-sb" }, [el("small", {}, [t("logic.f.guard") + " "]), f.guard])])))]));
+      // unit economics: what a 4-diver mission costs in Claude calls, from the last 30 days' averages
+      const avg = k => (calls[k] || {}).avg_usd;
+      const parts = [["plan", 1], ["result", 4], ["review", 4], ["tune", 2]].map(([k, n]) => ({ k, n, a: avg(k) }));
+      const known = parts.filter(p => p.a != null && p.a > 0), est = known.reduce((s2, p) => s2 + p.a * p.n, 0);
+      pane.appendChild(panel("LGC-09", t("logic.unit"), {}, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("logic.unit.hint")]),
+        el("ul", { class: "lg-list" }, parts.map(p => el("li", {}, [el("b", {}, [p.n + " × " + p.k]), " · " + (p.a ? usd(p.a) + " " + t("logic.each") : t("logic.nodata"))]))),
+        el("div", { class: "lg-total" }, [known.length ? t("logic.unit.total", { usd: usd(est) }) : t("logic.unit.none")]),
+        live.spend ? el("div", { class: "hint", style: "margin:6px 0 0" }, [t("logic.spend", { d: usd(live.spend.today), w: usd(live.spend["7d"]), m: usd(live.spend["30d"]) })]) : null]));
+      // leverage: the journeys are the test plan and the UX backlog
+      const probes = L.journeys.reduce((s2, j) => s2 + j.steps.filter(x => x.probe).length, 0);
+      const ux = []; L.journeys.forEach(j => (j.ux || []).forEach(u => ux.push([j.name, u])));
+      pane.appendChild(panel("LGC-10", t("logic.leverage"), { tone: "amber" }, [
+        el("div", { class: "lg-pr" }, [el("b", {}, [t("logic.lev.tests")]), el("div", { class: "lg-sb" }, [t("logic.lev.tests.d", { n: probes, j: L.journeys.length })]), el("code", { class: "lg-code" }, ["node tests/journeys.js"])]),
+        el("div", { class: "lg-pr" }, [el("b", {}, [t("logic.lev.ux")]), el("ol", { class: "lg-backlog" }, ux.map(([jn, u]) => el("li", {}, [el("small", {}, [jn]), u])))])]));
+    }
+    show(SECS.some(x => x[0] === sec) ? sec : "map");
+  }
+
   async function renderCosts() {
     app.innerHTML = ""; app.className = "stack";
     app.appendChild(el("div", { class: "lknav" }, [el("a", { class: "btn sm", href: "/" }, ["⌂ " + t("lk.homepage")])]));
@@ -3523,7 +3672,7 @@
 
   function lkRecord() {
     const kids = [];
-    if (store.locker()) { const lg = el("button", { type: "button", class: "btn primary sm" }, ["＋ " + t("slog.btn")]);
+    if (store.locker()) { const lg = el("button", { type: "button", class: "btn primary sm slogbtn" }, ["＋ " + t("slog.btn")]);
       lg.onclick = () => logDialog(LOCKER_PAGE ? loadLocker : async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); });
       kids.push(el("div", { class: "hint", style: "margin:0 0 8px" }, [t("slog.hint")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [lg])); }
     kids.push(...awardList(LK.awards));
