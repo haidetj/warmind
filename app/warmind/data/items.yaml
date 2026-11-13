@@ -42,6 +42,7 @@ primaries:
   - {name: "AR-23P Liberator Penetrator", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "AR-59 Suppressor", warbond: "Redacted Regiment", coverage: [ch], tags: [high_rof_ballistic, ranged, stealth], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "AR-61 Tenderizer", warbond: "Polar Patriots", coverage: [ch], tags: [high_rof_ballistic, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
+  - {name: "AR-2 Coyote", warbond: "Dust Devils", coverage: [ch], tags: [fire_kit, high_rof_ballistic, ranged, strong_primary], grade: {terminids: S, automatons: B, illuminate: A}}
   - {name: "ARC-12 Blitzer", warbond: "Cutting Edge", coverage: [], tags: [energy, light_pen], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "BR-14 Adjudicator", warbond: "Democratic Detonation", coverage: [ch], tags: [high_rof_ballistic, light_pen, ranged], grade: {terminids: B, automatons: B, illuminate: B}}
   - {name: "DBS-2 Double Freedom", warbond: Superstore, coverage: [ch], tags: [close_quarters, light_pen, stagger_primary], grade: {terminids: B, automatons: B, illuminate: B}}

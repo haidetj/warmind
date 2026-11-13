@@ -389,8 +389,10 @@ def write_aar(image_bytes, media_type, result: dict, context: dict,
         f"Career baseline (rates): {json.dumps(context.get('baseline', {}))}\n"
         f"This mission's result: {json.dumps(result)}\n\n"
         "Did the role's signature metric move toward its target? Did the discipline rule hold? "
-        "If the result was poor, check whether a thin capability with no deep partner caused it — "
-        "that is a design error to own, not a player error.\n\n"
+        "Stick to what the numbers and the screenshots show. A scoreboard records WHAT happened, not WHY: do not "
+        "invent a cause or a story the numbers can't show (e.g. why samples weren't extracted, who died where, "
+        "what the squad did). If a kit choice plausibly explains a poor number, you may say so once, marked as a "
+        "guess (\"possibly\", \"may have\"), and only if that capability really was thin in the kit.\n\n"
         + (f"Lessons WARMIND took from this diver's earlier debriefs: {json.dumps(context['lessons'])}. "
            "Say in a few words whether this mission bore them out.\n\n" if context.get("lessons") else "")
         + f"Then, on its own final line, write `LESSON: ` and one short sentence in {language}: the one change to "

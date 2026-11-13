@@ -36,7 +36,7 @@ import db
 import vision
 from warmind import ask as ask_mod, fronts, handling, kitrules, loader, modes, oaths, roles as roles_mod, scoring
 from warmind.items import Pool
-from warmind.resolve import COMMANDO_SLOTS, diver_excluded, resolve_squad
+from warmind.resolve import COMMANDO_SLOTS, boosters_banned, diver_excluded, resolve_squad
 
 ENABLED = os.environ.get("WARMIND_PLANNER", "1") != "0"
 MODEL = os.environ.get("WARMIND_PLAN_MODEL", vision.MODEL)
@@ -53,7 +53,9 @@ LAST: dict = {}        # the most recent plan's outcome, for /health (no lobby d
 
 MODE_MEANING = {
     "optimize": "Win this drop. The strongest kit for the mission, on gear the diver knows; no deliberate stretch.",
-    "fun": "Fresh and fun: favour gear the diver hasn't been running, as long as it still answers the mission.",
+    "fun": "Fresh and fun: favour gear the diver hasn't been running, as long as it still answers the mission. "
+           "Novelty picks are welcome here when the squad can still finish (one diver carrying the CQC-1 One True "
+           "Flag, a melee support weapon that rallies the squad, is a classic).",
     "improvement": "Grow the diver: kit inside their strengths, plus exactly one unfamiliar element worth learning.",
     "challenge": "Make it genuinely hard to play WELL, while still answering the mission. Push the diver off their "
                  "comfort zone and onto high-ask gear (precision, timing, reload discipline, no crutches), and "
@@ -200,11 +202,15 @@ def _shortlists(session, players, directive) -> dict:
             "secondary": top(pool.secondaries, N_SECONDARY, [a.secondary]),
             "grenade": top(pool.grenades, N_GRENADE, [a.grenade]),
             "armor": arm,
-            "stratagems": top(strat_cands, N_STRAT, a.stratagems),
-            "boosters": [b for b in pool.boosters if b["name"] not in excl],
+            # Fun mode: the novelty picks get a look-in even when they don't rank (feedback #52: the One True Flag)
+            "stratagems": top(strat_cands, N_STRAT, list(a.stratagems) + (list(FUN_PICKS) if session.mode == "fun" else [])),
+            "boosters": [b for b in pool.boosters if b["name"] not in excl and b["name"] not in boosters_banned(session)],
             "drills": session._drills,
         }
     return out
+
+
+FUN_PICKS = ("CQC-1 One True Flag",)
 
 
 def _system_prompt() -> str:
@@ -247,6 +253,14 @@ and mode (in Challenge / D100, use them to see the comfort zone to push off).
 - tuning holds standing notes the diver told WARMIND to keep (newest first, for this front or every front): they \
 outrank last_debriefs_said; honour them in every mode, except where Challenge / D100 deliberately push past one \
 (then say so in that diver's why).
+- this_operation lists that diver's earlier missions in THIS operation (same planet and front): the kit they \
+fought with and how it went (numbers, oaths, the debrief's lesson). Evolve the kit, don't restart it: keep what \
+worked, change what didn't (deaths, few kills, a broken oath, the lesson, their tuning), and re-fit it to this \
+mission's type. Say in that diver's why what you kept and what you changed, and why.
+- recent_kits are the kits that diver ran on their last drops elsewhere (newest first). Don't hand the same kit \
+back: change at least the support weapon or a strike and one weapon, unless one pick is clearly the best answer \
+to this mission (then say so). In Fun mode never repeat a recent kit. Across the squad, prefer combinations \
+these divers haven't been running; the shortlists hold plenty of good options beyond the top line.
 - last_debriefs_said are kit lessons from that diver's own recent debriefs (newest first): act on them \
 unless this mission or mode clearly calls for otherwise, and say so in that diver's why when you do.
 - Keep each diver's engine_plan role when role_locked is true (the squad leader chose it, or the diver asked for it).
@@ -262,6 +276,14 @@ anti-tank strike, enough chaff and structure coverage, no duplicated support wea
 the diver's own numbers, or a squadmate's kit. No filler, no restating the item list. Each line under 160 \
 characters. In Challenge / D100, say what the hard pick asks of them.
 - "summary": one or two sentences on how the squad's kits fit together for this drop.
+- In Challenge and D100 also set "challenge": the squad's challenge for this drop, creative and specific to the \
+mission, front and these divers (not "be careful"): a punchy "name" (2-5 words), a "brief" (one or two sentences: \
+the rule and why it bites here), and "checks": the parts of it that can be read from the kits. Each check has \
+kind, category, n and weight (use "" / 0 for the ones a kind doesn't take): max_category (at most n stratagems \
+of that category per diver; n = 0 bans it), min_category (at least n of it), no_backpack, no_support_weapon, \
+armor_weight (every diver in that weight). Categories: support, backpack, orbital, eagle, sentry, mine, \
+emplacement, vehicle, relay. Every kit you pick must pass every check, and the squad must still be able to \
+finish the mission. In other modes, "challenge" is null.
 - Write the why lines and summary in the language you're told. Keep official game names (items, \
 stratagems, missions, roles) in English.
 - Item names inside why lines must be exact names from the lists."""
@@ -323,6 +345,8 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
         "told_us": pl.prefs or None,
         "last_debriefs_said": getattr(pl, "lessons", None) or None,   # #40: what earlier debriefs taught WARMIND
         "tuning": getattr(pl, "tuning", None) or None,   # standing notes the diver told WARMIND to keep (their Tuning)
+        "this_operation": getattr(pl, "this_op", None) or None,   # earlier missions of this operation: evolve the kit
+        "recent_kits": getattr(pl, "recent_kits", None) or None,  # kits run lately elsewhere: vary them
         # armour the diver chose to wear: it is fixed (the engine keeps it); build the kit around its passive
         "wears": (pl.prefs or {}).get("armor_set"),
         "engine_plan": {"role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
@@ -336,10 +360,23 @@ def _diver_block(pl, a, sl, locked=False) -> dict:
     }
 
 
+CHECK_KINDS = ("max_category", "min_category", "no_backpack", "no_support_weapon", "armor_weight")
+CATEGORIES = ("support", "backpack", "orbital", "eagle", "sentry", "mine", "emplacement", "vehicle", "relay")
+
 SCHEMA = {
-    "type": "object", "additionalProperties": False, "required": ["summary", "divers"],
+    "type": "object", "additionalProperties": False, "required": ["summary", "divers", "challenge"],
     "properties": {
         "summary": {"type": "string"},
+        "challenge": {"anyOf": [{"type": "null"}, {
+            "type": "object", "additionalProperties": False, "required": ["name", "brief", "checks"],
+            "properties": {
+                "name": {"type": "string"}, "brief": {"type": "string"},
+                "checks": {"type": "array", "items": {
+                    "type": "object", "additionalProperties": False, "required": ["kind", "category", "n", "weight"],
+                    "properties": {"kind": {"type": "string", "enum": list(CHECK_KINDS)},
+                                   "category": {"type": "string", "enum": list(CATEGORIES) + [""]},
+                                   "n": {"type": "integer"},
+                                   "weight": {"type": "string", "enum": ["Light", "Medium", "Heavy", ""]}}}}}}]},
         "divers": {"type": "array", "items": {
             "type": "object", "additionalProperties": False,
             "required": ["id", "role", "primary", "secondary", "grenade", "armor", "booster", "stratagems", "why"],
@@ -407,10 +444,65 @@ def _mock(players, directive) -> tuple[dict, dict]:
         divers.append({"id": pl.id, "role": a.role.replace(" ", "_"), "primary": a.primary, "secondary": a.secondary,
                        "grenade": a.grenade, "armor": a.armor, "booster": a.booster, "stratagems": a.stratagems,
                        "why": [f"(mock) {a.primary} is the engine's pick; set ANTHROPIC_API_KEY for real reasoning."]})
-    return {"summary": "(mock) WARMIND would explain how the four kits interlock here.", "divers": divers}, {}
+    mode = getattr(directive, "mode", None) or ""
+    return {"summary": "(mock) WARMIND would explain how the four kits interlock here.", "divers": divers,
+            "challenge": {"name": "(mock) No Backpacks", "brief": "(mock) Nobody carries a backpack: every reload and resupply is on you.",
+                          "checks": [{"kind": "no_backpack", "category": "", "n": 0, "weight": ""}]}}, {}
 
 
 # ---------------------------------------------------------------- checking the answer
+
+def _clean_challenge(ch, session) -> dict | None:
+    """The planner's challenge brief (Challenge / D100 only), with only checks the engine can read."""
+    if not isinstance(ch, dict) or getattr(session, "mode", None) not in ("challenge", "d100"):
+        return None
+    checks = []
+    for c in ch.get("checks") or []:
+        if not isinstance(c, dict) or c.get("kind") not in CHECK_KINDS:
+            continue
+        k = c["kind"]
+        if k in ("max_category", "min_category") and c.get("category") not in CATEGORIES:
+            continue
+        if k == "armor_weight" and c.get("weight") not in ("Light", "Medium", "Heavy"):
+            continue
+        out = {"kind": k}
+        if k in ("max_category", "min_category"):
+            n = c.get("n", c.get("max" if k == "max_category" else "min"))
+            try:
+                n = max(0, min(4, int(n if n is not None else (0 if k == "max_category" else 1))))
+            except (TypeError, ValueError):
+                n = 0 if k == "max_category" else 1
+            out.update(category=c["category"], **({"max": n} if k == "max_category" else {"min": max(1, n)}))
+        if k == "armor_weight":
+            out["weight"] = c["weight"]
+        checks.append(out)
+    name = " ".join(str(ch.get("name") or "").split())[:60]
+    return {"name": name, "brief": " ".join(str(ch.get("brief") or "").split())[:300], "checks": checks[:6]} if name else None
+
+
+def check_kit(a, checks) -> list:
+    """The challenge checks this final kit breaks (empty = it holds)."""
+    pool, broken = Pool(), []
+    cats = []
+    for n in a.stratagems:
+        it = pool.get(n) if hasattr(pool, "get") else None
+        if it is None:
+            it = next((x for x in pool.stratagems if x.name == n), None)
+        cats.append(it)
+    for c in checks or []:
+        k = c["kind"]
+        if k == "max_category" and sum(1 for it in cats if it and it.category == c["category"]) > int(c.get("max") or 0):
+            broken.append(c)
+        elif k == "min_category" and sum(1 for it in cats if it and it.category == c["category"]) < int(c.get("min") or 1):
+            broken.append(c)
+        elif k == "no_backpack" and any(it and (it.backpack or it.category == "backpack") for it in cats):
+            broken.append(c)
+        elif k == "no_support_weapon" and any(it and it.category == "support" for it in cats):
+            broken.append(c)
+        elif k == "armor_weight" and (a.armor_weight or "") != c.get("weight"):
+            broken.append(c)
+    return broken
+
 
 def _match(name, options: list[str]):
     if not isinstance(name, str) or not name.strip():
@@ -482,17 +574,54 @@ def _kept(final, override) -> tuple[int, int]:
 _ALL_NAMES = None
 
 
+_WORDS = None
+# words too common in item names to stand for one item on their own
+_GENERIC = {"cannon", "rifle", "sentry", "strike", "eagle", "orbital", "armor", "armour", "launcher", "grenade",
+            "pistol", "shotgun", "machine", "light", "heavy", "medium", "barrage", "bombs", "mortar", "shield",
+            "generator", "backpack", "guard", "laser", "flamethrower", "precision", "carbine", "rocket", "turret",
+            "station", "booster", "support", "sniper", "assault", "energy", "blast", "napalm", "smoke", "impact",
+            "incendiary", "anti-tank", "anti-materiel", "airstrike", "cluster", "gatling", "walking", "legacy",
+            "concussive", "penetrator", "special", "standard", "seeker", "directional", "ballistic", "plasma",
+            "spray", "dog"}
+
+
+def _distinct_words():
+    """distinctive word -> the item names it stands for ("dynamite" -> TED-63 Dynamite)."""
+    global _WORDS
+    if _WORDS is None:
+        import re
+        _WORDS = {}
+        names = [it.name for it in Pool().all_items()] + [b["name"] for b in Pool().boosters]
+        for n in names:
+            _, _, rest = n.partition(" ")
+            for w in re.split(r"[^a-z0-9-]+", (rest or n).lower()):
+                if len(w) >= 5 and w not in _GENERIC:
+                    _WORDS.setdefault(w, set()).add(n)
+    return _WORDS
+
+
 def _clean_why(lines: list[str], a) -> list[str]:
-    """Drop a line that names gear the diver isn't carrying (the engine replaced it)."""
+    """Drop a line that names gear the diver isn't carrying (the engine replaced it), by its full name or by
+    a word that stands for it (feedback #54: a line about "the dynamite" after the grenade became Thermite)."""
+    import re
     global _ALL_NAMES
     if _ALL_NAMES is None:
         _ALL_NAMES = sorted({it.name for it in Pool().all_items()} | {b["name"] for b in Pool().boosters},
                             key=len, reverse=True)
     carried = {a.primary, a.secondary, a.grenade, a.armor, a.booster, *a.stratagems}
+    words = _distinct_words()
     out = []
     for ln in lines:
         named = [n for n in _ALL_NAMES if n in ln]
-        if all(n in carried for n in named):
+        if not all(n in carried for n in named):
+            continue
+        low = ln.lower()
+        stray = False
+        for w, items in words.items():
+            if not (items & carried) and re.search(r"\b" + re.escape(w) + r"s?\b", low):
+                stray = True
+                break
+        if not stray:
             out.append(ln)
     return out
 
@@ -511,6 +640,7 @@ def _think(lobby_id, sig, session, players, mission, lang, key=None):
             raw, usage = _call(system, user, lobby_id)
         override, why, bad = to_override(raw, sl)
         plan = {"override": override, "why": why, "summary": str(raw.get("summary") or "")[:600],
+                "challenge": _clean_challenge(raw.get("challenge"), session),
                 "bad_names": bad, "usage": usage, "model": "mock" if vision.MOCK else MODEL,
                 "prompt_chars": len(system) + len(user)}
         db.put_plan(lobby_id, sig, "ready", plan)
@@ -579,4 +709,7 @@ def apply(session, players, plan: dict):
             keep = [w for w in a.why if w["kind"] in ("role", "drill", "handling", "thin", "nostats", "reroll")
                     or str(w.get("k", "")).startswith("why.worn")]   # "your armour stays on" survives the planner
             a.why = [{"kind": "mind", "k": "why.mind", "p": {"t": ln}} for ln in lines] + keep
-    return d, {"summary": plan.get("summary", ""), "kept": kept, "total": total, "model": plan.get("model")}
+    ch = plan.get("challenge")
+    if ch:   # which divers' final kits hold the challenge (the engine may have had to swap a pick)
+        ch = dict(ch, held={a.player_id: not check_kit(a, ch.get("checks")) for a in d.assignments})
+    return d, {"summary": plan.get("summary", ""), "kept": kept, "total": total, "model": plan.get("model"), "challenge": ch}

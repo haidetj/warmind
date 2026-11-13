@@ -68,9 +68,27 @@ def charge_plan(lobby_id: str) -> None:
             _events[key].append(now)
 
 
+# Ask WARMIND (askwm.py): one Claude call per question
+ASK_PER_DIVER_DAY = int(os.environ.get("WARMIND_ASK_PER_DIVER_DAY", "30"))
+ASK_PER_DAY = int(os.environ.get("WARMIND_ASK_PER_DAY", "200"))
+
+
+def charge_ask(locker_id: str) -> None:
+    """Reserve one question for this diver, or raise OverBudget."""
+    now = time.time()
+    with _lock:
+        checks = [(f"ask:{locker_id}", 86400, ASK_PER_DIVER_DAY), ("ask:all", 86400, ASK_PER_DAY)]
+        for key, window, cap in checks:
+            if cap and _count(key, window, now) + 1 > cap:
+                raise OverBudget("WARMIND has answered a lot of questions today. Ask again tomorrow.")
+        for key, _, _ in checks:
+            _events[key].append(now)
+
+
 def status() -> dict:
     now = time.time()
     with _lock:
         return {"calls_today": _count("all", 86400, now), "per_day_cap": PER_DAY,
                 "per_lobby_hour_cap": PER_LOBBY_HOUR, "per_ip_hour_cap": PER_IP_HOUR,
-                "plans_today": _count("plan:all", 86400, now), "plans_per_day_cap": PLAN_PER_DAY}
+                "plans_today": _count("plan:all", 86400, now), "plans_per_day_cap": PLAN_PER_DAY,
+                "asks_today": _count("ask:all", 86400, now), "asks_per_day_cap": ASK_PER_DAY}

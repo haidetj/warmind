@@ -28,6 +28,7 @@ import costs
 import db
 import discord_app
 import enrich
+import askwm
 import vision
 import war
 from warmind import compass, coverage, kitrules, loader, oaths, passives, stats
@@ -235,6 +236,55 @@ def _prefs_of(locker_id) -> dict:
     return out
 
 
+_KIT_FIELDS = ("role", "primary", "secondary", "grenade", "armor", "booster", "stratagems")
+
+
+def _kit_of(a) -> dict:
+    """The kit a diver fought with (an assignment dict or a saved kit), as stored with the debrief."""
+    if not a:
+        return {}
+    return {k: a.get(k) for k in _KIT_FIELDS if a.get(k)}
+
+
+def _kit_line(k: dict) -> str:
+    """A kit in one line for the planner: role · primary / secondary / grenade · armour · booster · stratagems."""
+    if not k:
+        return ""
+    bits = [k.get("role"), " / ".join(x for x in (k.get("primary"), k.get("secondary"), k.get("grenade")) if x),
+            k.get("armor"), k.get("booster"), ", ".join(k.get("stratagems") or [])]
+    return " · ".join(str(b).replace("_", " ") for b in bits if b)
+
+
+def _history_for(p, lobby) -> tuple[list, list]:
+    """(this operation so far, recent kits) for the planner. This operation: the seat's earlier missions at this
+    table (kit, numbers, lesson). Recent kits: the diver's last drops anywhere else, so WARMIND can vary them."""
+    this_op, recent = [], []
+    cur = _cur_drop(lobby) if lobby else 1
+    for r in db.player_results(p["id"]):
+        if r.get("lobby_id") != (lobby or {}).get("id") or int(r.get("drop_no") or 1) >= cur:
+            continue
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        vs = [v for v in _verdicts_of(r.get("verdict_json")) if v]
+        this_op.append({"mission_n": int(r.get("drop_no") or 1), "mission": (_result_mission(r) or {}).get("name"),
+                        "kit": _kit_line(res.get("kit") or {}) or None,
+                        "numbers": {k: res[k] for k in ("kills", "deaths", "accuracy_pct", "accidentals", "samples_extracted",
+                                                        "stratagems_used") if k in res},
+                        "oaths": [f"{v.get('name')}: {'kept' if v.get('passed') else 'broken' if v.get('passed') is False else 'unverified'}" for v in vs],
+                        "lesson": r.get("lesson")})
+    this_op.sort(key=lambda x: x["mission_n"])
+    if p.get("locker_id"):
+        for r in db.locker_record(p["locker_id"], limit=40):
+            if r.get("lobby_id") == (lobby or {}).get("id"):
+                continue
+            res = json.loads(r["result_json"]) if r.get("result_json") else {}
+            line = _kit_line(res.get("kit") or {})
+            if line and line not in recent:
+                recent.append(line)
+            if len(recent) >= 5:
+                break
+    return this_op, recent
+
+
 def _tuning_for(locker_id, faction=None, n=8) -> list:
     """The diver's Tuning notes that hold here: every-front notes and ones for this faction, newest first."""
     if not locker_id:
@@ -317,6 +367,7 @@ def _resolve(lobby) -> dict:
     """Live directive for the whole lobby, or players-only if no mission set."""
     players_rows = db.list_players(lobby["id"])
     mission = _mission_from(lobby)
+    hist = {p["id"]: _history_for(p, lobby) for p in players_rows}
     roster = []
     for i, p in enumerate(players_rows):
         roster.append(Player(
@@ -331,6 +382,7 @@ def _resolve(lobby) -> dict:
             prefs=_prefs_of(p.get("locker_id")),
             lessons=[x["lesson"] for x in db.locker_lessons(p["locker_id"])] if p.get("locker_id") else [],
             tuning=_tuning_for(p.get("locker_id"), (mission or {}).get("faction")),
+            this_op=hist[p["id"]][0], recent_kits=hist[p["id"]][1],
         ))
     directive = None
     by_pid = {}
@@ -1915,7 +1967,7 @@ async def submit_result(lid: str, pid: str, request: Request, image: UploadFile 
     a = me and me["assignment"]
     baseline = stats.derive(_snap_of(p) or {}) if _snap_of(p) else {}
     ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
-           "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline}
+           "kit": _kit_of(a), "baseline": baseline}
     data, mt = (await _read_images(([image] if image else []) + list(images or [])))[:4], None   # one mission, 1-4 screenshots
     if not data:
         raise HTTPException(400, "no screenshot provided")
@@ -1947,7 +1999,10 @@ async def _record_result(lid, pid, p, ctx, mission, result, data, mt, lang, room
         # the numbers and verdicts already stand; don't lose them over the prose call
         aar = vision._mock_oath_line(verdicts) + "Review text unavailable — the scoreboard was read and recorded."
     # #42: a re-upload of the same mission replaces the earlier read (a different mission is a new drop)
-    # where this drop was fought (the table's mission at upload time), for the enriched career stats
+    # where this drop was fought (the table's mission at upload time), for the enriched career stats;
+    # and the kit it was fought with, so the next missions can evolve it and later drops vary it
+    if ctx.get("kit"):
+        result = dict(result, kit=ctx["kit"])
     result = dict(result, table_mission=mission.get("mission_id"), table_faction=mission.get("faction"),
                   table_difficulty=mission.get("difficulty"), table_mode=mission.get("mode"),
                   role=(ctx.get("role") or None))
@@ -2093,7 +2148,7 @@ async def squad_results_commit(lid: str, rid: str, payload: dict, request: Reque
         a = me and me["assignment"]
         baseline = stats.derive(_snap_of(p) or {}) if _snap_of(p) else {}
         ctx = {"role": a and a["role"], "play_style": p["play_style"], "mode": mission.get("mode"),
-               "kit": a and {"primary": a["primary"], "stratagems": a["stratagems"]} or {}, "baseline": baseline,
+               "kit": _kit_of(a), "baseline": baseline,
                "column": read["rows"][i].get("name")}
         result = {k: v for k, v in read["rows"][i].items() if k in vision.RESULT_FIELDS}
         r = await _record_result(lid, pid, p, ctx, mission, result, read["data"], read["mt"], lang)
@@ -2613,6 +2668,81 @@ def _record_of(lid):
     return record, medals
 
 
+def _ask_context(lk, lobby_id=None) -> dict:
+    """What Ask WARMIND knows that the model doesn't: this diver, their table, the war."""
+    lid = lk["id"]
+    _, rates = _public_rates(lk)
+    car = _career(lid)
+    snap = car["snap"] or {}
+    en = car["enriched"] or {}
+    top = lambda d, n=5: dict(list((d or {}).items())[:n]) or None
+    rec = []
+    for r in db.locker_record(lid, limit=30):
+        res = json.loads(r["result_json"]) if r.get("result_json") else {}
+        line = _kit_line(res.get("kit") or {})
+        if line and line not in rec:
+            rec.append(line)
+        if len(rec) >= 5:
+            break
+    owned = _owned_from_json(lk.get("owned_json")) if lk.get("gear_set") else None
+    diver = {"callsign": lk.get("callsign"), "play_style": _style_label(lk.get("play_style")) if lk.get("play_style") else None,
+             "career_rates": rates, "career_totals": {k: snap[k] for k in ("missions_played", "missions_won", "enemy_kills", "deaths",
+                                                                           "friendly_kills", "shots_fired", "shots_hit", "samples") if k in snap} or None,
+             "career_read_at": car["how"].get("career_at"),
+             "drops_debriefed": en.get("drops"), "missions_played_most": top(en.get("missions")), "fronts": top(en.get("factions")),
+             "difficulty": top(en.get("difficulty"), 10), "roles": top(en.get("roles")), "oaths": en.get("oaths"), "medals": en.get("medals"),
+             "tuning": [x["note"] for x in db.list_tunes(lid)][:10] or None, "recent_kits": rec or None,
+             "lessons": [x["lesson"] for x in db.locker_lessons(lid)] or None,
+             "saved_loadouts": [{"name": o["name"], "kit": _kit_line(o["kit"])} for o in db.list_loadouts(lid)[:6]] or None,
+             "owns": sorted(owned)[:450] if owned else ("everything (gear not set)" if not lk.get("gear_set") else None)}
+    out = {"diver": {k: v for k, v in diver.items() if v not in (None, [], {})}}
+    lobby = db.get_lobby(lobby_id) if lobby_id else None
+    if lobby and any(p.get("locker_id") == lid for p in db.list_players(lobby["id"])):
+        st = _resolve(lobby)
+        m = _mission_from(lobby) or {}
+        hz, om = loader.hazards(), loader.operation_modifiers()
+        out["table"] = {"name": lobby.get("name"), "mission": (_mission_name(lobby.get("mission_json")) or {}).get("name"),
+                        "faction": m.get("faction"), "difficulty": m.get("difficulty"), "mode": m.get("mode"), "planet": m.get("planet_name") or None,
+                        "hazards": [hz[h]["display_name"] for h in m.get("planet_hazards") or [] if h in hz] or None,
+                        "operation_modifiers": [om[x]["display_name"] for x in m.get("operation_modifiers") or [] if x in om] or None,
+                        "oaths": [oaths.OATHS[k]["name"] for k in _oaths_of(m)] or None,
+                        "operation": {"mission": st["op"]["drop"], "of": st["op"]["of"]} if not st["op"]["legacy"] else None,
+                        "squad": [{"callsign": p["callsign"], "you": p.get("locker") and db.get_player(p["id"]).get("locker_id") == lid,
+                                   "kit": _kit_line(_kit_of(p["assignment"])) if p.get("assignment") else None} for p in st["players"]]}
+    w = war.snapshot()
+    if w.get("ok"):
+        out["war"] = {"major_orders": [{"title": o.get("title"), "briefing": (o.get("briefing") or "")[:300],
+                                        "tasks": [{"kind": x.get("kind"), "planet": x.get("planet"), "faction": x.get("faction"),
+                                                   "progress": x.get("pct"), "done": x.get("done")} for x in (o.get("tasks") or [])][:6]}
+                                       for o in (w.get("orders") or [])[:2]],
+                      "busiest_planets": [{"name": p.get("name"), "enemy": p.get("enemy"), "divers": p.get("players"),
+                                           "liberation_pct": p.get("progress"), "hazards": p.get("hazard_names")} for p in (w.get("planets") or [])[:6]]}
+    return out
+
+
+@app.post("/api/ask")
+async def ask_warmind(payload: dict, x_locker_id: str = Header(None), x_locker: str = Header(None)):
+    """Ask WARMIND anything about Helldivers 2 stats, gear and tactics; answered with your numbers,
+    your table and the app's data (one Claude call per question, capped per diver per day)."""
+    lk = _locker_ok(x_locker_id, x_locker)
+    if not lk:
+        raise HTTPException(403, "sign in to ask WARMIND")
+    q = " ".join(str(payload.get("q") or "").split())[:askwm.MAX_Q]
+    if len(q) < 2:
+        raise HTTPException(400, "ask a question")
+    hist = [h for h in (payload.get("history") or []) if isinstance(h, dict)][-6:]
+    try:
+        if not vision.MOCK:
+            budget.charge_ask(lk["id"])
+        ctx = _ask_context(lk, str(payload.get("lobby_id") or "")[:40] or None)
+        text = await run_in_threadpool(askwm.answer, q, hist, ctx, str(payload.get("lang") or "en")[:8])
+    except budget.OverBudget as e:
+        raise HTTPException(429, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"WARMIND couldn't answer that: {e}"[:300])
+    return {"ok": True, "answer": text, "used": {"table": "table" in ctx, "war": "war" in ctx}}
+
+
 @app.get("/api/locker/{lid}/home")
 def locker_home(lid: str, x_locker: str = Header(None)):
     """Home for a signed-in diver: the standing orders of their war rooms (with progress), the medals in
@@ -2797,7 +2927,7 @@ async def _log_record(lid, lk, row, data, mission, loadout_id, lang, room_id=Non
     kit = next((o["kit"] for o in db.list_loadouts(lid) if o["id"] == loadout_id), None) if loadout_id else None
     snap = _snap_of(seat)
     ctx = {"role": (kit or {}).get("role"), "play_style": seat["play_style"], "mode": mission.get("mode"),
-           "kit": {"primary": kit.get("primary"), "stratagems": kit.get("stratagems")} if kit else {},
+           "kit": _kit_of(kit) if kit else {},
            "baseline": stats.derive(snap) if snap else {}}
     result = {k: v for k, v in row.items() if k in vision.RESULT_FIELDS or k in ("mission_name", "planet")}
     r = await _record_result("log:" + lid, seat["id"], seat, ctx, mission, result, data, None, lang, room_id=room_id)
