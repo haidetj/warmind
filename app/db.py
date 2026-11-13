@@ -873,7 +873,7 @@ def locker_tables(locker_id, limit=40):
     with _lock, _conn() as c:
         rows = c.execute(
             "SELECT l.id AS lobby_id, l.creator_token AS creator_token, (l.creator_locker=?) AS mine, "
-            "p.id AS player_id, p.token AS player_token, l.updated_at AS updated_at FROM lobby l "
+            "p.id AS player_id, p.token AS player_token, l.updated_at AS updated_at, l.name AS name, l.folded AS folded FROM lobby l "
             "LEFT JOIN player p ON p.lobby_id=l.id AND p.locker_id=? "
             "WHERE l.creator_locker=? OR p.locker_id=? ORDER BY l.updated_at DESC LIMIT ?",
             (locker_id, locker_id, locker_id, locker_id, limit)).fetchall()

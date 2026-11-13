@@ -58,6 +58,7 @@ pipelines:
       - {kind: rules, title: "Engine re-checks", detail: "Every planner pick goes back through resolve_squad(override): owned, legal, kit rules, D100 crutch ban. Wrong names are matched or dropped; why lines naming gear the diver isn't carrying are removed; challenge checks are read off the final kits.", code: "mind.to_override, mind.apply, mind._clean_why, mind.check_kit"}
       - {kind: db, title: "Pinned", detail: "The set is stored under brief_key (mission, reroll, squad, stated prefs), so gear ticks and stat re-reads never swap kits. Quick swaps sit on top.", code: "mind.brief_key, db.put_plan, server._with_saved_kits"}
       - {kind: user, title: "Briefing", detail: "Each diver sees their kit, why, the squad's review; they can quick-swap a piece, fight with a saved kit, pin armour, say Go.", code: "app.js renderLive"}
+      - {kind: rules, title: "Head start", detail: "Between missions of an operation (everyone debriefed), the suggested next mission's set is built in the background under the key 'Next mission' will use, so the squad's kits are there the moment the lead calls it.", code: "server._next_pick, _prewarm_next", cost: plan}
     fallbacks:
       - "No API key / planner off / budget spent / error / slower than 100 s → the engine's set is pinned and stays (the briefing never waits forever)."
       - "A name the planner invents → fuzzy-matched to owned gear, else dropped and refilled by the engine."
@@ -119,14 +120,16 @@ journeys:
     value: "Activation. Everything downstream (kits that fit, stats, medals) needs a profile with gear."
     metric: "Share of new profiles with gear set and a career read within their first table."
     steps:
-      - {actor: user, do: "Opens a WARMIND link (a table, a room, a profile)", sees: "A live card in Discord, then the sign-in gate", nodes: [discord]}
+      - {actor: user, do: "Opens a WARMIND link (a table, a room, a profile)", sees: "A live card in Discord, then the sign-in gate (it says gear can wait)", nodes: [discord]}
       - {actor: user, do: "Signs in with callsign + PIN (a new callsign creates the profile)", sees: "Home: the Major Order, the front", nodes: [db_lockers], probe: {url: "/", expect: ".homepane[data-k=home] .panel"}}
-      - {actor: user, do: "Uploads a career screenshot", sees: "Rates, play style, scorecard", nodes: [vision, db_lockers], probe: {url: "/?tab=me", expect: ".homepane[data-k=me] .panel"}}
-      - {actor: user, do: "Ticks the gear they own (search, warbond filters)", sees: "The gear checklist", nodes: [db_lockers], probe: {url: "/?locker", expect: ".subtabs"}}
-    friction: "Marking owned gear is the heaviest step (300+ items); a wrong list means kits the diver can't bring."
-    ux:
-      - "Offer 'I own these warbonds' presets up front, then search to fine-tune (the search exists; presets would cut it to a minute)."
-      - "Let a new diver skip gear and fix it later with quick swap (it already learns), but say so on the gate."
+      - {actor: user, do: "Profile: the Get set up checklist (career, gear, PIN), one tap each", sees: "Three steps with what's done", nodes: [db_lockers], probe: {url: "/?tab=me", expect: ".sustep"}}
+      - {actor: llm, do: "Reads the career screenshot", sees: "Rates, play style, scorecard", nodes: [vision, db_lockers]}
+      - {actor: user, do: "Marks gear: tap the warbonds owned, search to fine-tune, or 'I own everything' and fix later", sees: "The gear checklist with the warbond quick start", nodes: [db_lockers], probe: {url: "/?locker", expect: ".subtabs"}}
+    friction: "Gear is still the longest step for a diver with a mix of warbonds and single Superstore buys."
+    shipped:
+      - "Warbond quick start: one tap ticks a warbond's gear (the first tap starts from the base game)."
+      - "Gear can wait: the gate says so; 'I own everything' is one tap from the setup checklist."
+      - "Get set up checklist on the Profile: career read, gear, PIN, with what's left."
 
   - id: squad_night
     name: "Squad night (an operation)"
@@ -135,19 +138,21 @@ journeys:
     value: "The core loop and the retention engine: every drop feeds stats, lessons and Tuning, which make the next kits better."
     metric: "Tables that reach a debrief; debriefs per mission; missions per operation; time from mission set to kits."
     steps:
-      - {actor: user, do: "Lead starts a war table (optionally in a war room) and shares the code", sees: "Tables tab, then the table", nodes: [db_tables], probe: {url: "/?tab=tables", expect: "#sq-name"}}
+      - {actor: user, do: "Lead starts a war table (it defaults to the war room last opened) and shares the code", sees: "Tables tab, then the table", nodes: [db_tables], probe: {url: "/?tab=tables", expect: "#sq-name"}}
       - {actor: user, do: "Divers join with their profile", sees: "Their seat; gear and stats come from the profile", nodes: [db_tables, db_lockers]}
       - {actor: user, do: "Lead sets the mission (planet from the live war) and oaths", sees: "The mission editor", nodes: [warfeed, choices]}
       - {actor: llm, do: "Engine fills the kits; WARMIND re-picks them", sees: "'Building your loadouts', then the briefing", nodes: [engine, planner, db_tables], probe: {url: "/?l={lid}", expect: ".cmd"}}
-      - {actor: user, do: "Divers quick-swap, pick a saved kit, pin armour, say Go", sees: "Their card, Go / No-Go strip", nodes: [db_tables]}
-      - {actor: user, do: "Play the mission, then upload the scoreboard", sees: "Debrief: numbers, oaths, medals, review, lesson", nodes: [vision, judge, writer, db_results], probe: {url: "/?l={lid}", click: "Debrief", expect: ".honors"}}
+      - {actor: user, do: "Divers quick-swap, pick a saved kit, pin armour, say Go", sees: "Their card, Go / No-Go strip (gone once the drop is played)", nodes: [db_tables]}
+      - {actor: user, do: "Back from the drop: anyone uploads the squad's scoreboard (the big button on top of the table)", sees: "Debrief: numbers, oaths, medals, review, lesson", nodes: [vision, judge, writer, db_results], probe: {url: "/?l={lid}", click: "Debrief", expect: ".honors"}}
       - {actor: user, do: "Endorse squadmates' oaths; Tell WARMIND", sees: "Endorse buttons, the Tell WARMIND box", nodes: [judge, writer, db_lockers]}
-      - {actor: user, do: "Lead calls the next mission (fresh kits) or ends the operation", sees: "Mission n of m strip; whole-operation oaths", nodes: [engine, planner, judge]}
-    friction: "Debriefs depend on someone uploading; a squad that forgets loses the loop. Waiting for the planner (up to 100 s) is dead time."
-    ux:
-      - "Between missions, put 'Upload the squad's scoreboard' as the one big button for whoever hasn't debriefed."
-      - "Start the planner on 'Next mission' while the squad is still in the ship menu; show the next mission's kit preview on the Discord card."
-      - "One-tap 'Same mission type again' and 'Random from this planet' in Next mission."
+      - {actor: llm, do: "Head start: once everyone has debriefed, WARMIND builds the suggested next mission's kits", sees: "The Discord card: NEXT · mission · KITS READY, each diver's next kit", nodes: [engine, planner, db_tables, discord]}
+      - {actor: user, do: "Lead calls the next mission: the suggested one (kits ready at once), same again, or random", sees: "Next mission dialog; Mission n of m strip; whole-operation oaths", nodes: [engine, planner, judge], probe: {url: "/?l={lid}", click: "Next mission", expect: "dialog.modal[open] .btnrow"}}
+    friction: "Debriefs still depend on one person uploading the scoreboard; a squad that forgets loses the loop."
+    shipped:
+      - "Back from the drop: one big 'Upload the squad's scoreboard' button on top of the table for whoever hasn't debriefed."
+      - "Head start: the next mission's kits are built while the squad is in the ship (one plan call, inside the caps)."
+      - "Next mission: one tap for the same mission again or a random one; the default is the one already built."
+      - "Discord card: mission n of m, the next mission and each diver's role + main pick."
 
   - id: solo_log
     name: "Log a drop without a table"
@@ -156,12 +161,12 @@ journeys:
     value: "Captures play outside squad night, so the profile stays current and room orders keep progressing."
     metric: "Logged drops per active diver per week."
     steps:
-      - {actor: user, do: "Profile → Log a drop: 1–4 screenshots, mission, oaths, kit, war room", sees: "The log dialog", nodes: [choices], probe: {url: "/?tab=me", expect: ".slogbtn"}}
-      - {actor: llm, do: "Reads the board; finds the diver's column (or asks which one)", sees: "Which one is you?", nodes: [vision]}
-      - {actor: rules, do: "Judges oaths, records the drop on the profile's log seat", sees: "Drop logged: medals, review, lesson", nodes: [judge, writer, db_results, db_rooms]}
+      - {actor: user, do: "Profile → Log a drop: 1–4 screenshots, oaths, kit, war room (mission details optional)", sees: "The log dialog", nodes: [choices], probe: {url: "/?tab=me", expect: ".slogbtn"}}
+      - {actor: llm, do: "Reads the board: the diver's column (or asks which one), the mission and planet", sees: "Which one is you?", nodes: [vision]}
+      - {actor: rules, do: "Mission and front from the board (and the live war's planet); judges oaths; records the drop on the log seat", sees: "Drop logged: medals, review, lesson", nodes: [judge, writer, db_results, db_rooms, warfeed]}
     friction: "Endorse-only oaths can't be vouched for without a table."
-    ux:
-      - "Prefill the mission from the screenshot's mission name instead of asking."
+    shipped:
+      - "The mission and front come off the screenshot; the details are an optional fold."
 
   - id: war_room
     name: "War room"
@@ -171,11 +176,11 @@ journeys:
     metric: "Rooms with an active standing order; orders completed per month; members per room."
     steps:
       - {actor: user, do: "Creates a room, sets standing orders and the crew message", sees: "The room page", nodes: [db_rooms], probe: {url: "/?tab=rooms", expect: "#room-name"}}
-      - {actor: user, do: "Starts tables in the room; members log drops for it", sees: "Orders progress, ribbons, ship's log", nodes: [db_rooms, db_results]}
+      - {actor: user, do: "Starts tables in the room (the default once you've opened it); members log drops for it", sees: "Orders progress, ribbons, ship's log", nodes: [db_rooms, db_results]}
       - {actor: user, do: "Names awards and gives them with a citation", sees: "Awards on profiles and Discord cards", nodes: [db_rooms, discord]}
     friction: "Rooms only grow when tables are started inside them."
-    ux:
-      - "Default new tables to the room you were last in (with a visible switch)."
+    shipped:
+      - "New tables and logged drops default to the war room you last opened (the picker stays visible)."
 
   - id: ask_warmind
     name: "Ask WARMIND"
@@ -185,10 +190,11 @@ journeys:
     metric: "Questions per active diver; cost per answer; repeat askers."
     steps:
       - {actor: user, do: "Taps ◈ WARMIND (top of every page) and asks", sees: "The chat sheet with suggested questions", nodes: [choices], probe: {url: "/", expect: ".askbtn"}}
+      - {actor: user, do: "At a war table, the suggestions are about this mission, front, planet and kit", sees: "Questions about tonight's drop", nodes: [db_tables], probe: {url: "/?l={lid}", click: "WARMIND · ", expect: ".askdlg .chip"}}
       - {actor: llm, do: "Answers with their numbers, table, the war and item data", sees: "A short answer", nodes: [db_lockers, warfeed, writer]}
     friction: "Without a profile there's nothing personal to answer with."
-    ux:
-      - "At a table, suggest questions about this mission ('What kills Factory Striders with my kit?')."
+    shipped:
+      - "At a table: suggested questions about this mission ('How should my kit play …?')."
 
   - id: roster
     name: "Roster and public profiles"
@@ -220,7 +226,7 @@ principles:
 failure_modes:
   - {risk: "Screenshot misread", effect: "Wrong oath verdict, skewed career totals", guard: "Fix a number (re-judges oaths), re-upload replaces, numbers shown for verification"}
   - {risk: "Planner invents gear or breaks rules", effect: "Unusable kit", guard: "Name matching to owned gear, resolve_squad(override) re-check, why-line cleanup"}
-  - {risk: "Planner slow or down", effect: "Squad waits", guard: "100 s cut-over to the engine's set, pinned; budget caps"}
+  - {risk: "Planner slow or down", effect: "Squad waits", guard: "Head start between missions; 100 s cut-over to the engine's set, pinned; budget caps"}
   - {risk: "Game patch changes items", effect: "Stale data", guard: "data-verify against the wiki on every data change; patch watcher opens an issue"}
   - {risk: "Spend runs away", effect: "Bill", guard: "Caps per table, connection, diver and day; every call priced in api_usage; /?costs"}
   - {risk: "One process, SQLite", effect: "Caches (db.GEN, plans in flight) are per process", guard: "Render runs one instance; scale-out would need a shared cache and Postgres"}
