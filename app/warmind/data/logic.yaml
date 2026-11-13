@@ -1,0 +1,233 @@
+# WARMIND's logic, as data. The Logic tab (?logic) draws it and tests/journeys.js walks its journeys.
+# Keep it true to the code: every step names the file / function that does it. Live numbers (counts, costs,
+# planner status) are added by server.logic_out(), never written here.
+_about: The decision system and the user journeys, from a systems architect's view. Edit with the code.
+
+kinds:
+  user:     {label: Diver, desc: "A person: taps, uploads, types."}
+  llm:      {label: LLM, desc: "A Claude call: judgement, reading screenshots, writing. Costs money, can fail, is always checked."}
+  rules:    {label: Rules, desc: "Hard-coded logic and policy (Python + YAML). Deterministic: same input, same answer."}
+  db:       {label: Memory, desc: "SQLite on the server: what WARMIND remembers between sessions."}
+  external: {label: Feed, desc: "Facts from outside: the wiki (synced on GitHub Actions) and the live war API."}
+
+# ------------------------------------------------------------------ the system map (Inputs → Decide → Remember → Show)
+layers:
+  - id: inputs
+    name: Inputs
+    nodes:
+      - {id: wiki, kind: external, name: "Wiki facts", desc: "Items, armour passives, weapon stats, pictures, missions, hazards, modifiers. sync/verify_wiki.py on GitHub Actions; data-verify fails on a mismatch."}
+      - {id: warfeed, kind: external, name: "Live war", desc: "Major Orders and planets, cached (war.snapshot). Fills the planet, front and hazards of a table."}
+      - {id: shots, kind: user, name: "Screenshots", desc: "Career stats, mission scoreboards (1–4 per drop), gear prefill."}
+      - {id: choices, kind: user, name: "Choices", desc: "Mission, mode, oaths, gear owned, play style, role asked for, armour pinned, quick swaps, Tell WARMIND notes, questions."}
+  - id: decide
+    name: Decide
+    nodes:
+      - {id: vision, kind: llm, name: "Vision read", desc: "Reads numbers off screenshots (vision.read_result / read_squad_results / parse_career). Mock mode without a key."}
+      - {id: engine, kind: rules, name: "Rules engine", desc: "warmind/resolve.py: roles, pressure, scoring, kit rules, squad review, coverage floors, boosters. Deterministic; the seed is the reroll."}
+      - {id: planner, kind: llm, name: "Planner", desc: "mind.py: one Claude call per squad + mission + reroll re-picks every kit with the full context. Structured output, cached system prompt."}
+      - {id: judge, kind: rules, name: "Oath judge", desc: "oaths.evaluate / disqualified / medal: kept or broken from the numbers; medals are a deterministic hash."}
+      - {id: writer, kind: llm, name: "Writer", desc: "Debrief review + LESSON line, Tuning notes (distill_tune), Ask WARMIND answers."}
+  - id: remember
+    name: Remember
+    nodes:
+      - {id: db_lockers, kind: db, name: "Profiles", desc: "locker: callsign + PIN, gear, prefs, career read history (locker_stats), saved kits, Tuning (locker_tune)."}
+      - {id: db_tables, kind: db, name: "Tables", desc: "lobby + player: mission, operation (drop_no), seats, swaps, Go / No-Go; plan: the pinned set per brief_key."}
+      - {id: db_results, kind: db, name: "Debriefs", desc: "result: numbers, kit fought with, verdicts, medals, review, lesson, mission at upload; endorsements."}
+      - {id: db_rooms, kind: db, name: "War rooms", desc: "room, members, standing orders, awards, ship's log."}
+      - {id: db_costs, kind: db, name: "Costs", desc: "api_usage: every Claude call's tokens and price, by kind."}
+  - id: show
+    name: Show
+    nodes:
+      - {id: briefing, kind: user, name: "Briefing", desc: "Kits, why lines, challenge card, squad review, Go / No-Go."}
+      - {id: debrief, kind: user, name: "Debrief", desc: "Numbers, oaths, medals, endorsements, review, lesson, Tell WARMIND, operation so far."}
+      - {id: profile, kind: user, name: "Profile & Home", desc: "Career + enriched stats, Tuning, medals, rooms' orders, medals in play."}
+      - {id: discord, kind: external, name: "Discord", desc: "Link cards (cards.py) and the /warmind app: tables, rooms and divers in any server."}
+
+# ------------------------------------------------------------------ how decisions are made
+pipelines:
+  - id: briefing
+    name: "Building the squad's kits"
+    question: "What should each diver bring to this mission?"
+    steps:
+      - {kind: user, title: "Mission set", detail: "The creator picks mission, faction, difficulty, mode, oaths (per mission and for the operation), modifiers. The planet comes from the live war.", code: "server.set_mission / _clean_mission"}
+      - {kind: db, title: "Who's in, what they own", detail: "Each seat: owned gear (or 'owns everything'), play style, prefs, pinned armour, saved-kit choice, career totals (career read + debriefs since).", code: "server._resolve, _snap_of"}
+      - {kind: rules, title: "Pressure", detail: "Mission, hazards, modifiers and front turn into weighted needs (anti-tank, chaff, structures, stealth...).", code: "warmind/pressure.py"}
+      - {kind: rules, title: "Roles", detail: "HARDPOINT, HAMMER, FORWARD EYE, FIRES, LONG ARM, assigned by fit to the mission and each diver's style; the creator's call or a diver's ask is locked.", code: "resolve._assign_roles*, _with_wants"}
+      - {kind: rules, title: "Fill the kits", detail: "Stratagems under the kit rules (one support weapon, one backpack, Eagle cap, no stratagem twice in a squad), then the squad review (anti-tank depth, chaff, structures floors), then weapons that complement them, then armour whose passive fits. One-handed primary under a shield; a solo diver clears chaff; useless boosters banned.", code: "resolve.resolve_squad phases 1–4, kitrules.py"}
+      - {kind: llm, title: "WARMIND thinks", detail: "The engine's plan + ranked shortlists of owned gear (stats, 'ask', grades) + each diver's numbers, drills, Tuning, debrief lessons, earlier missions of this operation, recent kits. Returns kits, why lines, a summary and (Challenge / D100) a named challenge.", code: "mind.build_request, mind._call", cost: plan}
+      - {kind: rules, title: "Engine re-checks", detail: "Every planner pick goes back through resolve_squad(override): owned, legal, kit rules, D100 crutch ban. Wrong names are matched or dropped; why lines naming gear the diver isn't carrying are removed; challenge checks are read off the final kits.", code: "mind.to_override, mind.apply, mind._clean_why, mind.check_kit"}
+      - {kind: db, title: "Pinned", detail: "The set is stored under brief_key (mission, reroll, squad, stated prefs), so gear ticks and stat re-reads never swap kits. Quick swaps sit on top.", code: "mind.brief_key, db.put_plan, server._with_saved_kits"}
+      - {kind: user, title: "Briefing", detail: "Each diver sees their kit, why, the squad's review; they can quick-swap a piece, fight with a saved kit, pin armour, say Go.", code: "app.js renderLive"}
+    fallbacks:
+      - "No API key / planner off / budget spent / error / slower than 100 s → the engine's set is pinned and stays (the briefing never waits forever)."
+      - "A name the planner invents → fuzzy-matched to owned gear, else dropped and refilled by the engine."
+
+  - id: debrief
+    name: "Debriefing a drop"
+    question: "What happened, which oaths held, what should change next time?"
+    steps:
+      - {kind: user, title: "Scoreboard", detail: "1–4 screenshots of one mission: your column, or the whole squad's board (then confirm who is who).", code: "POST /result, /results/squad"}
+      - {kind: llm, title: "Read the numbers", detail: "Kills, deaths, accuracy, shots, samples, stratagems, objectives, accidentals, mission name, planet.", code: "vision.read_result / read_squad_results", cost: result}
+      - {kind: rules, title: "Same drop?", detail: "Same mission name, or identical numbers, replaces the earlier read; a different mission (or the next mission of the operation) is a new drop.", code: "server._same_drop"}
+      - {kind: rules, title: "Judge the oaths", detail: "Decided in code from the numbers, before any prose: kept, broken, or waiting for squad endorsements; a scoreboard can still disqualify an endorse-only oath. Medals get a deterministic ID.", code: "oaths.evaluate, disqualified, medal"}
+      - {kind: llm, title: "Review + lesson", detail: "Grades WARMIND's advice (not the player) against the role and the career baseline; sticks to what the numbers show; ends with one kit LESSON for next time.", code: "vision.write_aar", cost: review}
+      - {kind: db, title: "Remember", detail: "Numbers, the kit fought with, verdicts, review, lesson, mission at upload, room, mission number of the operation.", code: "db.save_result"}
+      - {kind: rules, title: "Feeds everything after", detail: "Career totals (career read + debriefs since), enriched stats, the saved kit's record, room orders and ship's log, whole-operation oaths at the end.", code: "enrich.py, _with_records, _room_tally, _finish_op"}
+    fallbacks:
+      - "A misread number → 'Fix a number' (diver or creator): oaths are judged again; the fix is shown to everyone."
+      - "The review call fails → the numbers and verdicts still stand; a plain line replaces the prose."
+
+  - id: learning
+    name: "How WARMIND learns a diver"
+    question: "How does feedback reach the next kit?"
+    steps:
+      - {kind: user, title: "Tell WARMIND", detail: "After a debrief: what worked, what didn't, in your words.", code: "POST /tune"}
+      - {kind: llm, title: "Distil one note", detail: "One small call keeps the single note that helps future kits (≤25 words, every front or one faction), or nothing.", code: "vision.distill_tune", cost: tune}
+      - {kind: db, title: "Tuning", detail: "Kept on the profile; the diver can edit or delete it.", code: "locker_tune"}
+      - {kind: rules, title: "Context packet", detail: "Next brief: Tuning (outranks lessons), last debrief lessons, this operation's earlier missions, last 5 kits elsewhere, career rates and drills.", code: "server._resolve, _history_for, _tuning_for"}
+      - {kind: llm, title: "Planner", detail: "Evolves the kit within an operation (says what it kept and changed), varies it across drops, honours Tuning (Challenge / D100 may push past it, and say so).", code: "mind._system_prompt", cost: plan}
+
+  - id: ask
+    name: "Ask WARMIND"
+    question: "Answer a diver's question with their own data."
+    steps:
+      - {kind: user, title: "Question", detail: "Typed in the ◈ WARMIND chat, from any page (the last 6 turns go along).", code: "askDialog"}
+      - {kind: db, title: "Who's asking", detail: "Career rates and totals, enriched stats, Tuning, lessons, recent and saved kits, owned gear.", code: "server._ask_context"}
+      - {kind: external, title: "Where they are", detail: "The war table they're at (mission, conditions, squad kits, operation) and the live war.", code: "server._ask_context, war.snapshot"}
+      - {kind: rules, title: "What they named", detail: "Items named by full name, model code or a distinctive word get the app's data: wiki stats, passive, 'ask', coverage, grade per front.", code: "askwm._items_named"}
+      - {kind: llm, title: "Answer", detail: "Short, phone-first, cites the numbers; says when a fact may have changed in a patch. 30 per diver per day.", code: "askwm.answer", cost: ask}
+
+# ------------------------------------------------------------------ hard-coded concepts (live counts added by the server)
+concepts:
+  - {id: roles, name: "Roles", count_key: roles, file: "warmind/roles.py", desc: "Five squad jobs, each with armour weight, stratagem slots and a signature metric."}
+  - {id: modes, name: "Modes", count_key: modes, file: "warmind/modes.py", desc: "Optimize, Fun, Improvement, Challenge, D100: how the scoring leans and what the planner is asked for."}
+  - {id: kit_rules, name: "Kit rules", count_key: kit_rules, file: "warmind/data/kit_rules.yaml", desc: "The game's loadout limits and the squad's taste, each with its sources; the planner reads them too."}
+  - {id: oaths, name: "Oaths", count_key: oaths, file: "warmind/oaths.py", desc: "Challenges sworn before a drop, judged in code; endorse-only ones need the squad, with scoreboard DQ rules."}
+  - {id: items, name: "Gear", count_key: items, file: "warmind/data/items.yaml", desc: "Every weapon, grenade, armour and stratagem with coverage axes, tags and a grade per front."}
+  - {id: missions, name: "Missions", count_key: missions, file: "warmind/data/missions.yaml", desc: "Mission types with tags (defense, timer, stealth...) that drive pressure and booster bans."}
+  - {id: fronts, name: "Fronts", count_key: fronts, file: "warmind/data/fronts.yaml", desc: "Each faction's spawners and what closes them; which grenades kill bug holes, fabricators, warp ships."}
+  - {id: ask, name: "'Ask' ratings", count_key: null, file: "warmind/data/ask.yaml", desc: "How much an item demands of the player; crutches banned in D100; drills from career stats."}
+  - {id: coverage, name: "Coverage axes", count_key: axes, file: "mind.AXES / warmind/coverage.py", desc: "Anti-tank, chaff, structures and the rest: the squad review's floors (2 anti-tank, 2 chaff, 2 structures for a full squad)."}
+  - {id: budgets, name: "Spend caps", count_key: null, file: "budget.py", desc: "Screenshot reads per table / connection / day; plans per table-hour and day; questions per diver per day."}
+
+# ------------------------------------------------------------------ user journeys (probes are what tests/journeys.js checks)
+journeys:
+  - id: first_run
+    name: "First run"
+    persona: "A squadmate opening a link from Discord"
+    goal: "Become a diver WARMIND knows"
+    value: "Activation. Everything downstream (kits that fit, stats, medals) needs a profile with gear."
+    metric: "Share of new profiles with gear set and a career read within their first table."
+    steps:
+      - {actor: user, do: "Opens a WARMIND link (a table, a room, a profile)", sees: "A live card in Discord, then the sign-in gate", nodes: [discord]}
+      - {actor: user, do: "Signs in with callsign + PIN (a new callsign creates the profile)", sees: "Home: the Major Order, the front", nodes: [db_lockers], probe: {url: "/", expect: ".homepane[data-k=home] .panel"}}
+      - {actor: user, do: "Uploads a career screenshot", sees: "Rates, play style, scorecard", nodes: [vision, db_lockers], probe: {url: "/?tab=me", expect: ".homepane[data-k=me] .panel"}}
+      - {actor: user, do: "Ticks the gear they own (search, warbond filters)", sees: "The gear checklist", nodes: [db_lockers], probe: {url: "/?locker", expect: ".subtabs"}}
+    friction: "Marking owned gear is the heaviest step (300+ items); a wrong list means kits the diver can't bring."
+    ux:
+      - "Offer 'I own these warbonds' presets up front, then search to fine-tune (the search exists; presets would cut it to a minute)."
+      - "Let a new diver skip gear and fix it later with quick swap (it already learns), but say so on the gate."
+
+  - id: squad_night
+    name: "Squad night (an operation)"
+    persona: "The squad lead and three divers on Discord"
+    goal: "Fitted kits for every mission of the operation, then medals"
+    value: "The core loop and the retention engine: every drop feeds stats, lessons and Tuning, which make the next kits better."
+    metric: "Tables that reach a debrief; debriefs per mission; missions per operation; time from mission set to kits."
+    steps:
+      - {actor: user, do: "Lead starts a war table (optionally in a war room) and shares the code", sees: "Tables tab, then the table", nodes: [db_tables], probe: {url: "/?tab=tables", expect: "#sq-name"}}
+      - {actor: user, do: "Divers join with their profile", sees: "Their seat; gear and stats come from the profile", nodes: [db_tables, db_lockers]}
+      - {actor: user, do: "Lead sets the mission (planet from the live war) and oaths", sees: "The mission editor", nodes: [warfeed, choices]}
+      - {actor: llm, do: "Engine fills the kits; WARMIND re-picks them", sees: "'Building your loadouts', then the briefing", nodes: [engine, planner, db_tables], probe: {url: "/?l={lid}", expect: ".cmd"}}
+      - {actor: user, do: "Divers quick-swap, pick a saved kit, pin armour, say Go", sees: "Their card, Go / No-Go strip", nodes: [db_tables]}
+      - {actor: user, do: "Play the mission, then upload the scoreboard", sees: "Debrief: numbers, oaths, medals, review, lesson", nodes: [vision, judge, writer, db_results], probe: {url: "/?l={lid}", click: "Debrief", expect: ".honors"}}
+      - {actor: user, do: "Endorse squadmates' oaths; Tell WARMIND", sees: "Endorse buttons, the Tell WARMIND box", nodes: [judge, writer, db_lockers]}
+      - {actor: user, do: "Lead calls the next mission (fresh kits) or ends the operation", sees: "Mission n of m strip; whole-operation oaths", nodes: [engine, planner, judge]}
+    friction: "Debriefs depend on someone uploading; a squad that forgets loses the loop. Waiting for the planner (up to 100 s) is dead time."
+    ux:
+      - "Between missions, put 'Upload the squad's scoreboard' as the one big button for whoever hasn't debriefed."
+      - "Start the planner on 'Next mission' while the squad is still in the ship menu; show the next mission's kit preview on the Discord card."
+      - "One-tap 'Same mission type again' and 'Random from this planet' in Next mission."
+
+  - id: solo_log
+    name: "Log a drop without a table"
+    persona: "A diver who played with randoms"
+    goal: "Keep stats, medals and room orders moving"
+    value: "Captures play outside squad night, so the profile stays current and room orders keep progressing."
+    metric: "Logged drops per active diver per week."
+    steps:
+      - {actor: user, do: "Profile → Log a drop: 1–4 screenshots, mission, oaths, kit, war room", sees: "The log dialog", nodes: [choices], probe: {url: "/?tab=me", expect: ".slogbtn"}}
+      - {actor: llm, do: "Reads the board; finds the diver's column (or asks which one)", sees: "Which one is you?", nodes: [vision]}
+      - {actor: rules, do: "Judges oaths, records the drop on the profile's log seat", sees: "Drop logged: medals, review, lesson", nodes: [judge, writer, db_results, db_rooms]}
+    friction: "Endorse-only oaths can't be vouched for without a table."
+    ux:
+      - "Prefill the mission from the screenshot's mission name instead of asking."
+
+  - id: war_room
+    name: "War room"
+    persona: "A squad's founder"
+    goal: "A lasting home: orders, awards, history"
+    value: "Long-horizon retention and identity: goals that span nights, recognition from the founder, a log worth scrolling."
+    metric: "Rooms with an active standing order; orders completed per month; members per room."
+    steps:
+      - {actor: user, do: "Creates a room, sets standing orders and the crew message", sees: "The room page", nodes: [db_rooms], probe: {url: "/?tab=rooms", expect: "#room-name"}}
+      - {actor: user, do: "Starts tables in the room; members log drops for it", sees: "Orders progress, ribbons, ship's log", nodes: [db_rooms, db_results]}
+      - {actor: user, do: "Names awards and gives them with a citation", sees: "Awards on profiles and Discord cards", nodes: [db_rooms, discord]}
+    friction: "Rooms only grow when tables are started inside them."
+    ux:
+      - "Default new tables to the room you were last in (with a visible switch)."
+
+  - id: ask_warmind
+    name: "Ask WARMIND"
+    persona: "Any diver, any page"
+    goal: "A straight answer about stats, gear or tactics"
+    value: "Engagement between drops and the 'coach in your pocket' promise; each answer is a paid call, so it's capped."
+    metric: "Questions per active diver; cost per answer; repeat askers."
+    steps:
+      - {actor: user, do: "Taps ◈ WARMIND (top of every page) and asks", sees: "The chat sheet with suggested questions", nodes: [choices], probe: {url: "/", expect: ".askbtn"}}
+      - {actor: llm, do: "Answers with their numbers, table, the war and item data", sees: "A short answer", nodes: [db_lockers, warfeed, writer]}
+    friction: "Without a profile there's nothing personal to answer with."
+    ux:
+      - "At a table, suggest questions about this mission ('What kills Factory Striders with my kit?')."
+
+  - id: roster
+    name: "Roster and public profiles"
+    persona: "A squadmate sizing up the crew"
+    goal: "See who plays how, and their medals"
+    value: "Social proof and friendly competition; feeds Discord sharing."
+    metric: "Profile views; shares of diver cards."
+    steps:
+      - {actor: user, do: "Opens the Roster, sorts by a rate", sees: "Divers ranked", nodes: [db_lockers], probe: {url: "/?tab=roster", expect: ".homepane[data-k=roster]"}}
+      - {actor: user, do: "Opens a diver", sees: "Their rates, enriched stats, medals, saved kits", nodes: [db_lockers, db_results]}
+
+  - id: logic
+    name: "This page"
+    persona: "The engineer, or a curious diver"
+    goal: "See how WARMIND decides"
+    value: "Explainability builds trust in the picks; the map doubles as the test plan."
+    metric: "—"
+    steps:
+      - {actor: user, do: "Opens Logic", sees: "The system map, pipelines, rules, journeys", nodes: [], probe: {url: "/?logic", expect: ".logic"}}
+
+# ------------------------------------------------------------------ the architect's read
+principles:
+  - {title: "The LLM proposes, the engine disposes", body: "Every judgement from Claude (kits, names, challenges) is re-validated by deterministic code before anyone sees it. The model adds taste; it can never hand out gear a diver doesn't own or break a kit rule."}
+  - {title: "Facts, policy and judgement live apart", body: "Facts come from the wiki and the war feed (synced, verified). Policy is hard-coded and versioned (YAML + Python). Judgement is the LLM, bounded by a schema and re-checks. Each can change without breaking the others."}
+  - {title: "Decide once, then hold still", body: "A squad's set is pinned to what it was for (mission, reroll, squad, stated prefs). Background changes never reshuffle kits mid-briefing; only an explicit act (reroll, next mission, swap) does."}
+  - {title: "Numbers before prose", body: "Oaths and medals are decided in code from the scoreboard before the review is written, so the story can't contradict the verdict."}
+  - {title: "Every call has a floor", body: "No key, no budget, a timeout or a bad answer all degrade to the engine's picks or plain text. The app never blocks on a model."}
+
+failure_modes:
+  - {risk: "Screenshot misread", effect: "Wrong oath verdict, skewed career totals", guard: "Fix a number (re-judges oaths), re-upload replaces, numbers shown for verification"}
+  - {risk: "Planner invents gear or breaks rules", effect: "Unusable kit", guard: "Name matching to owned gear, resolve_squad(override) re-check, why-line cleanup"}
+  - {risk: "Planner slow or down", effect: "Squad waits", guard: "100 s cut-over to the engine's set, pinned; budget caps"}
+  - {risk: "Game patch changes items", effect: "Stale data", guard: "data-verify against the wiki on every data change; patch watcher opens an issue"}
+  - {risk: "Spend runs away", effect: "Bill", guard: "Caps per table, connection, diver and day; every call priced in api_usage; /?costs"}
+  - {risk: "One process, SQLite", effect: "Caches (db.GEN, plans in flight) are per process", guard: "Render runs one instance; scale-out would need a shared cache and Postgres"}
+
+flywheel:
+  - "Squad plays a mission"
+  - "Debrief: numbers, oaths, medals"
+  - "Career, lessons, Tuning"
+  - "Richer planner context"
+  - "Kits that fit better"

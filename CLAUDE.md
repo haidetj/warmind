@@ -56,6 +56,17 @@ busiest planets); and app data for every item the question names (`askwm._items_
 distinctive word). Signed-in only; caps `WARMIND_ASK_PER_DIVER_DAY` (30) / `WARMIND_ASK_PER_DAY` (200). The
 conversation stays in the tab (sessionStorage, last 6 turns sent).
 
+## Logic tab (`?logic`, 🧠 in the nav) and the journey test
+`app/warmind/data/logic.yaml` is WARMIND's decision system and user journeys as data: the system map (inputs → decide →
+remember → show, each node typed user / llm / rules / db / external), the decision pipelines step by step (with the code
+that does each, LLM cost kinds and fallbacks), the hard-coded concepts, the journeys (persona, goal, business value,
+metric, steps with the nodes they touch, friction, UX ideas) and the architect's notes (principles, failure modes,
+flywheel). `GET /api/logic` serves it plus live numbers (counts, 30-day calls and average cost per kind, caps, planner
+status; no player data). `renderLogic` draws it (Map / Decisions / Rules / Journeys / Architect). Keep it true to the
+code when the code changes. Journey steps with a `probe` ({url, expect, click?}) are the test plan: `node
+tests/journeys.js [url]` (mock-mode server, see `tests/README.md`) opens each at 360 / 448 px and fails on a missing
+selector, a page error or sideways scroll.
+
 ## War rooms, roster, profiles
 - Profile = locker (`x-locker` header). You are your callsign: home, war tables and the locker
   open behind a sign-in gate (callsign + 4–8 digit PIN, `/api/signin`; PBKDF2 hash on the locker).
@@ -98,7 +109,7 @@ conversation stays in the tab (sessionStorage, last 6 turns sent).
   else legal ends up with a double. Democracy Space Station actions that don't act on a mission (`war.DSS_NOT_MISSION`:
   Operational Support, Exosuit Reserves) are dropped from missions and the briefing.
 - App nav (`appNav`): fixed at the bottom of every page, the only nav: Home, your current / last table, Profile, War tables,
-  War rooms, Roster (short labels `nav.*` so six fit at 360 px in every language).
+  War rooms, Roster, Logic (short labels `nav.*` so seven fit at 360 px in every language).
 - Debrief uploads (yours, or the whole squad's scoreboard) take 1–4 screenshots of the same mission (`images`), read together.
 - Endorse-only oaths (Side Sweep, Sample Run…) can still be ruled out by the scoreboard: each lists `dq` rules in
   `oaths.OATHS` (a field at or under a max, or objectives left undone), checked by `oaths.disqualified` whenever that
