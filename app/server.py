@@ -795,10 +795,66 @@ def _op_out(lobby, players_rows):
             rs = by_pid.get(p["id"]) or []
             standing.append({"player_id": p["id"], "callsign": p["callsign"], "missions": len(rs), "totals": _op_sum(rs) if rs else None,
                              "verdicts": _op_verdicts(lobby, p["id"], rs) if rs else []})
+    st = _table_status(lobby, players_rows)
+    nxt = _next_pick(lobby) if st == "between" else None
+    if nxt:
+        _prewarm_next(lobby, nxt)
     return {"drop": cur, "of": max(n, cur), "planned": n, "legacy": lobby.get("drop_no") is None,
-            "done": bool(lobby.get("op_done")) or _table_status(lobby, players_rows) == "done",
+            "done": bool(lobby.get("op_done")) or st == "done",
             "drops": [by_drop[k] for k in sorted(by_drop) if k != cur or lobby.get("op_done")],
-            "op_oaths": op_oaths, "standing": standing}
+            "op_oaths": op_oaths, "standing": standing, "next": nxt}
+
+
+def _next_pick(lobby) -> dict | None:
+    """The operation's suggested next mission: the first of this front and difficulty (as the picker lists
+    them) not played yet in this operation. WARMIND builds its kits ahead, while the squad is in the ship."""
+    m = _mission_from(lobby) or {}
+    if not m.get("mission_id"):
+        return None
+    fac, dv = m.get("faction"), int(m.get("difficulty") or 7)
+    played = {(loader.missions().get(m["mission_id"]) or {}).get("display_name")}
+    played |= {(_result_mission(r) or {}).get("name") for r in db.lobby_results(lobby["id"])}
+    fits = sorted((x for x in loader.missions().values()
+                   if (not x.get("factions") or fac in x["factions"])
+                   and x.get("difficulty_min", 1) <= dv <= x.get("difficulty_max", 10)), key=lambda x: x["display_name"])
+    pick = next((x for x in fits if x["display_name"] not in played), None) or next(iter(fits), None)
+    return {"mission_id": pick["id"], "name": pick["display_name"]} if pick else None
+
+
+def _next_mission(lobby, patch: dict | None) -> dict:
+    """The next mission of the operation as /next stores it: the current one with the changes, a new number."""
+    m = _clean_mission(dict(_mission_from(lobby) or {}, **(patch or {})))
+    m["drop"] = _cur_drop(lobby) + 1   # part of what the kits are for: each mission gets its own set
+    return m
+
+
+def _next_lobby(lobby, pick: dict) -> dict:
+    """The table as it will be after 'Next mission' with this pick (read-only: nothing is stored)."""
+    return dict(lobby, drop_no=_cur_drop(lobby) + 1, mission_json=json.dumps(_next_mission(lobby, {"mission_id": pick["mission_id"]})))
+
+
+_PREWARMED: set = set()
+
+
+def _prewarm_next(lobby, pick: dict) -> None:
+    """Head start: once every diver has debriefed, build the suggested next mission's kits in the background
+    (the engine's set, and the planner's under the same key /next will use), so 'Next mission' with that pick
+    shows kits at once. One plan call per mission of an operation, inside the usual caps; off with
+    WARMIND_PREWARM=0."""
+    if os.environ.get("WARMIND_PREWARM", "1") == "0" or not mind.ENABLED or not lobby.get("briefed"):
+        return
+    k = (lobby["id"], _cur_drop(lobby), pick["mission_id"])
+    if k in _PREWARMED:
+        return
+    _PREWARMED.add(k)
+
+    def run():
+        try:
+            _resolve(_next_lobby(lobby, pick))
+        except Exception:   # noqa: BLE001  a head start that fails costs nothing: /next plans as usual
+            pass
+    import threading
+    threading.Thread(target=run, daemon=True).start()
 
 
 def _finish_op(lobby):
@@ -1231,9 +1287,7 @@ def next_mission(lid: str, payload: dict, x_token: str = Header(None)):
         raise HTTPException(409, "this operation is over: start a new war table for the next one")
     if lobby.get("drop_no") is None:
         db.set_lobby_drop1(lid)
-    cur = _mission_from(lobby) or {}
-    m = _clean_mission(dict(cur, **(payload.get("mission") or {})))
-    m["drop"] = _cur_drop(db.get_lobby(lid)) + 1   # part of what the kits are for: each mission gets its own set
+    m = _next_mission(db.get_lobby(lid), payload.get("mission"))
     n = db.next_drop(lid, m)
     if lobby.get("briefed"):
         db.lock_roster(lid, [p["id"] for p in db.list_players(lid)])
@@ -2208,26 +2262,53 @@ def _style_label(key):
     return ps.label if ps else None
 
 
-def _table_card(lid, base):
+def _table_card(lid, base, preview=True):
     lobby = db.get_lobby(str(lid)[:40])
     if not lobby:
         return None
     players = db.list_players(lobby["id"])
-    got = db.lobby_debriefed(lobby["id"])
+    cur = _cur_drop(lobby) if lobby.get("drop_no") is not None else None
+    got = db.lobby_debriefed(lobby["id"], cur)   # this mission of the operation
     mission = _mission_from(lobby) or {}
     room = db.get_room(lobby["room_id"]) if lobby.get("room_id") else None
+    st = _table_status(lobby, players)
+    # the kit preview: each diver's role and main pick for this mission, or between missions for the next
+    # one (built ahead by the head start); both come from the pinned set, so a card never calls the planner
+    # beyond what the table itself would
+    kits, nxt = {}, None
+    try:
+        state = None
+        if not preview:
+            pass
+        elif st == "between":
+            pick = _next_pick(lobby)
+            if pick:
+                state = _resolve(_next_lobby(lobby, pick))
+                ms = ((state.get("directive") or {}).get("mind") or {}).get("status")
+                nxt = {"name": pick["name"], "ready": bool(state.get("directive")) and ms != "thinking"}
+        elif st in ("open", "debriefing") and lobby.get("briefed"):
+            state = _resolve(lobby)
+        for sp in (state or {}).get("players") or []:
+            a = sp.get("assignment")
+            if a:
+                main = next((s for s in a.get("stratagems") or [] if (_POOL.get(s) and _POOL.get(s).category == "support")), None) \
+                    or a.get("primary")
+                kits[sp["id"]] = " · ".join(x for x in [a.get("role"), main] if x)
+    except Exception:   # noqa: BLE001  the card still draws without the preview
+        kits, nxt = {}, None
     divers = []
     for p in players:
         medal = None
         if p["id"] in got:
-            r = db.latest_result(p["id"]) or {}
+            r = db.latest_result(p["id"], cur) or {}
             medal = next((v["medal"].get("name") for v in _verdicts_of(r.get("verdict_json")) if v and v.get("medal")), None)
-        divers.append({"callsign": p.get("callsign"), "style": _style_label(p.get("play_style")), "go": bool(p.get("go")),
+        divers.append({"callsign": p.get("callsign"), "style": kits.get(p["id"]) or _style_label(p.get("play_style")), "go": bool(p.get("go")),
                        "debriefed": p["id"] in got, "medal": medal})
-    return {"kind": "table", "name": lobby["name"], "status": _table_status(lobby, players),
+    op = None if cur is None or _op_len(lobby) <= 1 else f"Mission {cur} of {max(_op_len(lobby), cur)}"
+    return {"kind": "table", "name": lobby["name"], "status": st,
             "mission": _mission_name(lobby.get("mission_json")), "planet": mission.get("planet_name"),
             "room": room["name"] if room else None, "code": lobby["id"], "url": f"{base}/?l={lobby['id']}",
-            "squad_size": lobby.get("squad_size"), "divers": divers}
+            "squad_size": lobby.get("squad_size"), "divers": divers, "op": op, "next": nxt}
 
 
 def _room_card(rid, base):
@@ -2291,13 +2372,13 @@ def card(kind: str, cid: str, request: Request):
     return Response(png, media_type="image/png", headers={"Cache-Control": "public, max-age=60"})
 
 
-def _og_for(params, base):
-    """(title, description, card kind, id) for a shared link, or None."""
+def _og_for(params, base, light=False):
+    """(title, description, card kind, id) for a shared link, or None. light: no kit preview (page loads)."""
     for key, kind in (("l", "table"), ("room", "room"), ("roster", "diver")):
         cid = params.get(key)
         if not cid or cid in ("1", ""):
             continue
-        data = _CARD_DATA[kind](cid, base)
+        data = _table_card(cid, base, preview=False) if light and kind == "table" else _CARD_DATA[kind](cid, base)
         if not data:
             return None
         if kind == "table":
@@ -2407,7 +2488,7 @@ def index(request: Request):
     base = _public_base(request)
     title, desc, img = "WARMIND", "The squad coach for Helldivers 2: loadouts built for your mission, gear and stats.", None
     try:
-        og = _og_for(request.query_params, base)
+        og = _og_for(request.query_params, base, light=True)
     except Exception:
         og = None
     if og:
@@ -2641,7 +2722,7 @@ def locker_tables(lid: str, x_locker: str = Header(None)):
     out = []
     for r in db.locker_tables(lid):
         out.append({"lobby_id": r["lobby_id"], "creator_token": r["creator_token"] if r["mine"] else None,
-                    "player_id": r["player_id"], "player_token": r["player_token"]})
+                    "player_id": r["player_id"], "player_token": r["player_token"], "name": r.get("name"), "folded": bool(r.get("folded"))})
     return {"tables": out}
 
 
@@ -2945,7 +3026,48 @@ def _log_mission(form: dict) -> dict:
             "difficulty": diff, "mode": mode, "oaths": ks}
 
 
+def _mission_by_read(name: str | None, faction: str | None = None) -> dict | None:
+    """The mission a scoreboard names ("Purge Hatcheries"), as the catalog has it: exact, then containment;
+    a name several fronts share (Blitz: Search and Destroy) goes to the front given, when there is one."""
+    n = _norm_name(name or "")
+    if len(n) < 4:
+        return None
+    ms = list(loader.missions().values())
+    for hits in ([m for m in ms if _norm_name(m["display_name"]) == n],
+                 [m for m in ms if n in _norm_name(m["display_name"]) or _norm_name(m["display_name"]) in n]):
+        if hits:
+            return next((m for m in hits if faction and faction in (m.get("factions") or [])), None) or hits[0]
+    return None
+
+
+def _planet_front(name: str | None) -> str | None:
+    """Who the live war says holds (or attacks) a planet of this name."""
+    if not name:
+        return None
+    try:
+        pl = next((p for p in war.snapshot().get("planets") or [] if _norm_name(p.get("name")) == _norm_name(name)), None)
+    except Exception:   # noqa: BLE001  the war feed is a nicety here
+        return None
+    return pl["enemy"] if pl and pl.get("enemy") in ("terminids", "automatons", "illuminate") else None
+
+
+def _log_prefill(mission: dict, row: dict) -> dict:
+    """A logged drop whose details were left to the screenshot: the front from the live war's planet of that
+    name, the mission from the name the board shows (and its front, when it has one only)."""
+    m = dict(mission)
+    if not m.get("faction"):
+        m["faction"] = _planet_front(row.get("planet"))
+    if not m.get("mission_id"):
+        hit = _mission_by_read(row.get("mission_name"), m.get("faction"))
+        if hit:
+            m["mission_id"] = hit["id"]
+            if not m.get("faction") and len(hit.get("factions") or []) == 1:
+                m["faction"] = hit["factions"][0]
+    return m
+
+
 async def _log_record(lid, lk, row, data, mission, loadout_id, lang, room_id=None):
+    mission = _log_prefill(mission, row)
     seat = db.log_seat(lid, lk.get("callsign") or "Diver", lk.get("play_style") or "by_the_book")
     if loadout_id and not any(o["id"] == loadout_id for o in db.list_loadouts(lid)):
         loadout_id = None

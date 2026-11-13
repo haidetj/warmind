@@ -54,13 +54,13 @@ The ◈ WARMIND button top-left of every page opens a chat: stats, gear, tactics
 gear; the war table when asked from one (mission, conditions, squad kits, operation); the live war (Major Orders,
 busiest planets); and app data for every item the question names (`askwm._items_named`: full name, model code or a
 distinctive word). Signed-in only; caps `WARMIND_ASK_PER_DIVER_DAY` (30) / `WARMIND_ASK_PER_DAY` (200). The
-conversation stays in the tab (sessionStorage, last 6 turns sent).
+conversation stays in the tab (sessionStorage, last 6 turns sent). At a war table the suggested questions are about its mission, front, planet and kit.
 
 ## Logic tab (`?logic`, 🧠 in the nav) and the journey test
 `app/warmind/data/logic.yaml` is WARMIND's decision system and user journeys as data: the system map (inputs → decide →
 remember → show, each node typed user / llm / rules / db / external), the decision pipelines step by step (with the code
 that does each, LLM cost kinds and fallbacks), the hard-coded concepts, the journeys (persona, goal, business value,
-metric, steps with the nodes they touch, friction, UX ideas) and the architect's notes (principles, failure modes,
+metric, steps with the nodes they touch, friction, `ux` ideas still open, `shipped` improvements) and the architect's notes (principles, failure modes,
 flywheel). `GET /api/logic` serves it plus live numbers (counts, 30-day calls and average cost per kind, caps, planner
 status; no player data). `renderLogic` draws it (Map / Decisions / Rules / Journeys / Architect). Keep it true to the
 code when the code changes. Journey steps with a `probe` ({url, expect, click?}) are the test plan: `node
@@ -136,17 +136,36 @@ selector, a page error or sideways scroll.
   `_record_result` on the profile's log seat (`db.log_seat`: a player row at lobby id `log:<locker>`, no lobby row, hidden
   from `locker_players`), so oaths, medals, the review, the kit record and career totals all apply. Endorse-only oaths
   stay unverified there (nobody to vouch). Log drops only replace an identical scoreboard (`_same_drop(log=True)`).
+  Details left blank come off the board (`_log_prefill`): the front from the live war's planet of that name, the
+  mission from the board's mission name (`_mission_by_read`, front breaks a shared name's tie). The dialog keeps them in
+  an optional fold. New tables and logged drops default to the war room last opened (`store.lastRoom`).
   A logged drop can name one of the diver's war rooms (`result.room_id`, members only): `db.room_results` takes it in, so it
   counts toward standing orders (one drop each, its own difficulty / planet) and goes in the ship's log.
 - Operations (`lobby.drop_no` / `drop_at` / `op_done`, `result.drop_no`): a war table runs the planet's operation, 1–3
   missions (`_op_len` by difficulty: D1–2 one, D3–4 two, D5+ three; tables from before operations have `drop_no` NULL and
   stay one mission). Status: open → debriefing → `between` (mission debriefed, more to go) → done (last mission debriefed,
   or the creator's `POST /endop`). `POST /api/lobby/{lid}/next` (creator) keeps planet / front / difficulty / mode / oaths,
-  takes a new `mission_id`, bumps the mission number (`mission.drop` is in `mind.brief_key`, so every mission gets fresh
+  takes a new `mission_id` (`_next_mission` builds it), bumps the mission number (`mission.drop` is in `mind.brief_key`, so every mission gets fresh
   kits), clears quick swaps and Go / No-Go. The table shows only this mission's debriefs; `state.op` has earlier missions
   and the whole-operation oaths (`mission.op_oaths`, judged live on the summed numbers, `_op_sum`). When the operation
   ends, `_finish_op` appends them (`scope: "operation"`, medal seeded `<lid>:op`) to each diver's last debrief, so
   medals / records / rooms count them; their endorsements are keyed `op:<oath>`. Room tallies count each mission a drop.
+  Head start: once a table is `between`, `state.op.next` is the suggested next mission (`_next_pick`: first of this front
+  and difficulty not played yet) and `_prewarm_next` builds its kits in the background by resolving the table as it will be
+  (`_next_lobby`), so the planner's set is pinned under the same `brief_key` /next will use: one plan call per mission,
+  inside the caps, once per (table, mission number, pick); `WARMIND_PREWARM=0` turns it off. The Next mission dialog
+  defaults to that pick and has one-tap "Same again" / "Random". The Discord table card (`_table_card`) shows mission n
+  of m, this mission's debriefs only, each diver's role + main pick, and between missions `NEXT · <mission> · KITS
+  READY/BUILDING` with the next kits; page loads use `preview=False` (no engine run for the OG tags).
+- Debrief call to action (`debriefCta`): on a table whose mission is played (some debriefs in, or everyone said Go) a diver
+  without a debrief gets one big "Upload the squad's scoreboard" on top of the table (hidden on the Debrief tab, which
+  has the same `squadUpload`). Go / No-Go is only shown while the table is `open`. The table header shows a Major Order
+  only when it's about this mission's front or planet (`moForTable`); Home has the rest.
+- First run (`profileSetup`): until a diver has a career read, gear and a PIN, the Profile opens with a 3-step checklist
+  (career upload, "Tick my warbonds" → Locker gear tab, "I own everything", PIN). The gear checklist has a warbond quick
+  start (`.wbquick`): one tap ticks a warbond's gear; from the "owns everything" state the first tap starts from the base
+  game. The gate says gear can wait. A new device's nav Table tab opens the profile's latest open table
+  (`/api/locker/{lid}/tables` carries name / folded).
 - Tell WARMIND / Tuning (`locker_tune`): on your own debrief a diver writes what worked and what didn't
   (`POST /api/lobby/{lid}/player/{pid}/tune`, or from the Profile `POST /api/locker/{lid}/tune`). One small call
   (`vision.distill_tune`, kind `tune`) turns it into the one note worth keeping (≤25 words, `applies`: all or a faction;

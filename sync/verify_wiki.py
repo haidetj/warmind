@@ -201,7 +201,7 @@ def wiki_section(row: dict):
 def verify(cat: dict) -> int:
     by_title = {norm(r["title"]): r for r in cat["items"]}
     raw = loader.items()
-    problems, checked, ours = [], 0, set()
+    problems, checked, ours, unverified = [], 0, set(), []
     for sec in SECTIONS:
         for rec in raw.get(sec, []):
             name = rec["name"]
@@ -214,12 +214,21 @@ def verify(cat: dict) -> int:
                     if tmpl:
                         row = dict(params, title=title, template=tmpl)
                         print(f"read directly (not in the infobox catalog): {title} [{tmpl}]")
+                    else:   # the page exists but has no infobox we read (a fresh stub, or a new template): note it, don't fail
+                        unverified.append(name)
+                        print(f"note: {title} has a wiki page but no infobox the checker reads yet, so its fields aren't verified. "
+                              f"Page starts: {' '.join(text.split())[:240]!r}")
+                        continue
             if not row:
                 try:   # say what the wiki calls it, so the fix is one line
                     hits = [h["title"] for h in (api(action="query", list="search", srsearch=page_title(rec), srlimit=3)
                                                 .get("query") or {}).get("search", [])]
                 except Exception:   # noqa: BLE001
                     hits = []
+                if hits and norm(hits[0]) == norm(page_title(rec)):   # the wiki has it, the parse API wouldn't serve it
+                    unverified.append(name)
+                    print(f"note: {hits[0]} is on the wiki (search) but its page couldn't be read, so its fields aren't verified")
+                    continue
                 problems.append((name, "page", "no wiki page with this exact name — fix the name or set `wiki:`"
                                  + (f" (wiki search: {', '.join(hits)})" if hits else "")))
                 continue
@@ -249,7 +258,8 @@ def verify(cat: dict) -> int:
                     bad("expendable", bool(rec.get("expendable")), "expendable" in tr)
     missing = [r for r in cat["items"] if norm(r["title"]) not in ours and wiki_section(r)
                and r.get("stratagem_type") not in ("Objective", "Ship", "Other")]
-    lines = [f"## Wiki verification: {checked} items checked, {len(problems)} mismatch(es)", ""]
+    lines = [f"## Wiki verification: {checked} items checked, {len(problems)} mismatch(es)"
+             + (f", {len(unverified)} on the wiki but not readable yet ({', '.join(unverified)})" if unverified else ""), ""]
     if problems:
         lines += ["| Item | Field | Problem |", "|---|---|---|"] + [f"| {n} | {f} | {m} |" for n, f, m in problems]
     lines += ["", f"Wiki items not in our data yet: {len(missing)}"]

@@ -120,20 +120,25 @@ def table(t: dict) -> bytes:
     im, d = _frame("WAR TABLE · " + st.upper(), STATUS.get(st, GREEN))
     _txt(d, (56, 112), t.get("name") or "War table", 60, "ExtraBold", INK, width=W - 112)
     _txt(d, (56, 192), _mission_line(t.get("mission")), 28, "Bold", AMBER, width=W - 112)
-    sub = " · ".join(x for x in [t.get("planet"), ("War room: " + t["room"]) if t.get("room") else None] if x)
+    sub = " · ".join(x for x in [t.get("op"), t.get("planet"), ("War room: " + t["room"]) if t.get("room") else None] if x)
     if sub:
         _txt(d, (56, 232), sub, 24, "Regular", INK2, width=W - 112)
     divers = t.get("divers") or []
     n_go = sum(1 for x in divers if x.get("go"))
     y = 280
+    nx = t.get("next")
+    if nx:   # between missions: what's next, and whether its kits are built (each row shows the next kit)
+        _txt(d, (56, 268), "NEXT · " + (nx.get("name") or "?") + (" · KITS READY" if nx.get("ready") else " · KITS BUILDING"),
+             22, "Bold", LIME if nx.get("ready") else AMBER, width=W - 112)
+        y = 304
     if not divers:
         _txt(d, (56, y + 20), "No divers yet. Join with the code below.", 28, "Regular", MUTED)
     for x in divers[:4]:
         d.rectangle([56, y, W - 56, y + 52], outline=LINE, fill=PANEL)
         go = x.get("go")
         d.ellipse([74, y + 16, 94, y + 36], fill=GREEN if go else None, outline=GREEN if go else MUTED, width=2)
-        _txt(d, (112, y + 9), x.get("callsign") or "?", 30, "Bold", INK, width=430)
-        _txt(d, (560, y + 14), x.get("style") or "", 22, "Regular", INK2, width=300)
+        _txt(d, (112, y + 9), x.get("callsign") or "?", 30, "Bold", INK, width=250)
+        _txt(d, (380, y + 14), x.get("style") or "", 22, "Regular", INK2, width=500)
         right = x["medal"] if x.get("medal") else ("DEBRIEFED" if x.get("debriefed") else ("GO" if go else "NO-GO"))
         tw = _txt(d, (W - 74, y + 14), right, 22, "Bold", AMBER if x.get("medal") else (LIME if x.get("debriefed") or go else MUTED),
                   anchor="ra", width=290)

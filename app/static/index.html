@@ -763,7 +763,7 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .lg-code{font-family:var(--mono);font-size:11px;color:var(--muted);overflow-wrap:anywhere;background:none;padding:0}
   .lg-touch{gap:4px} .lg-touch .lg-k{font-size:9.5px}
   .lg-fall{border:1px solid var(--amber);border-left:3px solid var(--amber);padding:8px 10px;margin-top:6px;font-size:13.5px;color:var(--ink-2)} .lg-fall b{color:var(--amber)} .lg-fall ul{margin:6px 0 0;padding-left:18px}
-  .lg-ux{border:1px solid var(--line-2);border-left:3px solid var(--cyan);padding:8px 10px;margin-top:8px;font-size:13.5px} .lg-ux b{color:var(--cyan)} .lg-ux ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2)}
+  .lg-ux{border:1px solid var(--line-2);border-left:3px solid var(--cyan);padding:8px 10px;margin-top:8px;font-size:13.5px} .lg-shipped{border-left-color:var(--green)} .lg-ux b{color:var(--cyan)} .lg-ux ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2)}
   .lg-jhead{display:grid;gap:6px;margin-bottom:10px;font-size:14px} .lg-jhead small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted)}
   .lg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px} .lg-concept{border:1px solid var(--line);padding:8px 10px;display:grid;gap:5px}
   .lg-cn{display:flex;align-items:baseline;gap:8px;font-weight:700} .lg-cn b{font-family:var(--head);font-size:22px;color:var(--cyan)}
@@ -773,7 +773,6 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .lg-fwdot{fill:var(--bg,#040604);stroke:var(--amber);stroke-width:2} .lg-fwt{fill:var(--ink);font-family:var(--mono);font-size:10px}
   .lg-fwc{fill:var(--cyan);font-family:var(--head);font-size:13px;letter-spacing:2px;font-weight:800}
   .lg-total{font-family:var(--head);font-size:18px;color:var(--amber);margin-top:8px}
-  .lg-backlog{margin:6px 0 0;padding-left:20px;display:grid;gap:6px;font-size:13.5px;color:var(--ink-2)} .lg-backlog small{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:1px}
   .hmorder,.hmplay{display:grid;gap:6px;padding:8px 10px;border:1px solid var(--line);color:inherit;text-decoration:none}
   .hmorder .t small,.hmplay small{color:var(--muted)} .hmorder .p{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-family:var(--mono);font-size:12px}
   .hmplay .chips{display:flex;flex-wrap:wrap;gap:4px;min-width:0} .hmplay .tag,.hmrecent .tag{white-space:normal;max-width:100%;text-align:left}
@@ -790,6 +789,14 @@ html::after{content:"";position:fixed;left:0;right:0;top:-30vh;height:30vh;point
   .challenge .ck{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--red)}
   .challenge .cn{font-family:var(--head);font-size:20px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;margin:2px 0}
   .challenge .cb{font-size:14px;color:var(--ink-2)}
+  .debcta{margin:10px 0 0;padding:10px;border:1px solid var(--amber);background:color-mix(in srgb, var(--amber) 8%, transparent)}
+  .debcta .filebtn{width:100%;justify-content:center}
+  .wbquick{margin:0 0 10px} .wbpresets{gap:6px} .wbpresets .chip{font-size:10.5px;padding:6px 8px;letter-spacing:.5px} .wbpresets .chip small{color:var(--muted);font-family:var(--mono);font-size:10px}
+  .gateskip{margin-top:6px}
+  .sustep{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)} .sustep:first-of-type{border-top:0}
+  .sustep .sudot{flex:0 0 24px;height:24px;display:grid;place-items:center;border:1px solid var(--amber);color:var(--amber);font-family:var(--mono);font-size:12px}
+  .sustep.done .sudot{border-color:var(--green);color:var(--green)} .sustep.done b{color:var(--muted);font-weight:500}
+  .slogdet{margin:4px 0 8px}
   .opstrip{margin:10px 0 0;padding:8px 10px;border:1px solid var(--line);border-left:3px solid var(--amber)}
   .opstrip .oprow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px} .opstrip .oprow b{font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase}
   .opdots{display:inline-flex;gap:4px} .opdots i{width:10px;height:10px;border:1px solid var(--amber);display:inline-block}

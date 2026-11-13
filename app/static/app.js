@@ -403,7 +403,13 @@
       if (!hist.length) {
         log.appendChild(el("div", { class: "hint", style: "margin:0 0 8px" }, [t(store.locker() ? "ask.intro" : "ask.signin")]));
         const chips = el("div", { class: "chips" });
-        ["ask.s1", "ask.s2", "ask.s3", "ask.s4"].forEach(k => { const c = el("button", { type: "button", class: "chip" }, [t(k)]); c.onclick = () => { q.value = t(k); send(); }; chips.appendChild(c); });
+        // at a war table with a mission: questions about this mission, this front and this kit
+        const tm = LID && STATE && STATE.mission && STATE.mission.mission_id ? STATE.mission : null;
+        const mn = tm && ((META.missions || []).find(z => z.id === tm.mission_id) || {}).name;
+        const qs = tm ? [t("ask.t1", { m: mn || "—" }), t("ask.t2", { d: tm.difficulty || 7, f: t("faction." + (tm.faction || "automatons")) }), t("ask.t3"),
+          tm.planet_name ? t("ask.t4", { p: tm.planet_name }) : t("ask.s3")]
+          : ["ask.s1", "ask.s2", "ask.s3", "ask.s4"].map(k => t(k));
+        qs.forEach(v => { const c = el("button", { type: "button", class: "chip" }, [v]); c.onclick = () => { q.value = v; send(); }; chips.appendChild(c); });
         log.appendChild(chips);
       }
       hist.forEach(h => log.appendChild(msg(h.role, h.text))); log.scrollTop = log.scrollHeight; };
@@ -510,6 +516,9 @@
         if (x.creator_token && !store.creator(x.lobby_id)) store.setCreator(x.lobby_id, x.creator_token);
         if (x.player_id && !store.me(x.lobby_id)) store.setMe(x.lobby_id, { id: x.player_id, token: x.player_token });
       });
+      // a new device (or a table made elsewhere): the nav's Table tab opens your latest open table
+      const live = (r.tables || []).find(x => !x.folded);
+      if (live && !localStorage.getItem("wm_last_lobby")) localStorage.setItem("wm_last_lobby", JSON.stringify({ id: live.lobby_id, name: live.name || "" }));
     } catch (e) { if (/not your locker/i.test(e.message)) { try { localStorage.removeItem("wm_locker"); } catch (e2) {} } }
   }
   function signOut() {
@@ -573,6 +582,7 @@
       el("div", { class: "field" }, [el("label", { class: "label", for: "gate-pin" }, [t("gate.pin")]), pin]),
       go, status, extra,
       el("div", { class: "hint" }, [t("gate.pin.hint")]),
+      el("div", { class: "hint gateskip" }, ["◇ " + t("gate.skipgear")]),
       el("div", { class: "btnrow", style: "justify-content:center" }, [el("a", { class: "btn sm", href: "/?tab=roster" }, ["☰ " + t("ros.open")])]),
     ]));
     setTimeout(() => cs.focus(), 50);
@@ -760,7 +770,7 @@
       el("div", { class: "field", style: "margin-top:16px" }, [el("label", { class: "label", for: "room-code" }, ["> " + t("room.joincode")]), el("div", { class: "joincode" }, [code, jn])])]));
     loadRooms().then(rs => {
       list.innerHTML = "";
-      if (!rs.length) { list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("room.noneyet")])); return; }
+      if (!rs.length) { list.appendChild(el("div", { class: "hint", style: "margin:0" }, [t("room.noneyet.here")])); return; }
       rs.forEach(r => list.appendChild(el("a", { class: "roomrow", href: "/?room=" + r.id }, [
         el("div", {}, [el("b", {}, [r.name]), el("small", {}, [r.ship])]),
         el("div", { class: "rm" }, [r.mission_name ? r.mission_name.name + (r.planet ? " · " + r.planet : "") : r.planet || t("room.nomission"),
@@ -796,6 +806,7 @@
     store.addRoom(ROOM.id);
     const L = store.locker();   // visiting the room's link brings your profile aboard
     if (L && !ROOM.members.some(m => m.id === L.id)) { try { await rpost("/api/room/" + ROOM.id + "/join", {}); ROOM = await rget(ROOM.id); } catch (e) {} }
+    if (L && ROOM.members.some(m => m.id === L.id)) store.setLastRoom(ROOM.id);   // your next war table defaults to this room
     loadWar();
     paintRoom(body);
     let sig = JSON.stringify(ROOM);
@@ -1196,6 +1207,7 @@
     const changed = curTab !== i;
     curTab = i; delete tabDots[i];
     for (let k = 1; k <= 5; k++) R.views[k].hidden = k !== i;
+    if (R.cta) R.cta.hidden = i === 4;
     paintTabs();
     if (changed && pin) {
       R.views[i].classList.remove("scanin"); void R.views[i].offsetWidth; R.views[i].classList.add("scanin");
@@ -1382,9 +1394,15 @@
           if (!end) metTimer = setInterval(() => { if (!n.isConnected) return clearInterval(metTimer); n.lastChild.replaceWith(nixie(metText(STATE.created_at))); }, 1000);
           return n; })() : el("span", { class: "clock" }, [new Date().toISOString().slice(11, 16) + " UTC"]),
       ]),
-      foldRow(), opStrip(), roomChip(), STATE.status === "folded" ? null : goStrip(),
-      ...((WAR && WAR.orders) || []).slice(0, 2).map(moStrip),
+      foldRow(), opStrip(), debriefCta(), roomChip(), ["open"].indexOf(STATE.status || "open") < 0 ? null : goStrip(),   // Go / No-Go is for before the drop
+      // the Major Order lives on Home; here only an order this mission works toward (its front or its planet)
+      ...((WAR && WAR.orders) || []).filter(moForTable).slice(0, 1).map(moStrip),
     ]);
+  }
+  function moForTable(o) {
+    const m = STATE.mission || {}; if (!m.faction && !m.planet_name) return false;
+    const pl = ((WAR && WAR.planets) || []).find(p => m.planet_name && p.name === m.planet_name);
+    return (o.tasks || []).some(tk => (tk.kind === "kill" && tk.faction === m.faction) || (pl && tk.planet_index === pl.index));
   }
 
   const statusTag = st => tag(st === "done" ? "green" : st === "folded" ? "" : st === "debriefing" || st === "between" ? "amber" : "cyan", t("tbl." + (st || "open")));
@@ -1416,15 +1434,29 @@
     const dlg = el("dialog", { class: "modal", "aria-label": t("op.next") });
     const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
     const sel = el("select", {}, list.map(z => el("option", { value: z.id }, [z.name + (played.has(z.name) ? " ✓" : "")])));
-    const fresh = list.find(z => !played.has(z.name)); if (fresh) sel.value = fresh.id;
-    const go = el("button", { type: "button", class: "btn primary" }, ["▶ " + t("op.next.go", { n: ((STATE.op || {}).drop || 1) + 1 })]);
-    go.onclick = async () => { go.disabled = true;
-      try { const req = jpost("/api/lobby/" + LID + "/next", { mission: { mission_id: sel.value } }, store.creator(LID));
+    // the default is the server's pick: WARMIND has been building its kits since the last debrief
+    const ahead = (STATE.op || {}).next, fresh = list.find(z => !played.has(z.name));
+    if (ahead && list.some(z => z.id === ahead.mission_id)) sel.value = ahead.mission_id; else if (fresh) sel.value = fresh.id;
+    const n = ((STATE.op || {}).drop || 1) + 1;
+    const send = async (mid, btn) => { dlg.querySelectorAll("button").forEach(b => b.disabled = true);
+      try { const req = jpost("/api/lobby/" + LID + "/next", { mission: { mission_id: mid } }, store.creator(LID));
         dlg.close(); STATE = STATE.directive ? await regenScreen(req, 1500) : await req; lastSig = JSON.stringify(STATE); render(); toast(t("op.next.done")); }
-      catch (e) { toast(e.message); go.disabled = false; } };
+      catch (e) { toast(e.message); dlg.querySelectorAll("button").forEach(b => b.disabled = false); } };
+    const go = el("button", { type: "button", class: "btn primary" }, ["▶ " + t("op.next.go", { n: n })]);
+    go.onclick = () => send(sel.value, go);
+    const aheadHint = el("div", { class: "hint", style: "margin:4px 0 0" });
+    const paintAhead = () => { aheadHint.textContent = ahead && sel.value === ahead.mission_id ? "⚡ " + t("op.next.ahead") : ""; };
+    sel.addEventListener("change", paintAhead); paintAhead();
+    // one tap: the same mission type again, or a random one of this front and difficulty (not played yet, if any)
+    const same = el("button", { type: "button", class: "btn sm" }, ["↻ " + t("op.next.same", { m: ((META.missions || []).find(z => z.id === m.mission_id) || {}).name || "—" })]);
+    same.disabled = !m.mission_id; same.onclick = () => send(m.mission_id, same);
+    const rnd = el("button", { type: "button", class: "btn sm" }, ["⚄ " + t("op.next.random")]);
+    rnd.onclick = () => { const pool = list.filter(z => !played.has(z.name)); const p = (pool.length ? pool : list)[Math.floor(Math.random() * (pool.length || list.length))];
+      if (p) send(p.id, rnd); };
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("op.next")]), x]), el("div", { class: "mbody" }, [
       el("div", { class: "hint", style: "margin:0 0 10px" }, [t("op.next.hint", { planet: m.planet_name || t("op.planet") })]),
-      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), searchable(sel, { title: t("slog.mission") })]),
+      el("div", { class: "btnrow", style: "margin:0 0 10px" }, [same, rnd]),
+      el("div", { class: "field" }, [el("span", { class: "label" }, [t("slog.mission")]), searchable(sel, { title: t("slog.mission") }), aheadHint]),
       el("div", { class: "btnrow" }, [go])]));
     dlg.addEventListener("close", () => dlg.remove());
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
@@ -1847,6 +1879,33 @@
     let qT = null;
     qq.oninput = () => { clearTimeout(qT); qT = setTimeout(() => { F.q = qq.value.trim(); keep(); paintAll(); }, 120); };
     clear.addEventListener("click", () => { qq.value = ""; });
+    // quick start: tap each warbond you own (all of its gear at once), then search to fine-tune
+    let wbRefresh = () => {};
+    const wbs = srcs.filter(x => x.kind === "warbond");
+    if (wbs.length) {
+      const wbChips = el("div", { class: "chips wbpresets" });
+      const ofSrc = name => allItems.filter(i => i.source === name).map(i => i.name);
+      // a new diver "owns everything" until they say otherwise: the first tap here starts them from the base game
+      const kindOf = {}; srcs.forEach(x => { kindOf[x.name] = x.kind; });
+      const extras = allItems.filter(i => kindOf[i.source] && kindOf[i.source] !== "base").map(i => i.name);
+      const pristine = () => extras.every(z => owned.has(z));
+      wbs.forEach(x => {
+        const names = ofSrc(x.name);
+        const c = el("button", { type: "button", class: "chip", "data-src": x.name }, [srcLabel(x.name), el("small", {})]);
+        c._paint = () => { const fresh = pristine(), n = fresh ? 0 : names.filter(z => owned.has(z)).length;
+          c.setAttribute("aria-pressed", String(!fresh && n === names.length && n > 0)); c.querySelector("small").textContent = " " + n + "/" + names.length; };
+        c.onclick = () => { if (pristine()) extras.forEach(z => owned.delete(z));
+          const all = names.every(z => owned.has(z)); names.forEach(z => all ? owned.delete(z) : owned.add(z)); after(); paintAll(); };
+        c._paint(); wbChips.appendChild(c);
+      });
+      const qs = el("details", { class: "fold wbquick" }, [el("summary", {}, ["⚡ " + t("gear.wb.quick")]),
+        el("div", { class: "body" }, [el("div", { class: "hint", style: "margin:0 0 8px" }, [t("gear.wb.quick.hint")]), wbChips,
+          (() => { const sk = el("button", { type: "button", class: "btn sm", style: "margin-top:10px" }, ["◇ " + t("gear.wb.skip")]);
+            sk.onclick = () => allBtn.click(); return sk; })()])]);
+      qs.open = unset;
+      body.appendChild(qs);
+      wbRefresh = () => wbChips.querySelectorAll(".chip").forEach(c => c._paint());
+    }
     body.appendChild(qq);
     body.appendChild(el("div", { class: "filterbar" }, [fbtn, fsum, clear]));
 
@@ -1920,7 +1979,7 @@
     const pane = el("div", { class: "gearpane" });
     const gkey = g => "grp." + String(g).replace(/[^A-Za-z0-9]+/g, "_");
     const refreshers = [];
-    const sync = () => refreshers.forEach(f => f());
+    const sync = () => { refreshers.forEach(f => f()); wbRefresh(); };
     function showTab(slot) {
       cur = gearTab[p.id] = slot;
       tabbar.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.slot === slot)));
@@ -2871,7 +2930,7 @@
     body.appendChild(panel("ME-01", t("prof.title"), { status: LK.medals.length ? "🎖 " + LK.medals.length : "", statusKind: "warn", tone: "amber" }, [
       el("div", { class: "lkhead" }, [el("div", {}, [el("div", { class: "big" }, [LK.callsign || "—"]),
         el("div", { class: "hint", style: "margin:4px 0 0" }, [LK.play_style ? t("lk.style", { style: styleLabel(LK.play_style) }) : t("me.noread")])])]),
-      LK.has_pin ? null : pinSetter(L),
+      LK.has_pin || setupPanelShown() ? null : pinSetter(L),
       el("div", { class: "prefline" }, [el("span", { class: "label", style: "margin:0" }, ["◈ " + t("pq.told")]), el("span", {}, [prefSummary(LK.prefs) || t("pq.nothing")]), tune]),
       (() => { const ss = styleSelect(LK.play_style, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { play_style: v }); LK.play_style = v; toast(t("me.style.saved", { style: styleLabel(v) })); } catch (e) { toast(e.message); } });
         const rs = roleSelect((LK.prefs || {}).role, async v => { try { await lpost("/api/locker/" + L.id + "/prefs", { role: v }); toast(v === "any" ? t("me.role.cleared") : t("me.role.saved", { role: roleName(v) })); } catch (e) { toast(e.message); } });
@@ -2881,12 +2940,41 @@
       el("div", { class: "field", style: "margin-top:10px" }, [el("span", { class: "label" }, ["📌 " + t("arm.pick")]), searchable(arm, { pic: "img", title: t("arm.pick") })]),
       el("div", { class: "btnrow" }, [el("a", { class: "btn sm primary", href: "/?locker" }, ["🗄 " + t("lk.open")]), link, out]),
     ]));
+    const su = profileSetup(L); if (su) body.insertBefore(su, body.firstChild);
     const tun = lkTuning(); if (tun) body.appendChild(tun);
     const car = lkCarousel(LK.loadouts, { editable: true, after: async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); } }); if (car) body.appendChild(car);
     body.appendChild(lkStats());
     body.appendChild(lkRecord());
     body.appendChild(discordPanel(L));
     try { const nw = sessionStorage.getItem("wm_chat_new"); if (nw) { sessionStorage.removeItem("wm_chat_new"); profileChat(nw, {}, null); } } catch (e) {}
+  }
+
+  // first run: the three things that make kits fit you, each one tap from here, until they're done
+  const setupPanelShown = () => !((LK.history || []).length > 0 && LK.gear_set && LK.has_pin);
+  function profileSetup(L) {
+    const career = (LK.history || []).length > 0, gear = !!LK.gear_set, pin = !!LK.has_pin;
+    if (career && gear && pin) return null;
+    const again = async () => { const y = window.scrollY; await renderHome(); window.scrollTo(0, y); };
+    const step = (done, n, title, desc, acts) => el("div", { class: "sustep" + (done ? " done" : "") }, [
+      el("span", { class: "sudot", "aria-hidden": "true" }, [done ? "✓" : String(n)]),
+      el("div", {}, [el("b", {}, [title]), done || !desc ? null : el("div", { class: "hint", style: "margin:2px 0 6px" }, [desc]), done ? null : el("div", { class: "btnrow", style: "margin:0" }, acts)])]);
+    const up = fileBtn("sm primary", "🖼 " + t("su.career.btn"), true), st = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    up.querySelector("input").onchange = async ev => {
+      const list = Array.from(ev.target.files || []); if (!list.length || busy) return;
+      busy = true; const stop = workTicker(st, lines("tick.read.", 10));
+      try { const fd = new FormData(); list.forEach(f => fd.append("images", f)); const r = await lfd("/api/locker/" + L.id + "/career", fd); stop();
+        if (r.ok === false) setStatus(st, "warn", r.over_budget ? r.vision_error : t("me.reread.bad")); else { toast(t("lk.stats.saved")); busy = false; await again(); } }
+      catch (e) { stop(); setStatus(st, "err", e.message); } finally { stop(); busy = false; }
+    };
+    const wb = el("a", { class: "btn sm primary", href: "/?locker" }, ["⚡ " + t("su.gear.btn")]);
+    wb.onclick = () => { try { localStorage.setItem("wm_lktab", "gear"); } catch (e) {} };
+    const all = el("button", { class: "btn sm", type: "button" }, ["◇ " + t("gear.everything")]);
+    all.onclick = async () => { all.disabled = true; try { await lpost("/api/locker/" + L.id + "/gear", { owned: null }); toast(t("su.gear.all")); await again(); } catch (e) { toast(e.message); all.disabled = false; } };
+    return panel("ME-00", t("su.title"), { tone: "amber", status: [career, gear, pin].filter(Boolean).length + "/3", statusKind: "warn" }, [
+      el("div", { class: "hint", style: "margin:0 0 10px" }, [t("su.hint")]),
+      step(career, 1, t("su.career"), t("su.career.d"), [up]), career ? null : st,
+      step(gear, 2, t("su.gear"), t("su.gear.d"), [wb, all]),
+      step(pin, 3, t("su.pin"), null, pin ? [] : [pinSetter(L)])]);
   }
 
   // WARMIND on Discord: links unfurl into live cards anywhere; the app adds /warmind to your own
@@ -3325,12 +3413,13 @@
           extra: st.probe ? el("span", { class: "tag green", title: st.probe.expect }, ["✓ " + t("logic.j.probe", { url: st.probe.url })]) : null }))));
         if (j.friction) box.appendChild(el("div", { class: "lg-fall" }, [el("b", {}, ["⚠ " + t("logic.j.friction")]), el("div", {}, [j.friction])]));
         if ((j.ux || []).length) box.appendChild(el("div", { class: "lg-ux" }, [el("b", {}, ["✦ " + t("logic.j.ux")]), el("ul", {}, j.ux.map(u => el("li", {}, [u])))]));
+        if ((j.shipped || []).length) box.appendChild(el("div", { class: "lg-ux lg-shipped" }, [el("b", {}, ["✓ " + t("logic.j.shipped")]), el("ul", {}, j.shipped.map(u => el("li", {}, [u])))]));
         iconize(box); };
       L.journeys.forEach(j => { const c = el("button", { type: "button", class: "chip", "data-k": j.id }, [j.name]); c.onclick = () => { cur = j.id; paint(); }; chips.appendChild(c); });
       paint();
       pane.appendChild(panel("LGC-05", t("logic.s.journeys"), {}, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("logic.journeys.hint")]), chips, box]));
     }
-    // --- the architect's read: principles, the flywheel, failure modes, unit cost, leverage
+    // --- the architect's read: principles, the flywheel, failure modes, unit cost
     function lgArch() {
       pane.appendChild(panel("LGC-06", t("logic.principles"), {}, (L.principles || []).map(p => el("div", { class: "lg-pr" }, [el("b", {}, [p.title]), el("div", { class: "lg-sb" }, [p.body])]))));
       // the flywheel: a loop of what feeds what
@@ -3366,12 +3455,6 @@
         el("ul", { class: "lg-list" }, parts.map(p => el("li", {}, [el("b", {}, [p.n + " × " + p.k]), " · " + (p.a ? usd(p.a) + " " + t("logic.each") : t("logic.nodata"))]))),
         el("div", { class: "lg-total" }, [known.length ? t("logic.unit.total", { usd: usd(est) }) : t("logic.unit.none")]),
         live.spend ? el("div", { class: "hint", style: "margin:6px 0 0" }, [t("logic.spend", { d: usd(live.spend.today), w: usd(live.spend["7d"]), m: usd(live.spend["30d"]) })]) : null]));
-      // leverage: the journeys are the test plan and the UX backlog
-      const probes = L.journeys.reduce((s2, j) => s2 + j.steps.filter(x => x.probe).length, 0);
-      const ux = []; L.journeys.forEach(j => (j.ux || []).forEach(u => ux.push([j.name, u])));
-      pane.appendChild(panel("LGC-10", t("logic.leverage"), { tone: "amber" }, [
-        el("div", { class: "lg-pr" }, [el("b", {}, [t("logic.lev.tests")]), el("div", { class: "lg-sb" }, [t("logic.lev.tests.d", { n: probes, j: L.journeys.length })]), el("code", { class: "lg-code" }, ["node tests/journeys.js"])]),
-        el("div", { class: "lg-pr" }, [el("b", {}, [t("logic.lev.ux")]), el("ol", { class: "lg-backlog" }, ux.map(([jn, u]) => el("li", {}, [el("small", {}, [jn]), u])))])]));
     }
     show(SECS.some(x => x[0] === sec) ? sec : "map");
   }
@@ -3599,7 +3682,7 @@
     const mode = el("select", {}, [opt("", "—"), ...LOG_MODES.map(m => opt(m, t("mode." + m)))]);
     const kit = el("select", {}, [opt("", t("slog.nokit")), ...((LK && LK.loadouts) || []).map(o => opt(o.id, o.name))]);
     const myRooms = (LK && LK.rooms) || [];
-    let lastRoom = ""; try { lastRoom = localStorage.getItem("wm_logroom") || ""; } catch (e) {}
+    let lastRoom = ""; try { lastRoom = localStorage.getItem("wm_logroom") || store.lastRoom() || ""; } catch (e) {}
     const room = el("select", {}, [opt("", t("slog.noroom")), ...myRooms.map(r => opt(r.id, r.name))]);
     if (myRooms.some(r => r.id === lastRoom)) room.value = lastRoom;
     let sworn = [];
@@ -3660,9 +3743,12 @@
     };
     body.append(el("div", { class: "hint", style: "margin:0 0 10px" }, [t("slog.explain")]),
       el("div", { class: "btnrow", style: "margin:0 0 6px;align-items:center" }, [pick, shotsN]),
-      el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", searchable(mis, { title: t("slog.mission") })), field("slog.diff", dif), field("slog.mode", mode)]),
+      // the mission, front and planet come off the scoreboard: the details are only for what it doesn't show
+      el("details", { class: "fold slogdet" }, [el("summary", {}, [t("slog.details")]), el("div", { class: "body" }, [
+        el("div", { class: "hint", style: "margin:0 0 8px" }, [t("slog.details.hint")]),
+        el("div", { class: "grid2" }, [field("slog.front", fac), field("slog.mission", searchable(mis, { title: t("slog.mission") })), field("slog.diff", dif), field("slog.mode", mode)])])]),
       el("div", { class: "grid2" }, [field("slog.kit", kit), myRooms.length ? field("slog.room", room) : null].filter(Boolean)),
-      myRooms.length ? el("div", { class: "hint", style: "margin:4px 0 0" }, [t("slog.room.hint")]) : null,
+      ...(myRooms.length ? [el("div", { class: "hint", style: "margin:4px 0 0" }, [t("slog.room.hint")])] : []),
       el("div", { class: "blk" }, [el("span", { class: "label" }, [t("slog.oaths")]), oathRow, oathHint]),
       status, el("div", { class: "btnrow" }, [go]));
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("slog.title")]), x]), body);
@@ -3989,6 +4075,38 @@
       el("div", { class: "field", style: "margin-top:10px" }, [ta]), el("div", { class: "btnrow", style: "margin:6px 0 0" }, [add])]);
   }
 
+  // the whole squad's debrief from one scoreboard (any member or the creator): [file button, status line]
+  function squadUpload(cls, label) {
+    const me = myPlayer(), token = () => me ? meRec().token : store.creator(LID);
+    const sq = fileBtn(cls, "▦ " + (label || t("deb.squad")), true), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
+    sq.querySelector("input").onchange = async ev => {
+      const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
+      busy = true; lockControls([sq], true);
+      const stop = workTicker(sqStatus, lines("tick.review.", 5));
+      try {
+        const fd = new FormData(); fs.forEach(f => fd.append("images", f));
+        const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, token());
+        stop(); sqStatus.style.display = "none"; busy = false;
+        squadConfirm(r, token());
+      } catch (e) { stop(); setStatus(sqStatus, "err", t("deb.failed", { msg: e.message })); }
+      finally { stop(); lockControls([sq], false); busy = false; }
+    };
+    return [sq, sqStatus];
+  }
+  // back from the drop: the one big button, on top of the table, for a diver whose debrief is missing
+  // (a squadmate already uploaded, or the whole squad said Go and went in)
+  function debriefCta() {
+    R.cta = null;
+    const me = myPlayer(); if (!STATE.directive || !(me || isCreator())) return null;
+    const ps = STATE.players || [], st = STATE.status;
+    const mine = me ? !me.aar : ps.some(p => !p.aar);
+    const inMission = st === "open" && ps.length && ps.every(p => p.go);
+    if (!mine || !(st === "debriefing" || inMission)) return null;
+    const left = ps.filter(p => !p.aar).length;
+    const [sq, sqStatus] = squadUpload("primary wide", t("deb.cta"));
+    R.cta = el("div", { class: "debcta", hidden: curTab === 4 ? "" : null }, [el("div", { class: "hint", style: "margin:0 0 6px" }, [st === "debriefing" ? t("deb.cta.some", { n: left }) : t("deb.cta.back")]), sq, sqStatus]);
+    return R.cta;   // hidden on the Debrief tab, which has the same button
+  }
   function debriefPanel() {
     if (!STATE.directive) return el("div", { class: "alert" }, [el("b", {}, ["//"]), t("deb.waiting")]);
     const m = STATE.mission || {}, me = myPlayer();
@@ -4019,19 +4137,7 @@
     }
     // whole squad from one scoreboard (any member), or just yourself
     if (me || isCreator()) {
-      const sq = fileBtn("primary", "▦ " + t("deb.squad"), true), sqStatus = el("div", { class: "upstatus", role: "status", "aria-live": "polite" });
-      sq.querySelector("input").onchange = async ev => {
-        const fs = Array.from(ev.target.files || []).slice(0, 4); ev.target.value = ""; if (!fs.length || busy) return;
-        busy = true; lockControls([sq], true);
-        const stop = workTicker(sqStatus, lines("tick.review.", 5));
-        try {
-          const fd = new FormData(); fs.forEach(f => fd.append("images", f));
-          const r = await fdpost("/api/lobby/" + LID + "/results/squad", fd, me ? meRec().token : store.creator(LID));
-          stop(); sqStatus.style.display = "none"; busy = false;
-          squadConfirm(r, me ? meRec().token : store.creator(LID));
-        } catch (e) { stop(); setStatus(sqStatus, "err", t("deb.failed", { msg: e.message })); }
-        finally { stop(); lockControls([sq], false); busy = false; }
-      };
+      const [sq, sqStatus] = squadUpload("primary");
       kids.push(el("div", { class: "btnrow", style: "margin-top:0" }, [sq]), sqStatus, el("div", { class: "hint" }, [t("deb.squad.hint")]));
     }
     if (me) {
