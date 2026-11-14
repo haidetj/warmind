@@ -458,6 +458,9 @@ def _resolve(lobby) -> dict:
             "want_role": _prefs_of(p.get("locker_id")).get("role"),   # the role this diver asked for
             "kit_choice": p.get("kit_choice"),   # the saved loadout this diver chose to fight with, if any
             "swapped": bool(p.get("kit_edits")),  # quick swaps on this table's kit
+            # the items this diver swapped in (the card marks them); "!x" entries are gear taken out, not a pick
+            "swaps": sorted({v for v in (json.loads(p["kit_edits"]) if p.get("kit_edits") else {}).values()
+                             if isinstance(v, str) and v and not v.startswith("!")}),
             "kit_choice_name": next((o["name"] for o in db.list_loadouts(p["locker_id"]) if o["id"] == p.get("kit_choice")), None)
             if p.get("kit_choice") and p.get("locker_id") else None,
             "locker": bool(p.get("locker_id")),   # gear + stats come from the diver's locker

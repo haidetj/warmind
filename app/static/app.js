@@ -2639,9 +2639,12 @@
     const plus = (META.passive_throwables || {})[a.armor_passive] || 0;
     return plus ? t("st.nades.plus", { n: nf(base + plus), plus: plus }) : t("st.nades", { n: nf(base) });
   }
-  function locker(a, onSwap) {
-    // onSwap(slot, name): your own card: tap a piece of kit to swap it (the name stays a wiki link)
-    const tap = (node, slot, name) => { if (!onSwap || !name) return node;
+  function locker(a, onSwap, swaps) {
+    // onSwap(slot, name): your own card: tap a piece of kit to swap it (the name stays a wiki link).
+    // swaps: the items swapped in at this table, which glow (on everyone's card, so the squad sees it)
+    const swapped = new Set(swaps || []);
+    const tap = (node, slot, name) => { if (name && swapped.has(name)) { node.classList.add("swapped"); node.setAttribute("title", t("sw.mark", { item: name })); }
+      if (!onSwap || !name) return node;
       node.classList.add("swappable"); node.setAttribute("role", "button"); node.setAttribute("tabindex", "0");
       node.setAttribute("aria-label", t("sw.title", { item: name }));
       node.addEventListener("click", e => { if (e.target.closest("a")) return; onSwap(slot, name); });
@@ -2739,27 +2742,42 @@
   function swapDialog(p, slot, name) {
     const tab = (META.armory || []).find(tb => tb.slot === SLOT_TAB[slot]); if (!tab) return;
     const owned = p.owned == null ? null : new Set(p.owned);
-    const items = []; tab.groups.forEach(g => g.items.forEach(i => { if (i.name !== name) items.push(i); }));
-    items.sort((x, y) => ((owned && !owned.has(x.name)) - (owned && !owned.has(y.name))) || x.name.localeCompare(y.name));
+    const inKit = new Set(slot === "stratagem" ? ((p.assignment || {}).stratagems || []) : []);
+    const items = []; tab.groups.forEach(g => g.items.forEach(i => { if (i.name !== name) items.push(Object.assign({ group: g.group }, i)); }));
+    items.sort((x, y) => ((owned && !owned.has(x.name)) - (owned && !owned.has(y.name))) || (inKit.has(x.name) - inKit.has(y.name)) || x.name.localeCompare(y.name));
+    const kind = slot === "stratagem" ? "icon" : "img";
     const dlg = el("dialog", { class: "modal swapdlg", "aria-label": t("sw.title", { item: name }) });
     const x = el("button", { type: "button", class: "btn sm", "aria-label": t("gf.done") }, ["×"]); x.onclick = () => dlg.close();
-    const no = el("button", { type: "button", class: "btn red" }, [t("sw.notowned", { item: name })]);
-    no.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, not_owned: true }, t("sw.removed", { item: name })); };
+    // what you have now, then type to find what you'd rather bring (pictures, your gear first)
+    const now = el("div", { class: "swapnow" }, [el("span", { class: "pv" }, [pic(name, kind)]), el("span", { class: "t" }, [el("small", {}, [t("sw.now")]), el("b", {}, [name])])]);
     const q = el("input", { type: "search", placeholder: t("sw.search"), autocomplete: "off", "aria-label": t("sw.search") });
-    const list = el("div", { class: "swaplist" });
+    let mineOnly = !!(owned && owned.size);
+    const seg = el("div", { class: "seg", role: "group" });
+    [["mine", t("sw.f.mine")], ["all", t("sw.f.all")]].forEach(([k, lab]) => { const b = el("button", { type: "button", "aria-pressed": String((k === "mine") === mineOnly) }, [lab]);
+      b.onclick = () => { mineOnly = k === "mine"; seg.querySelectorAll("button").forEach(z => z.setAttribute("aria-pressed", String(z === b))); paint(); }; seg.appendChild(b); });
+    const list = el("div", { class: "swaplist", role: "listbox" });
+    const count = el("div", { class: "hint", style: "margin:6px 0 0" });
     const paint = () => { list.innerHTML = ""; const f = q.value.trim().toLowerCase();
-      items.filter(i => !f || i.name.toLowerCase().includes(f)).slice(0, 80).forEach(i => {
-        const b = el("button", { type: "button", class: "swapitem" }, [el("span", { class: "pv" }, [pic(i.name, slot === "stratagem" ? "icon" : "img")]),
-          el("span", { class: "t" }, [el("b", {}, [i.name]), owned && !owned.has(i.name) ? el("small", {}, [t("sw.notlisted")]) : null])]);
+      const hits = items.filter(i => (!f || i.name.toLowerCase().includes(f) || String(i.group || "").toLowerCase().includes(f)) && (!mineOnly || !owned || owned.has(i.name)));
+      hits.slice(0, 120).forEach(i => {
+        const taken = inKit.has(i.name);
+        const b = el("button", { type: "button", class: "swapitem", role: "option", disabled: taken ? "" : null }, [el("span", { class: "pv" }, [pic(i.name, kind)]),
+          el("span", { class: "t" }, [el("b", {}, [i.name]), el("small", { class: "grp" }, [i.group || ""]),
+            taken ? el("small", {}, [t("sw.inkit")]) : owned && !owned.has(i.name) ? el("small", {}, [t("sw.notlisted")]) : null])]);
         b.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, to: i.name }, t("sw.done", { from: name, to: i.name })); };
-        list.appendChild(b); }); };
+        list.appendChild(b); });
+      if (!hits.length) list.appendChild(el("div", { class: "hint" }, [mineOnly ? t("sw.none.mine") : t("gf.empty")]));
+      count.textContent = hits.length > 120 ? t("sw.more", { n: hits.length - 120 }) : ""; };
     q.oninput = paint; paint();
+    const no = el("button", { type: "button", class: "btn sm red" }, ["✗ " + t("sw.notowned", { item: name })]);
+    no.onclick = () => { dlg.close(); swapPost(p, { slot, from: name, not_owned: true }, t("sw.removed", { item: name })); };
     dlg.append(el("div", { class: "mhead" }, [el("b", {}, [t("sw.title", { item: name })]), x]),
-      el("div", { class: "mbody" }, [el("div", { class: "hint", style: "margin:0 0 10px" }, [t("sw.explain")]), el("div", { class: "btnrow", style: "margin:0 0 12px" }, [no]),
-        el("div", { class: "sub-h first" }, [t("sw.instead")]), q, list]));
+      el("div", { class: "mbody" }, [now, q, owned && owned.size ? seg : null, list, count,
+        el("div", { class: "swapno" }, [el("div", { class: "hint", style: "margin:0 0 6px" }, [t("sw.explain")]), no])].filter(Boolean)));
     dlg.addEventListener("close", () => dlg.remove());
     dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
     document.body.appendChild(dlg); dlg.showModal ? dlg.showModal() : dlg.setAttribute("open", "");
+    setTimeout(() => q.focus(), 40);
   }
   async function setKitChoice(p, oid) {
     if (STATE.readiness && STATE.readiness.final && !confirm(t("kc.q"))) return;
@@ -2803,26 +2821,41 @@
       else { const h = (STATE.players || []).find(x => x.id !== p.id && x.assignment && x.assignment.role === wn);
         card.appendChild(el("div", { class: "wantrole" }, [h ? t("me.role.taken", { role: wn, who: h.callsign }) : t("me.role.not", { role: wn })])); }
     }
+    const canSwap = mine && !!meRec();   // your own seat on this device: tap a piece to swap it
+    const onSwap = canSwap ? (slot, name) => swapDialog(p, slot, name) : null;
+    const swapSet = new Set(p.swaps || []);
+    // a details row: tappable on your own card, glowing when it's a swap
+    const tapRow = (li, slot, name) => { if (name && swapSet.has(name)) { li.classList.add("swapped"); li.setAttribute("title", t("sw.mark", { item: name })); }
+      if (!onSwap || !name) return li;
+      li.classList.add("swappable"); li.setAttribute("role", "button"); li.setAttribute("tabindex", "0"); li.setAttribute("aria-label", t("sw.title", { item: name }));
+      li.addEventListener("click", e => { if (e.target.closest("a")) return; onSwap(slot, name); });
+      li.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSwap(slot, name); } });
+      li.appendChild(el("span", { class: "swapmark", "aria-hidden": "true" }, ["⇄"])); return li; };
+    const swapFoot = () => { if (!canSwap) return null;
+      const kids = [el("span", {}, [p.swapped ? t("sw.hint.on") : t("sw.hint")])];
+      if (p.swapped) { const u = el("button", { type: "button", class: "btn sm" }, ["↺ " + t("sw.reset")]); u.onclick = () => swapPost(p, { reset: true }, t("sw.undone")); kids.push(u); }
+      return el("div", { class: "swaphint" }, kids); };
     if (kitView === "screen") {
-      card.appendChild(locker(a, mine && p.locker ? (slot, name) => swapDialog(p, slot, name) : null));
-      if (mine && p.locker) card.appendChild(el("div", { class: "swaphint" }, [p.swapped ? t("sw.hint.on") : t("sw.hint")]));
+      card.appendChild(locker(a, onSwap, p.swaps));
+      const sf = swapFoot(); if (sf) card.appendChild(sf);
     } else {
     const kit = el("ul", { class: "kit" });
-    const row = (k, v, small) => el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]);
-    kit.appendChild(row("card.primary", wk(a.primary)));
-    kit.appendChild(row("card.secondary", wk(a.secondary)));
-    kit.appendChild(row("card.grenade", wk(a.grenade), nadeLine(a)));
-    const armorRow = row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive);
+    const row = (k, v, small, slot, name) => tapRow(el("li", {}, [el("span", { class: "sl" }, [t(k)]), el("span", { class: "vv" }, [v, small ? el("small", {}, [small]) : null])]), slot, name);
+    kit.appendChild(row("card.primary", wk(a.primary), null, "primary", a.primary));
+    kit.appendChild(row("card.secondary", wk(a.secondary), null, "secondary", a.secondary));
+    kit.appendChild(row("card.grenade", wk(a.grenade), nadeLine(a), "grenade", a.grenade));
+    const armorRow = row("card.armor", wk(a.armor), (has("w." + a.armor_weight) ? t("w." + a.armor_weight) : a.armor_weight) + " · " + a.armor_passive, "armor", a.armor);
     const pkey = "pe." + String(a.armor_passive).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
     const eff = has(pkey) ? t(pkey) : META.passives && META.passives[a.armor_passive];
     if (eff) armorRow.querySelector(".vv").appendChild(el("small", { class: "eff" }, [eff]));   // the passive's wiki effect
     kit.appendChild(armorRow);
-    kit.appendChild(row("card.booster", wk(a.booster)));
-    (a.stratagems || []).forEach((s, i) => kit.appendChild(el("li", {}, [
+    kit.appendChild(row("card.booster", wk(a.booster), null, "booster", a.booster));
+    (a.stratagems || []).forEach((s, i) => kit.appendChild(tapRow(el("li", {}, [
       el("span", { class: "sl" }, [i === 0 ? t("card.strats") : ""]),
       el("span", { class: "vv" }, [wk(s), s === a.growth_slot ? el("span", { class: "grow" }, [t("card.growth")]) : null]),
-    ])));
+    ]), "stratagem", s)));
     card.appendChild(kit);
+    const sf = swapFoot(); if (sf) card.appendChild(sf);
     }
     // a thin axis is fine only if a teammate holds it: say which, and flag the ones nobody does
     const mtx = (STATE.directive && STATE.directive.matrix) || {};

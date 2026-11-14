@@ -176,6 +176,11 @@ selector, a page error or sideways scroll.
   pictures); the real select stays underneath (hidden), so `.value` / "change" code keeps working. Used in the loadout
   builder (every slot), the Profile's armour pin, Log a drop's and Next mission's mission pickers. The gear checklist has a
   search box always on top (`input.gearq`, same filter as the ⚲ dialog; it jumps to the tab with matches).
+- Tap to swap (`swapDialog`): any diver taps a piece of their own kit (loadout screen tiles or Details rows; the name stays a
+  wiki link) for a sheet: what you have now, a search box, pictures, your gear first (My gear / Everything), stratagems
+  already in your kit greyed out, and "I don't have it" at the bottom. `state.players[].swaps` lists the items swapped in
+  (`kit_edits` values without `!`); those pieces glow yellow neon (`.swapped`) on every card. "Undo my swaps" sits under
+  the card.
 - Go / No-Go: `player.go`, shown in the war table's command panel.
 - Engine rules from feedback (`warmind/resolve.py`): a shield that leaves one hand free (`NEEDS_ONE_HANDED`: Directional
   Shield, Ballistic Shield) forces a one-handed primary (`ONE_HANDED_PRIMARIES`, edit after a patch; kit rule
